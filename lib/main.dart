@@ -11,8 +11,12 @@ import 'screens/splash_screen.dart';
 void main() async {
   await dotenv.load(fileName: ".env");
 
-  final supabaseUrl = 'https://yhvezloczmjfbdjibqte.supabase.co';
+  final supabaseUrl = dotenv.env['SUPABASE_URL'];
   final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'];
+
+  if (supabaseUrl == null || supabaseUrl.isEmpty) {
+    throw Exception('SUPABASE_URL is missing in .env file.');
+  }
 
   if (supabaseAnonKey == null || supabaseAnonKey.isEmpty) {
     throw Exception('SUPABASE_ANON_KEY is missing in .env file.');
