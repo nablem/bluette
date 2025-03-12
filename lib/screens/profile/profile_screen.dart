@@ -482,8 +482,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         alignment: Alignment.bottomRight,
         children: [
           Container(
-            width: 150,
-            height: 150,
+            width: 175,
+            height: 175,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(color: AppTheme.primaryColor, width: 3),

@@ -505,13 +505,31 @@ class _ExploreScreenState extends State<ExploreScreen> {
               ElevatedButton.icon(
                 onPressed: _showFilterDialog,
                 icon: const Icon(Icons.tune),
-                label: const Text('Adjust Filters'),
+                label: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
+                  child: Text('Adjust Filters'),
+                ),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 12.0,
+                  ),
+                ),
               ),
               const SizedBox(width: 10),
               ElevatedButton.icon(
                 onPressed: _initializeExplore,
                 icon: const Icon(Icons.refresh),
-                label: const Text('Refresh'),
+                label: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
+                  child: Text('Refresh'),
+                ),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 12.0,
+                  ),
+                ),
               ),
             ],
           ),
