@@ -23,7 +23,7 @@ class _FilterDialogState extends State<FilterDialog> {
   final double _minPossibleAge = 18;
   final double _maxPossibleAge = 100;
   final double _minPossibleDistance = 1;
-  final double _maxPossibleDistance = 100;
+  final double _maxPossibleDistance = 50;
 
   @override
   void initState() {
