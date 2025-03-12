@@ -14,7 +14,8 @@ class ExploreScreen extends StatefulWidget {
   State<ExploreScreen> createState() => _ExploreScreenState();
 }
 
-class _ExploreScreenState extends State<ExploreScreen> {
+class _ExploreScreenState extends State<ExploreScreen>
+    with TickerProviderStateMixin {
   final CardSwiperController _cardController = CardSwiperController();
   List<Map<String, dynamic>> _profiles = [];
   bool _isLoading = true;
@@ -23,10 +24,36 @@ class _ExploreScreenState extends State<ExploreScreen> {
   ProfileFilter _currentFilter = ProfileFilter.defaultFilter();
   Map<String, dynamic>? _userProfile;
 
+  // Animation controllers for the like and dislike buttons
+  late AnimationController _likeButtonController;
+  late Animation<double> _likeButtonAnimation;
+  late AnimationController _dislikeButtonController;
+  late Animation<double> _dislikeButtonAnimation;
+
   @override
   void initState() {
     super.initState();
     _checkLocationPermissionAndInitialize();
+
+    // Initialize animation controllers - one for each button
+    _likeButtonController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _likeButtonAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _likeButtonController, curve: Curves.easeOut),
+    );
+
+    // Create a separate controller for the dislike button
+    _dislikeButtonController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _dislikeButtonAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _dislikeButtonController, curve: Curves.easeOut),
+    );
   }
 
   @override
@@ -37,6 +64,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
   @override
   void dispose() {
     _cardController.dispose();
+    _likeButtonController.dispose();
+    _dislikeButtonController.dispose(); // Dispose the second controller
     super.dispose();
   }
 
@@ -283,6 +312,28 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
+  // Function to animate the like button
+  void _animateLikeButton() {
+    if (_profiles.isNotEmpty) {
+      _likeButtonController.reset();
+      _likeButtonController.forward().then((_) {
+        // Use the CardSwiper controller to swipe right after animation
+        _cardController.swipe(CardSwiperDirection.right);
+      });
+    }
+  }
+
+  // Function to animate the dislike button
+  void _animateDislikeButton() {
+    if (_profiles.isNotEmpty) {
+      _dislikeButtonController.reset();
+      _dislikeButtonController.forward().then((_) {
+        // Use the CardSwiper controller to swipe left after animation
+        _cardController.swipe(CardSwiperDirection.left);
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Make sure we're showing the correct UI state
@@ -325,7 +376,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       children: [
                         Expanded(
                           child: Padding(
-                            padding: const EdgeInsets.all(16.0),
+                            padding: const EdgeInsets.only(
+                              left: 16.0,
+                              right: 16.0,
+                              top: 16.0,
+                              bottom: 0.0,
+                            ),
                             child: CardSwiper(
                               key: ValueKey(_profiles.length),
                               controller: _cardController,
@@ -387,47 +443,91 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           ),
                         ),
                         Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 40.0,
-                            vertical: 20.0,
+                          padding: const EdgeInsets.only(
+                            left: 40.0,
+                            right: 40.0,
+                            top: 10.0,
+                            bottom: 30.0,
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
-                              // Dislike button
-                              FloatingActionButton(
-                                heroTag: 'dislike',
-                                onPressed: () {
-                                  if (_profiles.isNotEmpty) {
-                                    // Use the CardSwiper controller to swipe left
-                                    _cardController.swipe(
-                                      CardSwiperDirection.left,
+                              // Dislike button - wrapped in SizedBox to increase size
+                              SizedBox(
+                                width:
+                                    70, // Increased size (default is around 56)
+                                height:
+                                    70, // Increased size (default is around 56)
+                                child: AnimatedBuilder(
+                                  animation: _dislikeButtonAnimation,
+                                  builder: (context, child) {
+                                    // Calculate the rotation based on the animation value
+                                    final rotation =
+                                        _dislikeButtonAnimation.value *
+                                        3.14; // 180 degrees in radians
+
+                                    return Transform(
+                                      alignment: Alignment.center,
+                                      transform:
+                                          Matrix4.identity()
+                                            ..setEntry(
+                                              3,
+                                              2,
+                                              0.001,
+                                            ) // perspective
+                                            ..rotateY(rotation),
+                                      child: FloatingActionButton(
+                                        heroTag: 'dislike',
+                                        onPressed: _animateDislikeButton,
+                                        backgroundColor: Colors.white,
+                                        elevation: 8.0,
+                                        child: const Icon(
+                                          Icons.close,
+                                          color: Colors.red,
+                                          size: 45, // Increased icon size
+                                        ),
+                                      ),
                                     );
-                                  }
-                                },
-                                backgroundColor: Colors.white,
-                                child: const Icon(
-                                  Icons.close,
-                                  color: Colors.red,
-                                  size: 30,
+                                  },
                                 ),
                               ),
-                              // Like button
-                              FloatingActionButton(
-                                heroTag: 'like',
-                                onPressed: () {
-                                  if (_profiles.isNotEmpty) {
-                                    // Use the CardSwiper controller to swipe right
-                                    _cardController.swipe(
-                                      CardSwiperDirection.right,
+                              // Like button - wrapped in SizedBox to increase size
+                              SizedBox(
+                                width:
+                                    70, // Increased size (default is around 56)
+                                height:
+                                    70, // Increased size (default is around 56)
+                                child: AnimatedBuilder(
+                                  animation: _likeButtonAnimation,
+                                  builder: (context, child) {
+                                    // Calculate the rotation based on the animation value
+                                    final rotation =
+                                        _likeButtonAnimation.value *
+                                        3.14; // 180 degrees in radians
+
+                                    return Transform(
+                                      alignment: Alignment.center,
+                                      transform:
+                                          Matrix4.identity()
+                                            ..setEntry(
+                                              3,
+                                              2,
+                                              0.001,
+                                            ) // perspective
+                                            ..rotateY(rotation),
+                                      child: FloatingActionButton(
+                                        heroTag: 'like',
+                                        onPressed: _animateLikeButton,
+                                        backgroundColor: AppTheme.primaryColor,
+                                        elevation: 8.0,
+                                        child: const Icon(
+                                          Icons.favorite,
+                                          color: Colors.white,
+                                          size: 45, // Increased icon size
+                                        ),
+                                      ),
                                     );
-                                  }
-                                },
-                                backgroundColor: AppTheme.primaryColor,
-                                child: const Icon(
-                                  Icons.favorite,
-                                  color: Colors.white,
-                                  size: 30,
+                                  },
                                 ),
                               ),
                             ],
