@@ -15,7 +15,7 @@ class ExploreScreen extends StatefulWidget {
 }
 
 class _ExploreScreenState extends State<ExploreScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   final CardSwiperController _cardController = CardSwiperController();
   List<Map<String, dynamic>> _profiles = [];
   bool _isLoading = true;
@@ -30,9 +30,14 @@ class _ExploreScreenState extends State<ExploreScreen>
   late AnimationController _dislikeButtonController;
   late Animation<double> _dislikeButtonAnimation;
 
+  // Add a class variable to store the location status
+  LocationStatus _locationStatus = LocationStatus.permissionDenied;
+
   @override
   void initState() {
     super.initState();
+    // Add observer for app lifecycle changes
+    WidgetsBinding.instance.addObserver(this);
     _checkLocationPermissionAndInitialize();
 
     // Initialize animation controllers - one for each button
@@ -63,34 +68,62 @@ class _ExploreScreenState extends State<ExploreScreen>
 
   @override
   void dispose() {
+    // Remove observer
+    WidgetsBinding.instance.removeObserver(this);
     _cardController.dispose();
     _likeButtonController.dispose();
-    _dislikeButtonController.dispose(); // Dispose the second controller
+    _dislikeButtonController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // When app resumes from background, check if location permission was granted
+    if (state == AppLifecycleState.resumed) {
+      // Check if location permission status has changed
+      _checkLocationStatusChange();
+    }
+  }
+
+  // Check if location permission status has changed
+  Future<void> _checkLocationStatusChange() async {
+    // Only check if we don't already have permission
+    if (!_isLocationPermissionGranted) {
+      final isGranted = await LocationService.isLocationPermissionGranted();
+      if (isGranted) {
+        // Permission was granted in settings, reinitialize
+        _checkLocationPermissionAndInitialize();
+      }
+    }
   }
 
   Future<void> _checkLocationPermissionAndInitialize() async {
     setState(() {
       _isLoading = true;
+      _errorMessage = null;
     });
 
-    // Check if location permission is granted
-    final permissionStatus = await LocationService.showLocationPermissionDialog(
-      context,
-    );
-    final isPermissionGranted =
-        permissionStatus == LocationStatus.permissionGranted;
+    try {
+      // Request location permission using the native dialog
+      final permissionStatus =
+          await LocationService.requestLocationPermission();
+      final isPermissionGranted =
+          permissionStatus == LocationStatus.permissionGranted;
 
-    setState(() {
-      _isLocationPermissionGranted = isPermissionGranted;
-    });
+      setState(() {
+        _isLocationPermissionGranted = isPermissionGranted;
+        _locationStatus = permissionStatus;
+        _isLoading = false;
+      });
 
-    if (isPermissionGranted) {
-      // Only initialize explore if permission is granted
-      await _initializeExplore();
-    } else {
+      if (isPermissionGranted) {
+        // Only initialize explore if permission is granted
+        await _initializeExplore();
+      }
+    } catch (e) {
       setState(() {
         _isLoading = false;
+        _errorMessage = 'Error checking location permission: $e';
       });
     }
   }
@@ -564,21 +597,42 @@ class _ExploreScreenState extends State<ExploreScreen>
           const Icon(Icons.location_off, size: 80, color: Colors.grey),
           const SizedBox(height: 20),
           Text(
-            'Location permission is required to use this feature',
+            'Location Access Required',
             style: AppTheme.headingStyle,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 10),
-          Text(
-            'Please grant location permission in your device settings',
-            style: AppTheme.bodyStyle,
-            textAlign: TextAlign.center,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32.0),
+            child: Text(
+              'We need your location to show you nearby profiles. Please enable location services and grant permission.',
+              style: AppTheme.bodyStyle,
+              textAlign: TextAlign.center,
+            ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 30),
           ElevatedButton(
             onPressed: _checkLocationPermissionAndInitialize,
-            child: const Text('Grant Location Permission'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+            child: const Text('Grant Permission'),
           ),
+          const SizedBox(height: 16),
+          if (_locationStatus == LocationStatus.serviceDisabled)
+            TextButton(
+              onPressed: () async {
+                await LocationService.openLocationSettings();
+              },
+              child: const Text('Open Location Settings'),
+            )
+          else if (_locationStatus == LocationStatus.permissionDeniedForever)
+            TextButton(
+              onPressed: () async {
+                await LocationService.openAppSettings();
+              },
+              child: const Text('Open App Settings'),
+            ),
         ],
       ),
     );
