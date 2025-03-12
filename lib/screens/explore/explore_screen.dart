@@ -190,6 +190,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
           }
         }
 
+        // Wait a short delay to allow the swipe animation to complete
+        // before removing the profile from the list
+        await Future.delayed(const Duration(milliseconds: 300));
+
         // Remove the swiped profile from our list
         if (mounted) {
           setState(() {
@@ -199,6 +203,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
             );
             if (index >= 0) {
               _profiles.removeAt(index);
+              print(
+                'Removed profile at index $index, ${_profiles.length} profiles remaining',
+              );
             }
           });
         }
@@ -279,8 +286,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
   Widget build(BuildContext context) {
     // Make sure we're showing the correct UI state
     final bool hasProfiles = _profiles.isNotEmpty;
+    final int profileCount = _profiles.length;
 
-    print('Building ExploreScreen with ${_profiles.length} profiles');
+    print('Building ExploreScreen with $profileCount profiles');
 
     return Scaffold(
       // Removing the app bar for a cleaner, more immersive experience
@@ -318,6 +326,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           child: Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: CardSwiper(
+                              key: ValueKey(_profiles.length),
                               controller: _cardController,
                               cardsCount: _profiles.length,
                               onSwipe: (
@@ -339,16 +348,18 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                   'Swiped profile: ${swipedProfile['name']} (${liked ? 'liked' : 'disliked'})',
                                 );
 
-                                // Handle the swipe in the background
-                                // This will also remove the profile from the list and fetch more profiles if needed
-                                _handleSwipe(previousIndex, liked);
+                                // First allow the swipe animation to complete
+                                // Then handle the swipe logic in the background
+                                Future.microtask(() {
+                                  _handleSwipe(previousIndex, liked);
+                                });
 
                                 // Return true to allow the default swipe animation
                                 return true;
                               },
                               // Ensure we don't display more cards than available
                               numberOfCardsDisplayed:
-                                  _profiles.length < 3 ? _profiles.length : 3,
+                                  profileCount < 3 ? profileCount : 3,
                               backCardOffset: const Offset(20, 20),
                               padding: const EdgeInsets.all(24.0),
                               allowedSwipeDirection: AllowedSwipeDirection.only(
@@ -358,9 +369,18 @@ class _ExploreScreenState extends State<ExploreScreen> {
                               isLoop: false, // Prevent looping
                               cardBuilder: (context, index, _, __) {
                                 if (index < 0 || index >= _profiles.length) {
+                                  print(
+                                    'Invalid index: $index, profile count: ${_profiles.length}',
+                                  );
                                   return const SizedBox.shrink();
                                 }
-                                return ProfileCard(profile: _profiles[index]);
+                                print(
+                                  'Building card for profile at index $index: ${_profiles[index]['name']}',
+                                );
+                                return ProfileCard(
+                                  key: ValueKey(_profiles[index]['id']),
+                                  profile: _profiles[index],
+                                );
                               },
                             ),
                           ),
