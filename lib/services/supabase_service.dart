@@ -418,4 +418,116 @@ class SupabaseService {
       return null;
     }
   }
+
+  // Fetch profiles based on gender preference
+  static Future<List<Map<String, dynamic>>> getProfilesToSwipe() async {
+    if (currentUser == null) return [];
+
+    try {
+      // Get current user profile to determine gender preference
+      final userProfile = await getUserProfile();
+      if (userProfile == null) return [];
+
+      final String? interestedIn = userProfile['interested_in'];
+      if (interestedIn == null) return [];
+
+      // Get user's already swiped profiles
+      final swipedProfiles = await _supabaseClient
+          .from('swipes')
+          .select('swiped_profile_id')
+          .eq('user_id', currentUser!.id);
+
+      final List<String> swipedProfileIds =
+          swipedProfiles.isNotEmpty
+              ? List<String>.from(
+                swipedProfiles.map((profile) => profile['swiped_profile_id']),
+              )
+              : [];
+
+      print('Already swiped profiles: $swipedProfileIds');
+
+      // Build query based on gender preference
+      var query = _supabaseClient
+          .from('profiles')
+          .select()
+          .neq('id', currentUser!.id); // Exclude current user
+
+      // Filter out already swiped profiles
+      if (swipedProfileIds.isNotEmpty) {
+        // Use 'not in' to exclude all swiped profile IDs
+        query = query.not('id', 'in', swipedProfileIds);
+      }
+
+      // Apply gender filter based on preference
+      if (interestedIn != 'Everyone') {
+        query = query.eq('gender', interestedIn);
+      }
+
+      final profiles = await query.limit(20);
+      print('Fetched ${profiles.length} profiles to swipe');
+
+      return List<Map<String, dynamic>>.from(profiles);
+    } catch (e) {
+      print('Error fetching profiles to swipe: $e');
+      return [];
+    }
+  }
+
+  // Record a swipe (like or dislike)
+  static Future<void> recordSwipe({
+    required String swipedProfileId,
+    required bool liked,
+  }) async {
+    if (currentUser == null) return;
+
+    try {
+      await _supabaseClient.from('swipes').insert({
+        'user_id': currentUser!.id,
+        'swiped_profile_id': swipedProfileId,
+        'liked': liked,
+      });
+      print('Swipe recorded: ${liked ? 'liked' : 'disliked'} $swipedProfileId');
+    } catch (e) {
+      print('Error recording swipe: $e');
+      throw e;
+    }
+  }
+
+  // Check if there's a match (both users liked each other)
+  static Future<bool> checkForMatch(String swipedProfileId) async {
+    if (currentUser == null) return false;
+
+    try {
+      // Check if the other user has already liked the current user
+      final result = await _supabaseClient
+          .from('swipes')
+          .select()
+          .eq('user_id', swipedProfileId)
+          .eq('swiped_profile_id', currentUser!.id)
+          .eq('liked', true)
+          .limit(1);
+
+      return result.isNotEmpty;
+    } catch (e) {
+      print('Error checking for match: $e');
+      return false;
+    }
+  }
+
+  // Clear all swipes for the current user (for testing purposes)
+  static Future<void> clearUserSwipes() async {
+    if (currentUser == null) return;
+
+    try {
+      await _supabaseClient
+          .from('swipes')
+          .delete()
+          .eq('user_id', currentUser!.id);
+
+      print('All swipes cleared for current user');
+    } catch (e) {
+      print('Error clearing swipes: $e');
+      throw e;
+    }
+  }
 }
