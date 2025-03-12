@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:just_audio/just_audio.dart';
 import '../constants/app_theme.dart';
-import 'dart:math' as math;
 
 class ProfileCard extends StatefulWidget {
   final Map<String, dynamic> profile;
