@@ -87,7 +87,13 @@ class ProfileCompletionService extends ChangeNotifier {
         email = 'user_${DateTime.now().millisecondsSinceEpoch}@example.com';
       }
 
-      // Update basic info with explicit email
+      // Calculate default filter values based on user's age
+      final int userAge = _age!;
+      final int minAge = (userAge - 5) < 18 ? 18 : (userAge - 5);
+      final int maxAge = userAge + 5;
+      const int maxDistance = 5;
+
+      // Update basic info with explicit email and default filter values
       final Map<String, dynamic> userData = {
         'id': currentUser.id,
         'email': email,
@@ -98,6 +104,9 @@ class ProfileCompletionService extends ChangeNotifier {
         'gender': _gender,
         'interested_in': _interestedIn,
         'age': _age,
+        'min_age': minAge,
+        'max_age': maxAge,
+        'max_distance': maxDistance,
       };
 
       print('Completing profile with data: $userData');

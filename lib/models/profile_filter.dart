@@ -33,7 +33,15 @@ class ProfileFilter {
   }
 
   // Default filter values
-  factory ProfileFilter.defaultFilter() {
-    return ProfileFilter(minAge: 18, maxAge: 100, maxDistance: 5);
+  factory ProfileFilter.defaultFilter({int? userAge}) {
+    if (userAge != null) {
+      // Calculate based on user's age
+      final int minAge = (userAge - 5) < 18 ? 18 : (userAge - 5);
+      final int maxAge = userAge + 5;
+      return ProfileFilter(minAge: minAge, maxAge: maxAge, maxDistance: 5);
+    } else {
+      // Generic defaults if no user age provided
+      return ProfileFilter(minAge: 18, maxAge: 100, maxDistance: 5);
+    }
   }
 }

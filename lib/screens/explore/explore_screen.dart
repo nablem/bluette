@@ -165,6 +165,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
           (context) => FilterDialog(
             initialFilter: _currentFilter,
             onApplyFilter: _applyFilter,
+            userAge: _userProfile?['age'],
           ),
     );
   }

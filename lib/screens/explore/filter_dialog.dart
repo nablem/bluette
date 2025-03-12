@@ -5,11 +5,13 @@ import '../../models/profile_filter.dart';
 class FilterDialog extends StatefulWidget {
   final ProfileFilter initialFilter;
   final Function(ProfileFilter) onApplyFilter;
+  final int? userAge;
 
   const FilterDialog({
     super.key,
     required this.initialFilter,
     required this.onApplyFilter,
+    this.userAge,
   });
 
   @override
@@ -144,7 +146,9 @@ class _FilterDialogState extends State<FilterDialog> {
               child: TextButton(
                 onPressed: () {
                   setState(() {
-                    _filter = ProfileFilter.defaultFilter();
+                    _filter = ProfileFilter.defaultFilter(
+                      userAge: widget.userAge,
+                    );
                   });
                 },
                 child: const Text('Reset to Default'),
