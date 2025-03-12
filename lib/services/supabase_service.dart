@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:path/path.dart' as path;
+import 'dart:math';
 
 class SupabaseService {
   static final SupabaseClient _supabaseClient = Supabase.instance.client;
@@ -419,17 +420,30 @@ class SupabaseService {
     }
   }
 
-  // Fetch profiles based on gender preference
-  static Future<List<Map<String, dynamic>>> getProfilesToSwipe() async {
+  // Fetch profiles based on gender preference and filter settings
+  static Future<List<Map<String, dynamic>>> getProfilesToSwipe({
+    int? minAge,
+    int? maxAge,
+    int? maxDistance,
+  }) async {
     if (currentUser == null) return [];
 
     try {
-      // Get current user profile to determine gender preference
+      // Get current user profile to determine gender preference and default filters
       final userProfile = await getUserProfile();
       if (userProfile == null) return [];
 
       final String? interestedIn = userProfile['interested_in'];
       if (interestedIn == null) return [];
+
+      // Use provided filter values or fall back to user's saved preferences
+      final filterMinAge = minAge ?? userProfile['min_age'] ?? 18;
+      final filterMaxAge = maxAge ?? userProfile['max_age'] ?? 100;
+      final filterMaxDistance = maxDistance ?? userProfile['max_distance'] ?? 5;
+
+      print(
+        'Filtering profiles with: minAge=$filterMinAge, maxAge=$filterMaxAge, maxDistance=$filterMaxDistance',
+      );
 
       // Get user's already swiped profiles
       final swipedProfiles = await _supabaseClient
@@ -445,6 +459,16 @@ class SupabaseService {
               : [];
 
       print('Already swiped profiles: $swipedProfileIds');
+
+      // Get current user's location for distance calculation
+      final double? userLat =
+          userProfile['latitude'] != null
+              ? double.tryParse(userProfile['latitude'].toString())
+              : null;
+      final double? userLong =
+          userProfile['longitude'] != null
+              ? double.tryParse(userProfile['longitude'].toString())
+              : null;
 
       // Build query based on gender preference
       var query = _supabaseClient
@@ -463,14 +487,86 @@ class SupabaseService {
         query = query.eq('gender', interestedIn);
       }
 
-      final profiles = await query.limit(20);
-      print('Fetched ${profiles.length} profiles to swipe');
+      // Apply age filters
+      query = query.gte('age', filterMinAge).lte('age', filterMaxAge);
 
-      return List<Map<String, dynamic>>.from(profiles);
+      // Fetch profiles that match the criteria
+      final profiles = await query.limit(7);
+      print('Fetched ${profiles.length} profiles before distance filtering');
+
+      // Filter by distance (if location is available)
+      List<Map<String, dynamic>> filteredProfiles = [];
+      if (userLat != null && userLong != null) {
+        for (var profile in profiles) {
+          final double? profileLat =
+              profile['latitude'] != null
+                  ? double.tryParse(profile['latitude'].toString())
+                  : null;
+          final double? profileLong =
+              profile['longitude'] != null
+                  ? double.tryParse(profile['longitude'].toString())
+                  : null;
+
+          if (profileLat != null && profileLong != null) {
+            final distance = _calculateDistance(
+              userLat,
+              userLong,
+              profileLat,
+              profileLong,
+            );
+
+            // Add distance to profile for display purposes
+            profile['distance'] = distance.round();
+
+            // Only include profiles within the max distance
+            if (distance <= filterMaxDistance) {
+              filteredProfiles.add(profile);
+            }
+          } else {
+            // Include profiles without location data (optional)
+            profile['distance'] = null;
+            filteredProfiles.add(profile);
+          }
+        }
+      } else {
+        // If user location is not available, include all profiles
+        filteredProfiles = List<Map<String, dynamic>>.from(profiles);
+      }
+
+      print(
+        'Returning ${filteredProfiles.length} profiles after distance filtering',
+      );
+      return filteredProfiles;
     } catch (e) {
       print('Error fetching profiles to swipe: $e');
       return [];
     }
+  }
+
+  // Calculate distance between two points using Haversine formula
+  static double _calculateDistance(
+    double lat1,
+    double lon1,
+    double lat2,
+    double lon2,
+  ) {
+    const R = 6371.0; // Earth radius in kilometers
+    final dLat = _toRadians(lat2 - lat1);
+    final dLon = _toRadians(lon2 - lon1);
+
+    final a =
+        sin(dLat / 2) * sin(dLat / 2) +
+        cos(_toRadians(lat1)) *
+            cos(_toRadians(lat2)) *
+            sin(dLon / 2) *
+            sin(dLon / 2);
+
+    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    return R * c;
+  }
+
+  static double _toRadians(double degree) {
+    return degree * (pi / 180);
   }
 
   // Record a swipe (like or dislike)

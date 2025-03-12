@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import '../../constants/app_theme.dart';
+import '../../models/profile_filter.dart';
 import '../../services/location_service.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/profile_card.dart';
+import 'filter_dialog.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -16,18 +18,52 @@ class _ExploreScreenState extends State<ExploreScreen> {
   final CardSwiperController _cardController = CardSwiperController();
   List<Map<String, dynamic>> _profiles = [];
   bool _isLoading = true;
+  bool _isLocationPermissionGranted = false;
   String? _errorMessage;
+  ProfileFilter _currentFilter = ProfileFilter.defaultFilter();
+  Map<String, dynamic>? _userProfile;
 
   @override
   void initState() {
     super.initState();
-    _initializeExplore();
+    _checkLocationPermissionAndInitialize();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
   }
 
   @override
   void dispose() {
     _cardController.dispose();
     super.dispose();
+  }
+
+  Future<void> _checkLocationPermissionAndInitialize() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    // Check if location permission is granted
+    final permissionStatus = await LocationService.showLocationPermissionDialog(
+      context,
+    );
+    final isPermissionGranted =
+        permissionStatus == LocationStatus.permissionGranted;
+
+    setState(() {
+      _isLocationPermissionGranted = isPermissionGranted;
+    });
+
+    if (isPermissionGranted) {
+      // Only initialize explore if permission is granted
+      await _initializeExplore();
+    } else {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _initializeExplore() async {
@@ -38,15 +74,34 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
     try {
       // Update user location
-      await LocationService.updateUserLocation();
+      final locationUpdated = await LocationService.updateUserLocation();
+      if (!locationUpdated) {
+        print('Could not update location, but continuing to fetch profiles');
+      }
 
-      // Fetch profiles to swipe
-      final profiles = await SupabaseService.getProfilesToSwipe();
+      // Get user profile to initialize filter
+      _userProfile = await SupabaseService.getUserProfile();
+      if (_userProfile != null) {
+        _currentFilter = ProfileFilter(
+          minAge: _userProfile!['min_age'] ?? 18,
+          maxAge: _userProfile!['max_age'] ?? 100,
+          maxDistance: _userProfile!['max_distance'] ?? 5,
+        );
+      }
 
-      setState(() {
-        _profiles = profiles;
-        _isLoading = false;
-      });
+      // Fetch profiles to swipe with current filter
+      final profiles = await SupabaseService.getProfilesToSwipe(
+        minAge: _currentFilter.minAge,
+        maxAge: _currentFilter.maxAge,
+        maxDistance: _currentFilter.maxDistance,
+      );
+
+      if (mounted) {
+        setState(() {
+          _profiles = profiles;
+          _isLoading = false;
+        });
+      }
 
       // Log if no profiles were found
       if (profiles.isEmpty) {
@@ -55,11 +110,63 @@ class _ExploreScreenState extends State<ExploreScreen> {
         );
       }
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Error loading profiles: $e';
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Error loading profiles: $e';
+          _isLoading = false;
+        });
+      }
     }
+  }
+
+  Future<void> _applyFilter(ProfileFilter filter) async {
+    setState(() {
+      _currentFilter = filter;
+      _isLoading = true;
+    });
+
+    try {
+      // Fetch profiles with the new filter
+      final profiles = await SupabaseService.getProfilesToSwipe(
+        minAge: filter.minAge,
+        maxAge: filter.maxAge,
+        maxDistance: filter.maxDistance,
+      );
+
+      // Save filter preferences to user profile
+      if (_userProfile != null) {
+        await SupabaseService.updateUserData({
+          'min_age': filter.minAge,
+          'max_age': filter.maxAge,
+          'max_distance': filter.maxDistance,
+        });
+      }
+
+      if (mounted) {
+        setState(() {
+          _profiles = profiles;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Error applying filter: $e';
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _showFilterDialog() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => FilterDialog(
+            initialFilter: _currentFilter,
+            onApplyFilter: _applyFilter,
+          ),
+    );
   }
 
   Future<void> _handleSwipe(int index, bool liked) async {
@@ -74,13 +181,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
           liked: liked,
         );
 
-        // Remove the swiped profile from the local list
-        if (mounted) {
-          setState(() {
-            _profiles.removeAt(index);
-          });
-        }
-
         // If liked, check for a match
         if (liked) {
           final isMatch = await SupabaseService.checkForMatch(swipedProfileId);
@@ -89,9 +189,65 @@ class _ExploreScreenState extends State<ExploreScreen> {
             _showMatchDialog(swipedProfile);
           }
         }
+
+        // Remove the swiped profile from our list
+        if (mounted) {
+          setState(() {
+            // Find the profile by ID to ensure we remove the correct one
+            final index = _profiles.indexWhere(
+              (p) => p['id'] == swipedProfileId,
+            );
+            if (index >= 0) {
+              _profiles.removeAt(index);
+            }
+          });
+        }
+
+        // Always fetch more profiles when we're down to the last 5
+        // This ensures we always have profiles ready before the user runs out
+        if (mounted && _profiles.length <= 5) {
+          await _fetchMoreProfiles();
+        }
       } catch (e) {
         print('Error recording swipe: $e');
       }
+    }
+  }
+
+  Future<void> _fetchMoreProfiles() async {
+    try {
+      print('Fetching more profiles...');
+      final newProfiles = await SupabaseService.getProfilesToSwipe(
+        minAge: _currentFilter.minAge,
+        maxAge: _currentFilter.maxAge,
+        maxDistance: _currentFilter.maxDistance,
+      );
+
+      if (mounted) {
+        if (newProfiles.isNotEmpty) {
+          setState(() {
+            // Add new profiles, avoiding duplicates
+            final existingIds = _profiles.map((p) => p['id']).toSet();
+            final uniqueNewProfiles =
+                newProfiles
+                    .where((p) => !existingIds.contains(p['id']))
+                    .toList();
+
+            if (uniqueNewProfiles.isNotEmpty) {
+              print(
+                'Adding ${uniqueNewProfiles.length} new profiles to the stack',
+              );
+              _profiles.addAll(uniqueNewProfiles);
+            } else {
+              print('No new unique profiles found');
+            }
+          });
+        } else {
+          print('No more profiles available to fetch');
+        }
+      }
+    } catch (e) {
+      print('Error fetching more profiles: $e');
     }
   }
 
@@ -124,169 +280,241 @@ class _ExploreScreenState extends State<ExploreScreen> {
     // Make sure we're showing the correct UI state
     final bool hasProfiles = _profiles.isNotEmpty;
 
+    print('Building ExploreScreen with ${_profiles.length} profiles');
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Explore'),
-        backgroundColor: AppTheme.primaryColor,
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _initializeExplore,
-            tooltip: 'Refresh profiles',
-          ),
-        ],
-      ),
-      body:
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _errorMessage != null
-              ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      _errorMessage!,
-                      style: const TextStyle(color: Colors.red),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: _initializeExplore,
-                      child: const Text('Retry'),
-                    ),
-                  ],
-                ),
-              )
-              : !hasProfiles
-              ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.search_off, size: 80, color: Colors.grey),
-                    const SizedBox(height: 20),
-                    Text(
-                      'No more profiles to show',
-                      style: AppTheme.headingStyle,
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Try again later or adjust your preferences',
-                      style: AppTheme.bodyStyle,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: _initializeExplore,
-                      child: const Text('Refresh'),
-                    ),
-                    const SizedBox(height: 10),
-                    // For testing purposes - clear swipes
-                    TextButton.icon(
-                      onPressed: () async {
-                        try {
-                          await SupabaseService.clearUserSwipes();
-                          _initializeExplore();
-                        } catch (e) {
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Error clearing swipes: $e'),
-                              ),
-                            );
-                          }
-                        }
-                      },
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Reset All Swipes (Testing)'),
-                    ),
-                  ],
-                ),
-              )
-              : Column(
-                children: [
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: CardSwiper(
-                        controller: _cardController,
-                        cardsCount: _profiles.length,
-                        onSwipe: (previousIndex, currentIndex, direction) {
-                          final liked = direction == CardSwiperDirection.right;
-                          _handleSwipe(previousIndex, liked);
-
-                          // Check if we've run out of profiles
-                          if (_profiles.isEmpty ||
-                              currentIndex == null ||
-                              currentIndex >= _profiles.length) {
-                            // Delay the state update slightly to avoid conflicts with the swipe animation
-                            Future.delayed(const Duration(milliseconds: 300), () {
-                              if (mounted) {
-                                setState(() {
-                                  // This will trigger a rebuild and show the "No more profiles" view
-                                });
-                              }
-                            });
-                          }
-
-                          return true;
-                        },
-                        numberOfCardsDisplayed:
-                            _profiles.length < 3 ? _profiles.length : 3,
-                        backCardOffset: const Offset(20, 20),
-                        padding: const EdgeInsets.all(24.0),
-                        cardBuilder: (context, index, _, __) {
-                          if (index < 0 || index >= _profiles.length) {
-                            return const SizedBox.shrink();
-                          }
-                          return ProfileCard(profile: _profiles[index]);
-                        },
+      // Removing the app bar for a cleaner, more immersive experience
+      body: SafeArea(
+        child:
+            _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : !_isLocationPermissionGranted
+                ? _buildLocationPermissionRequired()
+                : _errorMessage != null
+                ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _errorMessage!,
+                        style: const TextStyle(color: Colors.red),
+                        textAlign: TextAlign.center,
                       ),
-                    ),
+                      const SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: _initializeExplore,
+                        child: const Text('Retry'),
+                      ),
+                    ],
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 40.0,
-                      vertical: 20.0,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                )
+                : !hasProfiles
+                ? _buildNoProfilesView()
+                : Stack(
+                  children: [
+                    Column(
                       children: [
-                        // Dislike button
-                        FloatingActionButton(
-                          heroTag: 'dislike',
-                          onPressed: () {
-                            if (_profiles.isNotEmpty) {
-                              _cardController.swipe(CardSwiperDirection.left);
-                            }
-                          },
-                          backgroundColor: Colors.white,
-                          child: const Icon(
-                            Icons.close,
-                            color: Colors.red,
-                            size: 30,
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: CardSwiper(
+                              controller: _cardController,
+                              cardsCount: _profiles.length,
+                              onSwipe: (
+                                previousIndex,
+                                currentIndex,
+                                direction,
+                              ) async {
+                                if (previousIndex < 0 ||
+                                    previousIndex >= _profiles.length) {
+                                  return false; // Invalid index, don't allow swipe
+                                }
+
+                                final liked =
+                                    direction == CardSwiperDirection.right;
+
+                                // Get a reference to the swiped profile
+                                final swipedProfile = _profiles[previousIndex];
+                                print(
+                                  'Swiped profile: ${swipedProfile['name']} (${liked ? 'liked' : 'disliked'})',
+                                );
+
+                                // Handle the swipe in the background
+                                // This will also remove the profile from the list and fetch more profiles if needed
+                                _handleSwipe(previousIndex, liked);
+
+                                // Return true to allow the default swipe animation
+                                return true;
+                              },
+                              // Ensure we don't display more cards than available
+                              numberOfCardsDisplayed:
+                                  _profiles.length < 3 ? _profiles.length : 3,
+                              backCardOffset: const Offset(20, 20),
+                              padding: const EdgeInsets.all(24.0),
+                              allowedSwipeDirection: AllowedSwipeDirection.only(
+                                left: true,
+                                right: true,
+                              ),
+                              isLoop: false, // Prevent looping
+                              cardBuilder: (context, index, _, __) {
+                                if (index < 0 || index >= _profiles.length) {
+                                  return const SizedBox.shrink();
+                                }
+                                return ProfileCard(profile: _profiles[index]);
+                              },
+                            ),
                           ),
                         ),
-                        // Like button
-                        FloatingActionButton(
-                          heroTag: 'like',
-                          onPressed: () {
-                            if (_profiles.isNotEmpty) {
-                              _cardController.swipe(CardSwiperDirection.right);
-                            }
-                          },
-                          backgroundColor: AppTheme.primaryColor,
-                          child: const Icon(
-                            Icons.favorite,
-                            color: Colors.white,
-                            size: 30,
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 40.0,
+                            vertical: 20.0,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              // Dislike button
+                              FloatingActionButton(
+                                heroTag: 'dislike',
+                                onPressed: () {
+                                  if (_profiles.isNotEmpty) {
+                                    // Use the CardSwiper controller to swipe left
+                                    _cardController.swipe(
+                                      CardSwiperDirection.left,
+                                    );
+                                  }
+                                },
+                                backgroundColor: Colors.white,
+                                child: const Icon(
+                                  Icons.close,
+                                  color: Colors.red,
+                                  size: 30,
+                                ),
+                              ),
+                              // Like button
+                              FloatingActionButton(
+                                heroTag: 'like',
+                                onPressed: () {
+                                  if (_profiles.isNotEmpty) {
+                                    // Use the CardSwiper controller to swipe right
+                                    _cardController.swipe(
+                                      CardSwiperDirection.right,
+                                    );
+                                  }
+                                },
+                                backgroundColor: AppTheme.primaryColor,
+                                child: const Icon(
+                                  Icons.favorite,
+                                  color: Colors.white,
+                                  size: 30,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ],
+                    // Filter button in the top-right corner
+                    Positioned(
+                      top: 10,
+                      right: 10,
+                      child: FloatingActionButton(
+                        mini: true,
+                        heroTag: 'filter',
+                        onPressed: _showFilterDialog,
+                        backgroundColor: Colors.white,
+                        child: const Icon(
+                          Icons.tune,
+                          color: AppTheme.primaryColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+      ),
+    );
+  }
+
+  Widget _buildLocationPermissionRequired() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.location_off, size: 80, color: Colors.grey),
+          const SizedBox(height: 20),
+          Text(
+            'Location permission is required to use this feature',
+            style: AppTheme.headingStyle,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Please grant location permission in your device settings',
+            style: AppTheme.bodyStyle,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: _checkLocationPermissionAndInitialize,
+            child: const Text('Grant Location Permission'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Widget to show when there are no profiles to display
+  Widget _buildNoProfilesView() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.search_off, size: 80, color: Colors.grey),
+          const SizedBox(height: 20),
+          Text('No more profiles to show', style: AppTheme.headingStyle),
+          const SizedBox(height: 10),
+          Text(
+            'Try again later or adjust your preferences',
+            style: AppTheme.bodyStyle,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton.icon(
+                onPressed: _showFilterDialog,
+                icon: const Icon(Icons.tune),
+                label: const Text('Adjust Filters'),
               ),
+              const SizedBox(width: 10),
+              ElevatedButton.icon(
+                onPressed: _initializeExplore,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Refresh'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // For testing purposes - clear swipes
+          TextButton.icon(
+            onPressed: () async {
+              try {
+                await SupabaseService.clearUserSwipes();
+                _initializeExplore();
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error clearing swipes: $e')),
+                  );
+                }
+              }
+            },
+            icon: const Icon(Icons.refresh),
+            label: const Text('Reset All Swipes (Testing)'),
+          ),
+        ],
+      ),
     );
   }
 }

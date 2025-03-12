@@ -550,247 +550,252 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Profile'),
-        backgroundColor: AppTheme.primaryColor,
-        foregroundColor: Colors.white,
-      ),
-      body:
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _userProfile == null
-              ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.error_outline,
-                      size: 48,
-                      color: AppTheme.errorColor,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      _errorMessage ?? 'Failed to load profile',
-                      style: AppTheme.bodyStyle.copyWith(
+      // Removing the app bar for a cleaner, more immersive experience
+      body: SafeArea(
+        child:
+            _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _userProfile == null
+                ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        size: 48,
                         color: AppTheme.errorColor,
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 24),
-                    CustomButton(
-                      text: 'Try Again',
-                      onPressed: _loadUserProfile,
-                      icon: Icons.refresh,
-                    ),
-                  ],
-                ),
-              )
-              : RefreshIndicator(
-                onRefresh: _loadUserProfile,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        // Profile Picture
-                        _buildProfilePicture().animate().fadeIn(
-                          duration: 600.ms,
+                      const SizedBox(height: 16),
+                      Text(
+                        _errorMessage ?? 'Failed to load profile',
+                        style: AppTheme.bodyStyle.copyWith(
+                          color: AppTheme.errorColor,
                         ),
-                        const SizedBox(height: 24),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      CustomButton(
+                        text: 'Try Again',
+                        onPressed: _loadUserProfile,
+                        icon: Icons.refresh,
+                      ),
+                    ],
+                  ),
+                )
+                : RefreshIndicator(
+                  onRefresh: _loadUserProfile,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // Profile Picture
+                          _buildProfilePicture().animate().fadeIn(
+                            duration: 600.ms,
+                          ),
+                          const SizedBox(height: 24),
 
-                        // Name
-                        _buildEditableField(
-                          'Name',
-                          _userProfile!['name'] ?? 'Not set',
-                          Icons.person,
-                          () => _editField(
-                            'name',
-                            _userProfile!['name'] ?? '',
+                          // Name
+                          _buildEditableField(
                             'Name',
-                          ),
-                        ).animate().fadeIn(delay: 100.ms, duration: 600.ms),
+                            _userProfile!['name'] ?? 'Not set',
+                            Icons.person,
+                            () => _editField(
+                              'name',
+                              _userProfile!['name'] ?? '',
+                              'Name',
+                            ),
+                          ).animate().fadeIn(delay: 100.ms, duration: 600.ms),
 
-                        // Age
-                        _buildEditableField(
-                          'Age',
-                          _userProfile!['age']?.toString() ?? 'Not set',
-                          Icons.cake,
-                          () => _editField(
-                            'age',
-                            _userProfile!['age']?.toString() ?? '',
+                          // Age
+                          _buildEditableField(
                             'Age',
-                          ),
-                        ).animate().fadeIn(delay: 200.ms, duration: 600.ms),
+                            _userProfile!['age']?.toString() ?? 'Not set',
+                            Icons.cake,
+                            () => _editField(
+                              'age',
+                              _userProfile!['age']?.toString() ?? '',
+                              'Age',
+                            ),
+                          ).animate().fadeIn(delay: 200.ms, duration: 600.ms),
 
-                        // Gender
-                        _buildEditableField(
-                          'Gender',
-                          _userProfile!['gender'] ?? 'Not set',
-                          Icons.wc,
-                          () => _editField(
-                            'gender',
-                            _userProfile!['gender'] ?? '',
+                          // Gender
+                          _buildEditableField(
                             'Gender',
-                          ),
-                        ).animate().fadeIn(delay: 300.ms, duration: 600.ms),
+                            _userProfile!['gender'] ?? 'Not set',
+                            Icons.wc,
+                            () => _editField(
+                              'gender',
+                              _userProfile!['gender'] ?? '',
+                              'Gender',
+                            ),
+                          ).animate().fadeIn(delay: 300.ms, duration: 600.ms),
 
-                        // Interested In
-                        _buildEditableField(
-                          'Interested In',
-                          _userProfile!['interested_in'] ?? 'Not set',
-                          Icons.favorite,
-                          () => _editField(
-                            'interested_in',
-                            _userProfile!['interested_in'] ?? '',
+                          // Interested In
+                          _buildEditableField(
                             'Interested In',
-                          ),
-                        ).animate().fadeIn(delay: 400.ms, duration: 600.ms),
+                            _userProfile!['interested_in'] ?? 'Not set',
+                            Icons.favorite,
+                            () => _editField(
+                              'interested_in',
+                              _userProfile!['interested_in'] ?? '',
+                              'Interested In',
+                            ),
+                          ).animate().fadeIn(delay: 400.ms, duration: 600.ms),
 
-                        const SizedBox(height: 32),
+                          const SizedBox(height: 32),
 
-                        // Voice Bio
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey.shade300),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Voice Bio', style: AppTheme.subtitleStyle),
-                              const SizedBox(height: 16),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: GestureDetector(
-                                      onTap:
-                                          _userProfile!['voice_bio_url'] != null
-                                              ? _playVoiceBio
-                                              : null,
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 12,
-                                          horizontal: 16,
+                          // Voice Bio
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey.shade300),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Voice Bio',
+                                  style: AppTheme.subtitleStyle,
+                                ),
+                                const SizedBox(height: 16),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: GestureDetector(
+                                        onTap:
+                                            _userProfile!['voice_bio_url'] !=
+                                                    null
+                                                ? _playVoiceBio
+                                                : null,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 12,
+                                            horizontal: 16,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.primaryColor
+                                                .withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                _isPlayingAudio
+                                                    ? Icons.stop
+                                                    : Icons.play_arrow,
+                                                color: AppTheme.primaryColor,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                _isPlayingAudio
+                                                    ? 'Playing...'
+                                                    : (_userProfile!['voice_bio_url'] !=
+                                                            null
+                                                        ? 'Play Voice Bio'
+                                                        : 'No Voice Bio'),
+                                                style: AppTheme.bodyStyle
+                                                    .copyWith(
+                                                      color:
+                                                          AppTheme.primaryColor,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    GestureDetector(
+                                      onTap: _editVoiceBio,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(12),
                                         decoration: BoxDecoration(
-                                          color: AppTheme.primaryColor
-                                              .withOpacity(0.1),
+                                          color: AppTheme.primaryColor,
                                           borderRadius: BorderRadius.circular(
                                             8,
                                           ),
                                         ),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Icon(
-                                              _isPlayingAudio
-                                                  ? Icons.stop
-                                                  : Icons.play_arrow,
-                                              color: AppTheme.primaryColor,
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              _isPlayingAudio
-                                                  ? 'Playing...'
-                                                  : (_userProfile!['voice_bio_url'] !=
-                                                          null
-                                                      ? 'Play Voice Bio'
-                                                      : 'No Voice Bio'),
-                                              style: AppTheme.bodyStyle
-                                                  .copyWith(
-                                                    color:
-                                                        AppTheme.primaryColor,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                            ),
-                                          ],
+                                        child: const Icon(
+                                          Icons.edit,
+                                          color: Colors.white,
                                         ),
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  GestureDetector(
-                                    onTap: _editVoiceBio,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: AppTheme.primaryColor,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: const Icon(
-                                        Icons.edit,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ).animate().fadeIn(delay: 500.ms, duration: 600.ms),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ).animate().fadeIn(delay: 500.ms, duration: 600.ms),
 
-                        const SizedBox(height: 40),
+                          const SizedBox(height: 40),
 
-                        // More Options
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _showMoreOptions = !_showMoreOptions;
-                            });
-                          },
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                'More Options',
-                                style: AppTheme.bodyStyle.copyWith(
+                          // More Options
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _showMoreOptions = !_showMoreOptions;
+                              });
+                            },
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'More Options',
+                                  style: AppTheme.bodyStyle.copyWith(
+                                    color: Colors.grey.shade700,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(
+                                  _showMoreOptions
+                                      ? Icons.keyboard_arrow_up
+                                      : Icons.keyboard_arrow_down,
                                   color: Colors.grey.shade700,
                                 ),
-                              ),
-                              const SizedBox(width: 4),
-                              Icon(
-                                _showMoreOptions
-                                    ? Icons.keyboard_arrow_up
-                                    : Icons.keyboard_arrow_down,
-                                color: Colors.grey.shade700,
-                              ),
-                            ],
-                          ),
-                        ).animate().fadeIn(delay: 600.ms, duration: 600.ms),
+                              ],
+                            ),
+                          ).animate().fadeIn(delay: 600.ms, duration: 600.ms),
 
-                        // More Options Expanded
-                        if (_showMoreOptions)
-                          Column(
-                            children: [
-                              const SizedBox(height: 24),
-                              CustomButton(
-                                text: 'Log Out',
-                                onPressed: _logout,
-                                icon: Icons.logout,
-                                isOutlined: true,
-                              ),
-                              const SizedBox(height: 16),
-                              CustomButton(
-                                text: 'Delete Account',
-                                onPressed: _deleteAccount,
-                                icon: Icons.delete_forever,
-                                backgroundColor: AppTheme.errorColor,
-                              ),
-                            ],
-                          ).animate().fadeIn(duration: 300.ms),
+                          // More Options Expanded
+                          if (_showMoreOptions)
+                            Column(
+                              children: [
+                                const SizedBox(height: 24),
+                                CustomButton(
+                                  text: 'Log Out',
+                                  onPressed: _logout,
+                                  icon: Icons.logout,
+                                  isOutlined: true,
+                                ),
+                                const SizedBox(height: 16),
+                                CustomButton(
+                                  text: 'Delete Account',
+                                  onPressed: _deleteAccount,
+                                  icon: Icons.delete_forever,
+                                  backgroundColor: AppTheme.errorColor,
+                                ),
+                              ],
+                            ).animate().fadeIn(duration: 300.ms),
 
-                        const SizedBox(height: 40),
-                      ],
+                          const SizedBox(height: 40),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
+      ),
     );
   }
 
