@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // App Colors
+  /*
+  // Default Colors
   static const Color primaryColor = Color(0xFFFF4B91);
   static const Color secondaryColor = Color(0xFF6C63FF);
   static const Color accentColor = Color(0xFFFF8FB1);
@@ -13,10 +14,35 @@ class AppTheme {
   static const Color textPrimaryColor = Color(0xFF212121);
   static const Color textSecondaryColor = Color(0xFF757575);
   static const Color dividerColor = Color(0xFFEEEEEE);
+  */
+
+  // App Colors
+  static const Color primaryColor = Color(0xFF216477); // Blue Petrol
+  static const Color secondaryColor = Color(
+    0xFFE9A820,
+  ); // Amber Gold (complementary)
+  static const Color accentColor = Color(
+    0xFFF08080,
+  ); // Light Coral (soft accent)
+  static const Color backgroundColor = Color(
+    0xFFFFF3E0,
+  ); // Very Light Orange (light amber)
+  static const Color cardColor = Colors.white;
+  static const Color errorColor = Color(0xFFD32F2F); // Deeper Red (clear error)
+  static const Color successColor = Color(
+    0xFF4CAF50,
+  ); // Classic Green (reliable success)
+  static const Color textPrimaryColor = Color(
+    0xFF333333,
+  ); // Dark Gray (readable)
+  static const Color textSecondaryColor = Color(
+    0xFF666666,
+  ); // Medium Gray (subtle)
+  static const Color dividerColor = Color(0xFFE0E0E0); // Lighter Gray (clean)
 
   // Gradients
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [primaryColor, Color(0xFFFF8FB1)],
+    colors: [primaryColor, accentColor],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
