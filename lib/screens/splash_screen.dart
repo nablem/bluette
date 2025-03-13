@@ -54,13 +54,19 @@ class _SplashScreenState extends State<SplashScreen> {
                   width: 120,
                   height: 120,
                   decoration: BoxDecoration(
-                    gradient: AppTheme.primaryGradient,
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: const Icon(
-                    Icons.favorite,
                     color: Colors.white,
-                    size: 60,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Image.asset('assets/icon/icon-petrol-mini.png'),
                   ),
                 )
                 .animate()
@@ -87,7 +93,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
             // Tagline
             Text(
-              'Find your perfect match',
+              'Que des étincelles',
               style: AppTheme.bodyStyle.copyWith(
                 color: AppTheme.textSecondaryColor,
               ),
