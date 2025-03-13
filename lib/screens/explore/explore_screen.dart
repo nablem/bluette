@@ -611,26 +611,50 @@ class _ExploreScreenState extends State<ExploreScreen>
             ),
           ),
           const SizedBox(height: 30),
-          ElevatedButton(
-            onPressed: _checkLocationPermissionAndInitialize,
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          // Only show as TextButton if we're also showing another button
+          if (_locationStatus == LocationStatus.serviceDisabled ||
+              _locationStatus == LocationStatus.permissionDeniedForever)
+            TextButton(
+              onPressed: _checkLocationPermissionAndInitialize,
+              child: const Text('Grant Permission'),
+            )
+          // Otherwise show as ElevatedButton with the same style as the other buttons
+          else
+            ElevatedButton(
+              onPressed: _checkLocationPermissionAndInitialize,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+              ),
+              child: const Text('Grant Permission'),
             ),
-            child: const Text('Grant Permission'),
-          ),
           const SizedBox(height: 16),
           if (_locationStatus == LocationStatus.serviceDisabled)
-            TextButton(
+            ElevatedButton(
               onPressed: () async {
                 await LocationService.openLocationSettings();
               },
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+              ),
               child: const Text('Open Location Settings'),
             )
           else if (_locationStatus == LocationStatus.permissionDeniedForever)
-            TextButton(
+            ElevatedButton(
               onPressed: () async {
                 await LocationService.openAppSettings();
               },
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+              ),
               child: const Text('Open App Settings'),
             ),
         ],
