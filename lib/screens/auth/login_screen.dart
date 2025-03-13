@@ -119,13 +119,21 @@ class _LoginScreenState extends State<LoginScreen> {
                               width: 80,
                               height: 80,
                               decoration: BoxDecoration(
-                                gradient: AppTheme.primaryGradient,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: const Icon(
-                                Icons.favorite,
                                 color: Colors.white,
-                                size: 40,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 10,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(15.0),
+                                child: Image.asset(
+                                  'assets/icon/icon-petrol-mini.png',
+                                ),
                               ),
                             )
                             .animate()
