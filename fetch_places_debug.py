@@ -58,6 +58,10 @@ def make_api_request(url, params, retry_count=3, retry_delay=2):
             
             if response.status_code == 200:
                 data = response.json()
+
+                with open(f"bars_{location.replace(' ', '_')}_raw.json", "w") as f:
+                    json.dump(data, f, indent=2)
+                    print(f"Raw data also saved to bars_{location.replace(' ', '_')}_raw.json")
                 
                 # Check for API-level errors
                 if data.get('status') != 'OK' and data.get('status') != 'ZERO_RESULTS':
