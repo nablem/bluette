@@ -166,7 +166,7 @@ def get_place_details(place_id, debug_mode=False):
     headers = {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
-        'X-Goog-FieldMask': 'id,shortFormattedAddress,regularOpeningHours,googleMapsUri,location,displayName,timeZone'
+        'X-Goog-FieldMask': 'id,postalAddress,regularOpeningHours,googleMapsUri,location,displayName,timeZone'
     }
 
     data, error = make_api_request(base_url, headers, method="GET")
@@ -189,7 +189,9 @@ def get_place_details(place_id, debug_mode=False):
         place_details = {
             "google_place_id": data.get("id", ""),
             "name": data.get("displayName", {}).get("text", ""),
-            "address": data.get("shortFormattedAddress", ""),
+            "address": data.get("postalAddress", {}).get("addressLines", [])[:1] and data.get("postalAddress", {}).get("addressLines", [])[0] or "",
+            "locality": data.get("postalAddress", {}).get("locality") or os.getenv("LOCATION"),
+            "regionCode": data.get("postalAddress", {}).get("regionCode", ""),
             "latitude": data.get("location", {}).get("latitude", 0),
             "longitude": data.get("location", {}).get("longitude", 0),
             "availability": format_opening_hours(data.get("regularOpeningHours", {})),
