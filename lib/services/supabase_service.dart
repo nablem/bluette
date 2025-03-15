@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:path/path.dart' as path;
 import 'dart:math';
-import '../utils/network_error_handler.dart';
 import 'connectivity_service.dart';
 
 class SupabaseService {
@@ -134,12 +133,8 @@ class SupabaseService {
           userData['id'] = currentUser!.id;
 
           // Merge existing profile with new data to ensure we don't lose any fields
-          if (existingProfile != null) {
-            // Only update fields that are provided in userData
-            // Keep all other fields from existingProfile
-            final mergedData = {...existingProfile, ...userData};
-            userData = mergedData;
-          }
+          final mergedData = {...existingProfile, ...userData};
+          userData = mergedData;
         } catch (e) {
           print('Error fetching existing profile: $e');
           // Ensure we have the id field in the userData
@@ -622,10 +617,8 @@ class SupabaseService {
 
         print('User has already swiped on ${swipedProfileIds.length} profiles');
 
-        // Get profiles that match gender preference
-        List<dynamic> matchingProfiles;
-
-        // Base query excluding current user and already swiped profiles
+        // Get ALL profiles that match gender preference and age criteria
+        // We'll handle distance filtering client-side
         var query = _supabaseClient
             .from('profiles')
             .select()
@@ -640,15 +633,15 @@ class SupabaseService {
         // Apply age filters
         query = query
             .gte('age', filterMinAge) // Min age filter
-            .lte('age', filterMaxAge) // Max age filter
-            .not('latitude', 'is', null) // Must have location
-            .not('longitude', 'is', null)
-            .not(
-              'profile_picture_url',
-              'is',
-              null,
-            ) // Must have a profile picture
-            .not('voice_bio_url', 'is', null); // Must have a voice bio
+            .lte('age', filterMaxAge); // Max age filter
+
+        // Ensure profiles have location data
+        query = query.not('latitude', 'is', null).not('longitude', 'is', null);
+
+        // Ensure profiles have required media
+        query = query
+            .not('profile_picture_url', 'is', null)
+            .not('voice_bio_url', 'is', null);
 
         // Apply gender filter if not interested in everyone
         if (interestedIn != 'Everyone') {
@@ -656,24 +649,20 @@ class SupabaseService {
         }
 
         // Execute the query to get all matching profiles
-        // We'll handle pagination after distance filtering
-        matchingProfiles = await query;
+        final matchingProfiles = await query;
 
         print(
           'Found ${matchingProfiles.length} matching profiles before distance filtering',
         );
 
-        // Convert to list of maps
-        final List<Map<String, dynamic>> profiles =
-            matchingProfiles
-                .map((profile) => profile as Map<String, dynamic>)
-                .toList();
-
-        // Filter by distance (done client-side since Supabase doesn't support geospatial queries)
+        // Convert to list of maps and filter by distance
         final List<Map<String, dynamic>> filteredProfiles = [];
-        for (final profile in profiles) {
-          final double? profileLat = profile['latitude'];
-          final double? profileLng = profile['longitude'];
+
+        for (final profile in matchingProfiles) {
+          final Map<String, dynamic> profileMap =
+              profile as Map<String, dynamic>;
+          final double? profileLat = profileMap['latitude'];
+          final double? profileLng = profileMap['longitude'];
 
           if (profileLat != null && profileLng != null) {
             final double distance = _calculateDistance(
@@ -684,14 +673,18 @@ class SupabaseService {
             );
 
             // Add distance to profile data
-            profile['distance'] = distance.round();
+            profileMap['distance'] = distance.round();
 
             // Only include profiles within max distance
             if (distance <= filterMaxDistance) {
-              filteredProfiles.add(profile);
+              filteredProfiles.add(profileMap);
             }
           }
         }
+
+        print(
+          'Found ${filteredProfiles.length} profiles after distance filtering',
+        );
 
         // Sort by distance (closest first)
         filteredProfiles.sort((a, b) {
@@ -700,11 +693,7 @@ class SupabaseService {
           return distanceA.compareTo(distanceB);
         });
 
-        print(
-          'Found ${filteredProfiles.length} profiles after distance filtering',
-        );
-
-        // Now apply pagination to the distance-filtered profiles
+        // Apply pagination
         final int endIndex = offset + limit;
         final int safeEndIndex =
             endIndex < filteredProfiles.length
