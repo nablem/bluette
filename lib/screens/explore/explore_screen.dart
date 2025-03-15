@@ -14,6 +14,7 @@ import '../../widgets/error_message_widget.dart';
 import '../../services/connectivity_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:confetti/confetti.dart';
+import 'meetup_view.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -36,6 +37,11 @@ class _ExploreScreenState extends State<ExploreScreen>
   String? _errorMessage;
   ProfileFilter _currentFilter = ProfileFilter.defaultFilter();
   Map<String, dynamic>? _userProfile;
+
+  // Add a variable to store upcoming meetup details
+  Map<String, dynamic>? _upcomingMeetup;
+  bool _isCheckingMeetup = false;
+  bool _showMeetupCancelOptions = false;
 
   // Animation controllers for the like and dislike buttons
   late AnimationController _likeButtonController;
@@ -98,6 +104,9 @@ class _ExploreScreenState extends State<ExploreScreen>
     _loadShownMatchIds().then((_) {
       print('Shown match IDs loaded, count: ${_shownMatchIds.length}');
     });
+
+    // Check for upcoming meetups
+    _checkForUpcomingMeetup();
 
     // If location permission was previously granted, set it immediately
     if (_hasLocationPermission) {
@@ -241,6 +250,9 @@ class _ExploreScreenState extends State<ExploreScreen>
       if (_hasBeenInitialized) {
         _reloadUserProfile();
       }
+
+      // Check for upcoming meetups
+      _checkForUpcomingMeetup();
 
       // Ensure we have an active match subscription
       if (_matchSubscription == null) {
@@ -1178,6 +1190,9 @@ class _ExploreScreenState extends State<ExploreScreen>
 
                         // Get the match ID before closing the dialog
                         final matchId = matchedProfile['match_id'];
+                        print(
+                          'MATCH DEBUG: All right button clicked, matchId: $matchId',
+                        );
 
                         // Close the dialog immediately
                         Navigator.of(context).pop();
@@ -1185,21 +1200,117 @@ class _ExploreScreenState extends State<ExploreScreen>
                         // Mark the match as seen if we have a match ID (do this after dialog is closed)
                         if (matchId != null) {
                           print(
-                            'Marking match as seen from dialog button: $matchId',
+                            'MATCH DEBUG: Marking match as seen from dialog button: $matchId',
                           );
 
                           // Use a microtask to ensure this runs after the dialog is closed
                           Future.microtask(() async {
                             try {
+                              print(
+                                'MATCH DEBUG: Starting microtask for match: $matchId',
+                              );
                               await SupabaseService.markMatchAsSeen(matchId);
                               print(
-                                'Successfully marked match as seen: $matchId',
+                                'MATCH DEBUG: Successfully marked match as seen: $matchId',
                               );
 
                               // Verify the match was marked as seen
                               await _verifyMatchSeenStatus(matchId);
+
+                              // Schedule a meetup for this match
+                              print(
+                                'MATCH DEBUG: Scheduling meetup for match: $matchId',
+                              );
+                              final success =
+                                  await SupabaseService.scheduleMeetup(matchId);
+
+                              print(
+                                'MATCH DEBUG: Meetup scheduling result: $success',
+                              );
+
+                              if (success) {
+                                print(
+                                  'MATCH DEBUG: Meetup scheduled successfully',
+                                );
+
+                                // Check for upcoming meetups to display the meetup view
+                                print(
+                                  'MATCH DEBUG: Checking for upcoming meetups after successful scheduling',
+                                );
+                                await _checkForUpcomingMeetup();
+
+                                print(
+                                  'MATCH DEBUG: After _checkForUpcomingMeetup, _upcomingMeetup is ${_upcomingMeetup != null ? "not null" : "null"}',
+                                );
+
+                                // Force a UI refresh to ensure the meetup view is shown
+                                if (mounted) {
+                                  print(
+                                    'MATCH DEBUG: Forcing UI refresh to show meetup view',
+                                  );
+                                  setState(() {
+                                    // This empty setState will trigger a rebuild
+                                  });
+
+                                  // Add a delayed second check to ensure the meetup is loaded
+                                  Future.delayed(
+                                    const Duration(milliseconds: 1000),
+                                    () {
+                                      if (mounted) {
+                                        print(
+                                          'MATCH DEBUG: Performing delayed meetup check',
+                                        );
+                                        _checkForUpcomingMeetup().then((_) {
+                                          print(
+                                            'MATCH DEBUG: After delayed check, upcomingMeetup is ${_upcomingMeetup != null ? "not null" : "null"}',
+                                          );
+
+                                          // Force another UI refresh
+                                          if (mounted) {
+                                            print(
+                                              'MATCH DEBUG: Forcing another UI refresh',
+                                            );
+                                            setState(() {});
+
+                                            // Debug the view state
+                                            _debugMeetupViewState();
+                                          }
+                                        });
+                                      }
+                                    },
+                                  );
+                                }
+                              } else {
+                                // Meetup scheduling failed
+                                print('MATCH DEBUG: Meetup scheduling failed');
+
+                                if (mounted) {
+                                  // Show a message to the user
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'We couldn\'t find a suitable place for your meetup. You can still chat with your match!',
+                                      ),
+                                      duration: Duration(seconds: 4),
+                                      backgroundColor: Colors.orange,
+                                    ),
+                                  );
+
+                                  // Refresh the UI to show the swipe stack
+                                  setState(() {
+                                    // This empty setState will trigger a rebuild
+                                  });
+
+                                  // Reload profiles if needed
+                                  if (_profiles.isEmpty) {
+                                    _initializeExplore();
+                                  }
+                                }
+                              }
                             } catch (error) {
-                              print('Error marking match as seen: $error');
+                              print(
+                                'Error marking match as seen or scheduling meetup: $error',
+                              );
 
                               // Show a toast to inform the user
                               if (mounted) {
@@ -1284,6 +1395,9 @@ class _ExploreScreenState extends State<ExploreScreen>
         (_errorMessage!.contains('internet') ||
             _errorMessage!.contains('connection'));
 
+    // Check if we have an upcoming meetup
+    final bool hasUpcomingMeetup = _upcomingMeetup != null;
+
     // Check if we have an active connection
     ConnectivityService.isConnected().then((hasConnection) {
       // If we have a connection but still show a network error, clear it
@@ -1299,6 +1413,7 @@ class _ExploreScreenState extends State<ExploreScreen>
           !_isLoading &&
           !_isFetchingBatch &&
           hasConnection &&
+          !hasUpcomingMeetup && // Only fetch more if no upcoming meetup
           mounted) {
         // Use a post-frame callback to avoid setState during build
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1308,6 +1423,9 @@ class _ExploreScreenState extends State<ExploreScreen>
     });
 
     print('Building ExploreScreen with $profileCount profiles');
+    if (hasUpcomingMeetup) {
+      print('Building ExploreScreen with upcoming meetup');
+    }
 
     return Scaffold(
       // Removing the app bar for a cleaner, more immersive experience
@@ -1315,6 +1433,9 @@ class _ExploreScreenState extends State<ExploreScreen>
         child:
             _isLoading || _isReturningToScreen
                 ? const Center(child: CircularProgressIndicator())
+                // If we have an upcoming meetup, show it instead of profiles
+                : hasUpcomingMeetup
+                ? _buildUpcomingMeetupView()
                 // If we have profiles, always show them regardless of permission or error state
                 : hasProfiles
                 ? Stack(
@@ -1523,6 +1644,8 @@ class _ExploreScreenState extends State<ExploreScreen>
                           ),
                         ),
                       ),
+                    // Add the test button
+                    _buildTestButton(),
                   ],
                 )
                 // When returning to the screen, we should never show the location permission screen
@@ -2179,5 +2302,519 @@ class _ExploreScreenState extends State<ExploreScreen>
     } catch (e) {
       print('Error verifying match seen status: $e');
     }
+  }
+
+  // Add method to check for upcoming meetups
+  Future<void> _checkForUpcomingMeetup() async {
+    if (_isCheckingMeetup) {
+      print('MEETUP DEBUG: Already checking for meetups, skipping');
+      return;
+    }
+
+    print('MEETUP DEBUG: Starting to check for upcoming meetups');
+    setState(() {
+      _isCheckingMeetup = true;
+    });
+
+    try {
+      print('MEETUP DEBUG: Checking for upcoming meetups');
+
+      // First check if any meetups have passed and update their status
+      print('MEETUP DEBUG: Checking and updating passed meetup status');
+      final statusUpdated = await SupabaseService.checkAndUpdateMeetupStatus();
+      print(
+        'MEETUP DEBUG: Meetup status update result: ${statusUpdated ? "updated some meetups" : "no updates needed"}',
+      );
+
+      // Then get the upcoming meetup if any
+      print('MEETUP DEBUG: Fetching upcoming meetup from Supabase');
+      final meetup = await SupabaseService.getUpcomingMeetup();
+      print(
+        'MEETUP DEBUG: Upcoming meetup fetch result: ${meetup != null ? "found meetup" : "no meetup found"}',
+      );
+
+      if (mounted) {
+        print(
+          'MEETUP DEBUG: Setting upcoming meetup state: ${meetup != null ? "not null" : "null"}',
+        );
+
+        // Print more details about the meetup if it exists
+        if (meetup != null) {
+          print('MEETUP DEBUG: Meetup details:');
+          print('  Match ID: ${meetup['match']['id']}');
+          print('  Place ID: ${meetup['match']['place_id']}');
+          print('  Meetup Time: ${meetup['match']['meetup_time']}');
+          print(
+            '  Place: ${meetup['place'] != null ? meetup['place']['name'] : "null"}',
+          );
+          print(
+            '  Other User: ${meetup['other_user'] != null ? meetup['other_user']['name'] : "null"}',
+          );
+        }
+
+        setState(() {
+          _upcomingMeetup = meetup;
+          _isCheckingMeetup = false;
+        });
+
+        if (meetup != null) {
+          print(
+            'MEETUP DEBUG: Found upcoming meetup: ${meetup['match']['id']}',
+          );
+          print(
+            'MEETUP DEBUG: Meetup details: place_id=${meetup['match']['place_id']}, time=${meetup['match']['meetup_time']}',
+          );
+
+          // If we have an upcoming meetup, schedule a meetup for it if not already scheduled
+          if (meetup['match']['place_id'] == null ||
+              meetup['match']['meetup_time'] == null) {
+            print('MEETUP DEBUG: Meetup needs scheduling, scheduling now...');
+            final success = await SupabaseService.scheduleMeetup(
+              meetup['match']['id'],
+            );
+            print('MEETUP DEBUG: Scheduling result: $success');
+
+            // Refresh the meetup details
+            print('MEETUP DEBUG: Refreshing meetup details after scheduling');
+            _checkForUpcomingMeetup();
+          } else {
+            print(
+              'MEETUP DEBUG: Meetup already has place and time, no need to schedule',
+            );
+          }
+        } else {
+          print('MEETUP DEBUG: No upcoming meetups found');
+        }
+      } else {
+        print('MEETUP DEBUG: Widget not mounted, skipping state update');
+      }
+    } catch (e) {
+      print('MEETUP DEBUG: Error checking for upcoming meetups: $e');
+      if (mounted) {
+        setState(() {
+          _isCheckingMeetup = false;
+        });
+      }
+    }
+  }
+
+  // Build the upcoming meetup view
+  Widget _buildUpcomingMeetupView() {
+    return MeetupView(
+      meetup: _upcomingMeetup!,
+      onCancelMeetup: _cancelMeetup,
+      onReturnToSwiping: () {
+        setState(() {
+          _upcomingMeetup = null;
+        });
+        _initializeExplore();
+      },
+    );
+  }
+
+  // Add method to cancel a meetup
+  Future<void> _cancelMeetup(String matchId) async {
+    try {
+      print('Cancelling meetup: $matchId');
+
+      // Show loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cancelling meetup...'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      // Cancel the meetup
+      final success = await SupabaseService.cancelMeetup(matchId);
+
+      if (success && mounted) {
+        // Clear the upcoming meetup
+        setState(() {
+          _upcomingMeetup = null;
+          _showMeetupCancelOptions = false;
+        });
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Meetup cancelled successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Refresh the explore screen
+        _initializeExplore();
+      } else if (mounted) {
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to cancel meetup'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error cancelling meetup: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  // Add a test method to check if find_places_near_point is working
+  Future<void> _testFindPlacesNearPoint() async {
+    try {
+      print('Testing find_places_near_point function');
+
+      // Get current user profile to get location
+      final userProfile = await SupabaseService.getUserProfile();
+      if (userProfile == null) {
+        print('Could not get user profile');
+        return;
+      }
+
+      final double? userLat = userProfile['latitude'];
+      final double? userLng = userProfile['longitude'];
+
+      if (userLat == null || userLng == null) {
+        print('User has no location data');
+        return;
+      }
+
+      print('User location: $userLat, $userLng');
+
+      // Call the function directly
+      final result = await Supabase.instance.client.rpc(
+        'find_places_near_point',
+        params: {
+          'lat': userLat,
+          'lng': userLng,
+          'max_distance': 10, // 10 km radius
+          'limit_count': 5, // Get top 5 places
+        },
+      );
+
+      print('find_places_near_point result: ${result.length} places found');
+
+      if (result.isNotEmpty) {
+        print('First place: ${result[0]['name']} at ${result[0]['address']}');
+        print('Place availability: ${result[0]['availability']}');
+      }
+    } catch (e) {
+      print('Error testing find_places_near_point: $e');
+    }
+  }
+
+  // Add a test method to directly schedule a meetup
+  Future<void> _testScheduleMeetup() async {
+    try {
+      print('Testing direct meetup scheduling');
+
+      // First, create a test match
+      final testMatch = await SupabaseService.createTestMatch();
+      if (testMatch == null) {
+        print('Could not create test match');
+        return;
+      }
+
+      print('Created test match: ${testMatch['id']}');
+
+      // Schedule a meetup for the test match
+      final success = await SupabaseService.scheduleMeetup(testMatch['id']);
+
+      if (success) {
+        print('Test meetup scheduled successfully');
+
+        // Check for upcoming meetups
+        await _checkForUpcomingMeetup();
+
+        // Force UI refresh
+        if (mounted) {
+          setState(() {});
+        }
+      } else {
+        print('Failed to schedule test meetup');
+      }
+    } catch (e) {
+      print('Error in test meetup scheduling: $e');
+    }
+  }
+
+  // Add a debug method to query matches with meetups
+  Future<void> _debugQueryMatchesWithMeetups() async {
+    try {
+      print('Debugging: Querying matches with meetups');
+
+      final matches = await SupabaseService.debugQueryMatchesWithMeetups();
+
+      if (matches.isEmpty) {
+        print('No matches with meetups found');
+
+        // Show a snackbar
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No matches with meetups found'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        print('Found ${matches.length} matches with meetups');
+
+        // Show a snackbar
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Found ${matches.length} matches with meetups'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error debugging matches with meetups: $e');
+    }
+  }
+
+  // Add a debug method to check if the meetup view is being displayed correctly
+  void _debugMeetupViewState() {
+    print('Debugging meetup view state:');
+    print(
+      '  _upcomingMeetup: ${_upcomingMeetup != null ? "not null" : "null"}',
+    );
+    print('  hasProfiles: ${_profiles.isNotEmpty}');
+    print('  _isLoading: $_isLoading');
+    print('  _isReturningToScreen: $_isReturningToScreen');
+    print('  _isCheckingMeetup: $_isCheckingMeetup');
+
+    // Show a snackbar with the state
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Meetup: ${_upcomingMeetup != null ? "YES" : "NO"}, Profiles: ${_profiles.length}',
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+
+    // If we have an upcoming meetup, print its details
+    if (_upcomingMeetup != null) {
+      final match = _upcomingMeetup!['match'];
+      final place = _upcomingMeetup!['place'];
+      print('  Match ID: ${match['id']}');
+      print('  Place ID: ${match['place_id']}');
+      print('  Place Name: ${place != null ? place['name'] : "null"}');
+      print('  Meetup Time: ${match['meetup_time']}');
+    }
+  }
+
+  // Add a method to directly create a test meetup
+  Future<void> _testDirectMeetupCreation() async {
+    try {
+      print('Testing direct meetup creation');
+
+      // Show loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Creating test meetup...'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      // Create a test meetup directly
+      final success = await SupabaseService.createTestMeetupDirectly();
+
+      if (success) {
+        print('Test meetup created successfully');
+
+        // Check for upcoming meetups
+        await _checkForUpcomingMeetup();
+
+        // Force UI refresh
+        if (mounted) {
+          setState(() {});
+
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Test meetup created successfully'),
+              duration: Duration(seconds: 2),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        print('Failed to create test meetup');
+
+        // Show error message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to create test meetup'),
+              duration: Duration(seconds: 2),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error creating test meetup: $e');
+    }
+  }
+
+  // Test direct match update
+  Future<void> _testDirectMatchUpdate() async {
+    try {
+      // First, get the most recent match
+      final matches = await SupabaseService.debugQueryMatchesWithMeetups();
+
+      if (matches.isEmpty) {
+        // If no matches with meetups, create a test match
+        print('No matches found, creating a test match first');
+        final testMatch = await SupabaseService.createTestMatch();
+        if (testMatch == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to create test match'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
+        // Test updating the new match
+        final success = await SupabaseService.testDirectMatchUpdate(
+          testMatch['id'],
+        );
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success
+                  ? 'Successfully updated test match'
+                  : 'Failed to update test match',
+            ),
+            backgroundColor: success ? Colors.green : Colors.red,
+          ),
+        );
+      } else {
+        // Use the first match from the list
+        final matchId = matches[0]['id'];
+        print('Testing update on existing match: $matchId');
+
+        final success = await SupabaseService.testDirectMatchUpdate(matchId);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success
+                  ? 'Successfully updated existing match'
+                  : 'Failed to update existing match',
+            ),
+            backgroundColor: success ? Colors.green : Colors.red,
+          ),
+        );
+      }
+
+      // Check for upcoming meetups after the update
+      await _checkForUpcomingMeetup();
+
+      // Force UI refresh
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e) {
+      print('Error in test direct match update: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // Build test button with popup menu
+  Widget _buildTestButton() {
+    return Positioned(
+      bottom: 16,
+      right: 16,
+      child: PopupMenuButton<String>(
+        icon: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.blue.withOpacity(0.7),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.bug_report, color: Colors.white),
+        ),
+        onSelected: (value) async {
+          switch (value) {
+            case 'test_places':
+              await _testFindPlacesNearPoint();
+              break;
+            case 'test_schedule':
+              await _testScheduleMeetup();
+              break;
+            case 'test_check_meetup':
+              await _checkForUpcomingMeetup();
+              if (mounted) {
+                setState(() {});
+                _debugMeetupViewState();
+              }
+              break;
+            case 'test_debug_matches':
+              await _debugQueryMatchesWithMeetups();
+              break;
+            case 'test_debug_view':
+              _debugMeetupViewState();
+              break;
+            case 'test_direct_meetup':
+              await _testDirectMeetupCreation();
+              break;
+            case 'test_direct_update':
+              await _testDirectMatchUpdate();
+              break;
+          }
+        },
+        itemBuilder:
+            (context) => [
+              const PopupMenuItem(
+                value: 'test_places',
+                child: Text('Test Find Places'),
+              ),
+              const PopupMenuItem(
+                value: 'test_schedule',
+                child: Text('Test Schedule Meetup'),
+              ),
+              const PopupMenuItem(
+                value: 'test_check_meetup',
+                child: Text('Check for Upcoming Meetup'),
+              ),
+              const PopupMenuItem(
+                value: 'test_debug_matches',
+                child: Text('Debug Matches with Meetups'),
+              ),
+              const PopupMenuItem(
+                value: 'test_debug_view',
+                child: Text('Debug View State'),
+              ),
+              const PopupMenuItem(
+                value: 'test_direct_meetup',
+                child: Text('Create Test Meetup'),
+              ),
+              const PopupMenuItem(
+                value: 'test_direct_update',
+                child: Text('Test Direct Match Update'),
+              ),
+            ],
+      ),
+    );
   }
 }

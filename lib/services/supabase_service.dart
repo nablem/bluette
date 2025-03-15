@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:path/path.dart' as path;
 import 'dart:math';
 import 'connectivity_service.dart';
+import 'package:flutter/material.dart';
 
 class SupabaseService {
   static final SupabaseClient _supabaseClient = Supabase.instance.client;
@@ -1350,6 +1351,953 @@ class SupabaseService {
         return hasLiked;
       } catch (e) {
         print('Error checking if user has liked profile: $e');
+        return false;
+      }
+    });
+  }
+
+  // Find a suitable place for a meetup between two users
+  static Future<Map<String, dynamic>?> findSuitablePlaceForMeetup(
+    String otherUserId,
+  ) async {
+    return _safeApiCall(() async {
+      if (currentUser == null) return null;
+
+      try {
+        print('Finding suitable place for meetup with user: $otherUserId');
+
+        // Get both user profiles to access their locations and availability
+        final currentUserProfile = await getUserProfile();
+        final otherUserProfile = await getProfileById(otherUserId);
+
+        if (currentUserProfile == null || otherUserProfile == null) {
+          print('Could not retrieve user profiles');
+          return null;
+        }
+
+        // Get locations of both users
+        final double? currentUserLat = currentUserProfile['latitude'];
+        final double? currentUserLng = currentUserProfile['longitude'];
+        final double? otherUserLat = otherUserProfile['latitude'];
+        final double? otherUserLng = otherUserProfile['longitude'];
+
+        if (currentUserLat == null ||
+            currentUserLng == null ||
+            otherUserLat == null ||
+            otherUserLng == null) {
+          print('One or both users do not have location data');
+          return null;
+        }
+
+        // Calculate midpoint between the two users
+        final midpointLat = (currentUserLat + otherUserLat) / 2;
+        final midpointLng = (currentUserLng + otherUserLng) / 2;
+
+        print('Midpoint location: $midpointLat, $midpointLng');
+
+        // Get user availabilities
+        final Map<String, dynamic>? currentUserAvailability =
+            currentUserProfile['availability'];
+        final Map<String, dynamic>? otherUserAvailability =
+            otherUserProfile['availability'];
+
+        if (currentUserAvailability == null || otherUserAvailability == null) {
+          print(
+            'One or both users do not have availability data, using defaults',
+          );
+          // Continue anyway, as we'll use default availability
+        }
+
+        // Try with a larger search radius first
+        int searchRadius = 30; // Start with 30 km radius
+        List<dynamic> places = [];
+
+        // Try with increasingly larger search radius until we find at least one place
+        while (places.isEmpty && searchRadius <= 100) {
+          print('Searching for places within $searchRadius km of midpoint');
+
+          // Query places table to find places near the midpoint
+          places = await _supabaseClient.rpc(
+            'find_places_near_point',
+            params: {
+              'lat': midpointLat,
+              'lng': midpointLng,
+              'max_distance': searchRadius,
+              'limit_count': 20, // Get top 20 places
+            },
+          );
+
+          if (places.isEmpty) {
+            searchRadius += 20; // Increase search radius by 20 km
+          }
+        }
+
+        if (places.isEmpty) {
+          print(
+            'No places found near midpoint even with expanded search radius',
+          );
+
+          // As a fallback, try to find places near the current user
+          print('Trying to find places near the current user as fallback');
+          places = await _supabaseClient.rpc(
+            'find_places_near_point',
+            params: {
+              'lat': currentUserLat,
+              'lng': currentUserLng,
+              'max_distance': 50, // 50 km radius around current user
+              'limit_count': 10, // Get top 10 places
+            },
+          );
+
+          if (places.isEmpty) {
+            print('No places found near current user either');
+            return null;
+          }
+
+          print('Found ${places.length} places near current user as fallback');
+        } else {
+          print(
+            'Found ${places.length} places near midpoint with radius $searchRadius km',
+          );
+        }
+
+        // Get current date and time
+        final now = DateTime.now();
+
+        // Calculate the valid time range for meetups (20-72 hours from now)
+        final earliestMeetupTime = now.add(const Duration(hours: 20));
+        final latestMeetupTime = now.add(const Duration(hours: 72));
+
+        print(
+          'Valid meetup time range: ${earliestMeetupTime.toIso8601String()} to ${latestMeetupTime.toIso8601String()}',
+        );
+
+        // Find a suitable place and time based on availability
+        List<Map<String, dynamic>> placesWithAvailability = [];
+
+        for (final place in places) {
+          final Map<String, dynamic>? placeAvailability = place['availability'];
+
+          if (placeAvailability == null) {
+            print('Place has no availability data: ${place['name']}, skipping');
+            continue;
+          }
+
+          // Try to find a suitable time slot
+          final DateTime? meetupTime = _findSuitableTimeSlotWithinRange(
+            placeAvailability,
+            currentUserAvailability,
+            otherUserAvailability,
+            earliestMeetupTime,
+            latestMeetupTime,
+          );
+
+          if (meetupTime != null) {
+            print(
+              'Found suitable place and time: ${place['name']} at ${meetupTime.toIso8601String()}',
+            );
+            placesWithAvailability.add({
+              'place': place,
+              'meetup_time': meetupTime.toIso8601String(),
+            });
+          }
+        }
+
+        // Sort places by distance from midpoint
+        placesWithAvailability.sort((a, b) {
+          final placeA = a['place'];
+          final placeB = b['place'];
+
+          final distanceA = _calculateDistance(
+            midpointLat,
+            midpointLng,
+            placeA['latitude'],
+            placeA['longitude'],
+          );
+
+          final distanceB = _calculateDistance(
+            midpointLat,
+            midpointLng,
+            placeB['latitude'],
+            placeB['longitude'],
+          );
+
+          return distanceA.compareTo(distanceB);
+        });
+
+        if (placesWithAvailability.isNotEmpty) {
+          // Return the closest place with suitable availability
+          return {
+            'place': placesWithAvailability[0]['place'],
+            'meetup_time': placesWithAvailability[0]['meetup_time'],
+          };
+        }
+
+        print('No places with suitable availability found');
+        return null;
+      } catch (e) {
+        print('Error finding suitable place for meetup: $e');
+        return null;
+      }
+    });
+  }
+
+  // Helper method to find a suitable time slot within a specific range
+  static DateTime? _findSuitableTimeSlotWithinRange(
+    Map<String, dynamic> placeAvailability,
+    Map<String, dynamic>? user1Availability,
+    Map<String, dynamic>? user2Availability,
+    DateTime earliestTime,
+    DateTime latestTime,
+  ) {
+    try {
+      // Try to find a slot in the valid date range
+      for (int dayOffset = 0; dayOffset < 4; dayOffset++) {
+        // Check up to 4 days
+        final targetDate = DateTime.now().add(Duration(days: dayOffset));
+
+        // Skip if this date is outside our valid range
+        if (targetDate.isBefore(
+              earliestTime.subtract(const Duration(hours: 12)),
+            ) ||
+            targetDate.isAfter(latestTime.add(const Duration(hours: 12)))) {
+          continue;
+        }
+
+        final String dayOfWeek =
+            _getDayOfWeek(targetDate.weekday).toLowerCase();
+
+        // Check if the place is open on this day
+        if (!placeAvailability.containsKey(dayOfWeek)) {
+          continue;
+        }
+
+        // Check if both users have availability defined for this day
+        // If a day is missing in availability, consider the user unavailable that day
+        if (user1Availability != null &&
+            !user1Availability.containsKey(dayOfWeek)) {
+          print(
+            'User 1 has no availability defined for $dayOfWeek, skipping this day',
+          );
+          continue;
+        }
+
+        if (user2Availability != null &&
+            !user2Availability.containsKey(dayOfWeek)) {
+          print(
+            'User 2 has no availability defined for $dayOfWeek, skipping this day',
+          );
+          continue;
+        }
+
+        // Get place opening hours for this day
+        final Map<String, dynamic> placeHours = placeAvailability[dayOfWeek];
+        if (!placeHours.containsKey('start') ||
+            !placeHours.containsKey('end')) {
+          continue;
+        }
+
+        // Parse place opening hours
+        final TimeOfDay placeStart = _parseTimeString(placeHours['start']);
+        final TimeOfDay placeEnd = _parseTimeString(placeHours['end']);
+
+        // Adjust end time to be at least 1 hour before closing
+        final TimeOfDay adjustedPlaceEnd = _subtractHours(placeEnd, 1);
+
+        // If place closes too early, skip
+        if (_compareTimeOfDay(placeStart, adjustedPlaceEnd) >= 0) {
+          continue;
+        }
+
+        // Get user availabilities for this day
+        Map<String, dynamic>? user1Hours;
+        Map<String, dynamic>? user2Hours;
+
+        if (user1Availability != null &&
+            user1Availability.containsKey(dayOfWeek)) {
+          user1Hours = user1Availability[dayOfWeek];
+        }
+
+        if (user2Availability != null &&
+            user2Availability.containsKey(dayOfWeek)) {
+          user2Hours = user2Availability[dayOfWeek];
+        }
+
+        // Parse user availability times
+        TimeOfDay user1Start = TimeOfDay(
+          hour: 9,
+          minute: 0,
+        ); // Default start time
+        TimeOfDay user1End = TimeOfDay(hour: 22, minute: 0); // Default end time
+        TimeOfDay user2Start = TimeOfDay(
+          hour: 9,
+          minute: 0,
+        ); // Default start time
+        TimeOfDay user2End = TimeOfDay(hour: 22, minute: 0); // Default end time
+
+        if (user1Hours != null &&
+            user1Hours.containsKey('start') &&
+            user1Hours.containsKey('end')) {
+          user1Start = _parseTimeString(user1Hours['start']);
+          user1End = _parseTimeString(user1Hours['end']);
+        }
+
+        if (user2Hours != null &&
+            user2Hours.containsKey('start') &&
+            user2Hours.containsKey('end')) {
+          user2Start = _parseTimeString(user2Hours['start']);
+          user2End = _parseTimeString(user2Hours['end']);
+        }
+
+        // Find the latest start time and earliest end time
+        TimeOfDay latestStart = _maxTimeOfDay(
+          _maxTimeOfDay(placeStart, user1Start),
+          user2Start,
+        );
+
+        TimeOfDay earliestEnd = _minTimeOfDay(
+          _minTimeOfDay(adjustedPlaceEnd, user1End),
+          user2End,
+        );
+
+        // If there's a valid time slot
+        if (_compareTimeOfDay(latestStart, earliestEnd) < 0) {
+          // Choose a time in the middle of the available slot
+          final int startMinutes = latestStart.hour * 60 + latestStart.minute;
+          final int endMinutes = earliestEnd.hour * 60 + earliestEnd.minute;
+          final int middleMinutes = (startMinutes + endMinutes) ~/ 2;
+
+          final int hour = middleMinutes ~/ 60;
+          // Round minute to either 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, or 55
+          final int minute = ((middleMinutes % 60) / 5).round() * 5;
+
+          // Create the meetup time
+          final proposedTime = DateTime(
+            targetDate.year,
+            targetDate.month,
+            targetDate.day,
+            hour,
+            minute,
+          );
+
+          // Check if the proposed time is within our valid range
+          if (proposedTime.isAfter(earliestTime) &&
+              proposedTime.isBefore(latestTime)) {
+            return proposedTime;
+          }
+        }
+      }
+
+      return null;
+    } catch (e) {
+      print('Error finding suitable time slot within range: $e');
+      return null;
+    }
+  }
+
+  // Helper method to get day of week string
+  static String _getDayOfWeek(int weekday) {
+    switch (weekday) {
+      case 1:
+        return 'Monday';
+      case 2:
+        return 'Tuesday';
+      case 3:
+        return 'Wednesday';
+      case 4:
+        return 'Thursday';
+      case 5:
+        return 'Friday';
+      case 6:
+        return 'Saturday';
+      case 7:
+        return 'Sunday';
+      default:
+        return 'Monday';
+    }
+  }
+
+  // Helper method to parse time string (format: "HH:MM")
+  static TimeOfDay _parseTimeString(String timeString) {
+    final parts = timeString.split(':');
+    return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+  }
+
+  // Helper method to compare two TimeOfDay objects
+  static int _compareTimeOfDay(TimeOfDay time1, TimeOfDay time2) {
+    final minutes1 = time1.hour * 60 + time1.minute;
+    final minutes2 = time2.hour * 60 + time2.minute;
+    return minutes1.compareTo(minutes2);
+  }
+
+  // Helper method to get the later of two TimeOfDay objects
+  static TimeOfDay _maxTimeOfDay(TimeOfDay time1, TimeOfDay time2) {
+    return _compareTimeOfDay(time1, time2) >= 0 ? time1 : time2;
+  }
+
+  // Helper method to get the earlier of two TimeOfDay objects
+  static TimeOfDay _minTimeOfDay(TimeOfDay time1, TimeOfDay time2) {
+    return _compareTimeOfDay(time1, time2) <= 0 ? time1 : time2;
+  }
+
+  // Helper method to subtract hours from a TimeOfDay
+  static TimeOfDay _subtractHours(TimeOfDay time, int hours) {
+    int totalMinutes = time.hour * 60 + time.minute - hours * 60;
+    if (totalMinutes < 0) totalMinutes += 24 * 60;
+    return TimeOfDay(
+      hour: (totalMinutes ~/ 60) % 24,
+      minute: totalMinutes % 60,
+    );
+  }
+
+  // Helper method to add hours to a TimeOfDay
+  static TimeOfDay _addHours(TimeOfDay time, int hours) {
+    int totalMinutes = time.hour * 60 + time.minute + hours * 60;
+    return TimeOfDay(
+      hour: (totalMinutes ~/ 60) % 24,
+      minute: totalMinutes % 60,
+    );
+  }
+
+  // Schedule a meetup for a match
+  static Future<bool> scheduleMeetup(String matchId) async {
+    return _safeApiCall(() async {
+      if (currentUser == null) {
+        print('SCHEDULE MEETUP: No current user, returning false');
+        return false;
+      }
+
+      try {
+        print('SCHEDULE MEETUP: Scheduling meetup for match: $matchId');
+
+        // Get the match record
+        print('SCHEDULE MEETUP: Fetching match record');
+        final match =
+            await _supabaseClient
+                .from('matches')
+                .select()
+                .eq('id', matchId)
+                .limit(1)
+                .single();
+
+        print('SCHEDULE MEETUP: Match record fetched: ${match.toString()}');
+
+        // Determine the other user ID
+        String otherUserId;
+        if (match['user_id1'] == currentUser!.id) {
+          otherUserId = match['user_id2'];
+          print(
+            'SCHEDULE MEETUP: Current user is user1, other user is user2: $otherUserId',
+          );
+        } else if (match['user_id2'] == currentUser!.id) {
+          otherUserId = match['user_id1'];
+          print(
+            'SCHEDULE MEETUP: Current user is user2, other user is user1: $otherUserId',
+          );
+        } else {
+          print('SCHEDULE MEETUP: Current user is not part of this match');
+          return false;
+        }
+
+        // Find a suitable place and time
+        print(
+          'SCHEDULE MEETUP: Finding suitable place and time for meetup with user: $otherUserId',
+        );
+        final meetupDetails = await findSuitablePlaceForMeetup(otherUserId);
+
+        if (meetupDetails == null) {
+          print(
+            'SCHEDULE MEETUP: Could not find suitable place and time for meetup, marking match as cancelled',
+          );
+
+          // Mark the match as cancelled due to no suitable place found
+          // Set cancelled_by to null to indicate system cancellation
+          await _supabaseClient
+              .from('matches')
+              .update({
+                'is_cancelled': true,
+                'cancelled_by': null, // System cancellation
+              })
+              .eq('id', matchId);
+
+          print(
+            'SCHEDULE MEETUP: Match marked as cancelled due to no suitable place',
+          );
+          return false;
+        }
+
+        print(
+          'SCHEDULE MEETUP: Found suitable place: ${meetupDetails['place']['name']}',
+        );
+        print(
+          'SCHEDULE MEETUP: Scheduled time: ${meetupDetails['meetup_time']}',
+        );
+
+        // Update the match record with place and time
+        print('SCHEDULE MEETUP: Updating match record with place and time');
+        final updateData = {
+          'place_id': meetupDetails['place']['id'],
+          'meetup_time': meetupDetails['meetup_time'],
+          'is_cancelled': false,
+          'cancelled_by': null,
+          'is_meetup_passed': false,
+        };
+        print('SCHEDULE MEETUP: Update data: $updateData');
+
+        await _supabaseClient
+            .from('matches')
+            .update(updateData)
+            .eq('id', matchId);
+
+        print('SCHEDULE MEETUP: Meetup scheduled successfully');
+
+        // Verify the update was successful
+        print('SCHEDULE MEETUP: Verifying update');
+        final updatedMatch =
+            await _supabaseClient
+                .from('matches')
+                .select()
+                .eq('id', matchId)
+                .limit(1)
+                .single();
+
+        print('SCHEDULE MEETUP: Updated match: ${updatedMatch.toString()}');
+        print(
+          'SCHEDULE MEETUP: Verification - place_id: ${updatedMatch['place_id']}',
+        );
+        print(
+          'SCHEDULE MEETUP: Verification - meetup_time: ${updatedMatch['meetup_time']}',
+        );
+
+        // Check if both place_id and meetup_time were properly updated
+        if (updatedMatch['place_id'] == null ||
+            updatedMatch['meetup_time'] == null) {
+          print(
+            'SCHEDULE MEETUP: ERROR - Database update failed. place_id or meetup_time is null',
+          );
+          print('SCHEDULE MEETUP: Attempting to update the match record again');
+
+          // Try one more time with a direct update
+          try {
+            await _supabaseClient
+                .from('matches')
+                .update({
+                  'place_id': meetupDetails['place']['id'],
+                  'meetup_time': meetupDetails['meetup_time'],
+                })
+                .eq('id', matchId);
+
+            // Verify again
+            final secondCheck =
+                await _supabaseClient
+                    .from('matches')
+                    .select()
+                    .eq('id', matchId)
+                    .limit(1)
+                    .single();
+
+            if (secondCheck['place_id'] == null ||
+                secondCheck['meetup_time'] == null) {
+              print('SCHEDULE MEETUP: ERROR - Second update attempt failed');
+              return false;
+            }
+
+            print('SCHEDULE MEETUP: Second update attempt successful');
+            return true;
+          } catch (e) {
+            print(
+              'SCHEDULE MEETUP: ERROR - Second update attempt threw exception: $e',
+            );
+            return false;
+          }
+        }
+
+        return true;
+      } catch (e) {
+        print('SCHEDULE MEETUP: Error scheduling meetup: $e');
+        return false;
+      }
+    });
+  }
+
+  // Get upcoming meetup for the current user
+  static Future<Map<String, dynamic>?> getUpcomingMeetup() async {
+    return _safeApiCall(() async {
+      if (currentUser == null) {
+        print(
+          'MEETUP SERVICE: getUpcomingMeetup: No current user, returning null',
+        );
+        return null;
+      }
+
+      try {
+        print(
+          'MEETUP SERVICE: Checking for upcoming meetups for user: ${currentUser!.id}',
+        );
+
+        // Get current time
+        final now = DateTime.now();
+        print('MEETUP SERVICE: Current time: ${now.toIso8601String()}');
+
+        // Query matches where current user is either user1 or user2
+        // and there's a scheduled meetup in the future
+        // and the meetup is not cancelled
+        print(
+          'MEETUP SERVICE: Querying database for upcoming meetups with SQL conditions:',
+        );
+        print('  - user_id1 or user_id2 = ${currentUser!.id}');
+        print('  - meetup_time is not null');
+        print('  - is_cancelled = false');
+        print('  - is_meetup_passed = false');
+        print('  - meetup_time > ${now.toIso8601String()}');
+
+        final matches = await _supabaseClient
+            .from('matches')
+            .select('*, places(*)')
+            .or('user_id1.eq.${currentUser!.id},user_id2.eq.${currentUser!.id}')
+            .not('meetup_time', 'is', null)
+            .eq('is_cancelled', false)
+            .eq('is_meetup_passed', false)
+            .gt('meetup_time', now.toIso8601String())
+            .order('meetup_time', ascending: true)
+            .limit(1);
+
+        print(
+          'MEETUP SERVICE: Query completed, found ${matches.length} matches',
+        );
+
+        if (matches.isEmpty) {
+          print('MEETUP SERVICE: No upcoming meetups found');
+          return null;
+        }
+
+        final match = matches[0];
+        print('MEETUP SERVICE: Found upcoming meetup: ${match['id']}');
+        print(
+          'MEETUP SERVICE: Meetup details: place_id=${match['place_id']}, time=${match['meetup_time']}',
+        );
+        print(
+          'MEETUP SERVICE: Place details: ${match['places'] != null ? 'found' : 'not found'}',
+        );
+
+        // Print more details about the match
+        print('MEETUP SERVICE: Full match record:');
+        print('  id: ${match['id']}');
+        print('  user_id1: ${match['user_id1']}');
+        print('  user_id2: ${match['user_id2']}');
+        print('  created_at: ${match['created_at']}');
+        print('  place_id: ${match['place_id']}');
+        print('  meetup_time: ${match['meetup_time']}');
+        print('  is_cancelled: ${match['is_cancelled']}');
+        print('  is_meetup_passed: ${match['is_meetup_passed']}');
+
+        // Determine the other user ID
+        String otherUserId;
+        if (match['user_id1'] == currentUser!.id) {
+          otherUserId = match['user_id2'];
+          print(
+            'MEETUP SERVICE: Current user is user1, other user is user2: $otherUserId',
+          );
+        } else {
+          otherUserId = match['user_id1'];
+          print(
+            'MEETUP SERVICE: Current user is user2, other user is user1: $otherUserId',
+          );
+        }
+
+        // Get the other user's profile
+        print('MEETUP SERVICE: Fetching other user profile: $otherUserId');
+        final otherUserProfile = await getProfileById(otherUserId);
+        if (otherUserProfile == null) {
+          print('MEETUP SERVICE: Could not retrieve other user profile');
+          return null;
+        }
+        print('MEETUP SERVICE: Other user profile retrieved successfully');
+
+        // Get current user's profile
+        print('MEETUP SERVICE: Fetching current user profile');
+        final currentUserProfile = await getUserProfile();
+        if (currentUserProfile == null) {
+          print('MEETUP SERVICE: Could not retrieve current user profile');
+          return null;
+        }
+        print('MEETUP SERVICE: Current user profile retrieved successfully');
+
+        // Return meetup details
+        print('MEETUP SERVICE: Returning complete meetup details');
+        return {
+          'match': match,
+          'place': match['places'],
+          'other_user': otherUserProfile,
+          'current_user': currentUserProfile,
+        };
+      } catch (e) {
+        print('MEETUP SERVICE: Error getting upcoming meetup: $e');
+        return null;
+      }
+    });
+  }
+
+  // Check if a meetup has passed
+  static Future<bool> checkAndUpdateMeetupStatus() async {
+    return _safeApiCall(() async {
+      if (currentUser == null) return false;
+
+      try {
+        print(
+          'Checking and updating meetup status for user: ${currentUser!.id}',
+        );
+
+        // Get current time
+        final now = DateTime.now();
+
+        // Query matches where current user is either user1 or user2
+        // and there's a scheduled meetup in the past (more than 1 hour ago)
+        // and the meetup is not marked as passed
+        final matches = await _supabaseClient
+            .from('matches')
+            .select()
+            .or('user_id1.eq.${currentUser!.id},user_id2.eq.${currentUser!.id}')
+            .not('meetup_time', 'is', null)
+            .eq('is_cancelled', false)
+            .eq('is_meetup_passed', false)
+            .lt(
+              'meetup_time',
+              now.subtract(const Duration(hours: 1)).toIso8601String(),
+            );
+
+        if (matches.isEmpty) {
+          print('No passed meetups found that need updating');
+          return false;
+        }
+
+        print('Found ${matches.length} passed meetups to update');
+
+        // Update all passed meetups
+        for (final match in matches) {
+          await _supabaseClient
+              .from('matches')
+              .update({'is_meetup_passed': true})
+              .eq('id', match['id']);
+
+          print('Updated meetup status to passed: ${match['id']}');
+        }
+
+        return true;
+      } catch (e) {
+        print('Error checking and updating meetup status: $e');
+        return false;
+      }
+    });
+  }
+
+  // Cancel a meetup
+  static Future<bool> cancelMeetup(String matchId) async {
+    return _safeApiCall(() async {
+      if (currentUser == null) return false;
+
+      try {
+        print('Cancelling meetup for match: $matchId');
+
+        // Update the match record
+        await _supabaseClient
+            .from('matches')
+            .update({'is_cancelled': true, 'cancelled_by': currentUser!.id})
+            .eq('id', matchId);
+
+        print('Meetup cancelled successfully');
+        return true;
+      } catch (e) {
+        print('Error cancelling meetup: $e');
+        return false;
+      }
+    });
+  }
+
+  // For debugging: Directly query matches with meetups
+  static Future<List<Map<String, dynamic>>>
+  debugQueryMatchesWithMeetups() async {
+    return _safeApiCall(() async {
+      if (currentUser == null) return [];
+
+      try {
+        print('DEBUG: Directly querying matches with meetups');
+
+        // Query all matches for the current user that have a place_id (indicating a meetup)
+        final matches = await _supabaseClient
+            .from('matches')
+            .select('*, places(*)')
+            .or('user_id1.eq.${currentUser!.id},user_id2.eq.${currentUser!.id}')
+            .not('place_id', 'is', null);
+
+        print('DEBUG: Found ${matches.length} matches with place_id');
+
+        // Print details of each match
+        for (final match in matches) {
+          print('DEBUG: Match ${match['id']}:');
+          print('  place_id: ${match['place_id']}');
+          print('  meetup_time: ${match['meetup_time']}');
+          print('  is_cancelled: ${match['is_cancelled']}');
+          print('  is_meetup_passed: ${match['is_meetup_passed']}');
+          print(
+            '  place: ${match['places'] != null ? match['places']['name'] : 'null'}',
+          );
+        }
+
+        return matches;
+      } catch (e) {
+        print('DEBUG: Error querying matches with meetups: $e');
+        return [];
+      }
+    });
+  }
+
+  // For debugging: Create a test meetup directly
+  static Future<bool> createTestMeetupDirectly() async {
+    return _safeApiCall(() async {
+      if (currentUser == null) return false;
+
+      try {
+        print('DEBUG: Creating a test meetup directly');
+
+        // First, create a test match
+        final testMatch = await createTestMatch();
+        if (testMatch == null) {
+          print('DEBUG: Could not create test match');
+          return false;
+        }
+
+        print('DEBUG: Created test match: ${testMatch['id']}');
+
+        // Get all places
+        final places = await _supabaseClient.from('places').select().limit(1);
+        if (places.isEmpty) {
+          print('DEBUG: No places found in the database');
+          return false;
+        }
+
+        final place = places[0];
+        print('DEBUG: Using place: ${place['name']}');
+
+        // Create a meetup time (1 day from now)
+        final meetupTime = DateTime.now().add(const Duration(days: 1));
+        final meetupTimeString = meetupTime.toIso8601String();
+        print('DEBUG: Using meetup time: $meetupTimeString');
+
+        // Update the match with place and time
+        await _supabaseClient
+            .from('matches')
+            .update({
+              'place_id': place['id'],
+              'meetup_time': meetupTimeString,
+              'is_cancelled': false,
+              'cancelled_by': null,
+              'is_meetup_passed': false,
+            })
+            .eq('id', testMatch['id']);
+
+        print('DEBUG: Test meetup created successfully');
+        return true;
+      } catch (e) {
+        print('DEBUG: Error creating test meetup: $e');
+        return false;
+      }
+    });
+  }
+
+  // For debugging: Test direct update of a match with meetup time
+  static Future<bool> testDirectMatchUpdate(String matchId) async {
+    return _safeApiCall(() async {
+      if (currentUser == null) return false;
+
+      try {
+        print('DEBUG: Testing direct update of match: $matchId');
+
+        // First, get the current match data
+        final match =
+            await _supabaseClient
+                .from('matches')
+                .select()
+                .eq('id', matchId)
+                .limit(1)
+                .single();
+
+        print('DEBUG: Current match data: $match');
+
+        // Get a place to use
+        final places = await _supabaseClient.from('places').select().limit(1);
+        if (places.isEmpty) {
+          print('DEBUG: No places found in the database');
+          return false;
+        }
+
+        final place = places[0];
+        print('DEBUG: Using place: ${place['name']} (${place['id']})');
+
+        // Create a meetup time (1 day from now)
+        final meetupTime = DateTime.now().add(const Duration(days: 1));
+        final meetupTimeString = meetupTime.toIso8601String();
+        print('DEBUG: Using meetup time: $meetupTimeString');
+
+        // Try updating just the meetup_time first
+        print('DEBUG: Attempting to update only meetup_time');
+        await _supabaseClient
+            .from('matches')
+            .update({'meetup_time': meetupTimeString})
+            .eq('id', matchId);
+
+        // Verify the update
+        final checkTime =
+            await _supabaseClient
+                .from('matches')
+                .select()
+                .eq('id', matchId)
+                .limit(1)
+                .single();
+
+        print('DEBUG: After meetup_time update: ${checkTime['meetup_time']}');
+
+        // Now try updating just the place_id
+        print('DEBUG: Attempting to update only place_id');
+        await _supabaseClient
+            .from('matches')
+            .update({'place_id': place['id']})
+            .eq('id', matchId);
+
+        // Verify the update
+        final checkPlace =
+            await _supabaseClient
+                .from('matches')
+                .select()
+                .eq('id', matchId)
+                .limit(1)
+                .single();
+
+        print('DEBUG: After place_id update: ${checkPlace['place_id']}');
+
+        // Finally, try updating both together
+        print('DEBUG: Attempting to update both fields together');
+        await _supabaseClient
+            .from('matches')
+            .update({'meetup_time': meetupTimeString, 'place_id': place['id']})
+            .eq('id', matchId);
+
+        // Verify the final update
+        final finalCheck =
+            await _supabaseClient
+                .from('matches')
+                .select()
+                .eq('id', matchId)
+                .limit(1)
+                .single();
+
+        print('DEBUG: Final check - meetup_time: ${finalCheck['meetup_time']}');
+        print('DEBUG: Final check - place_id: ${finalCheck['place_id']}');
+
+        return finalCheck['meetup_time'] != null &&
+            finalCheck['place_id'] != null;
+      } catch (e) {
+        print('DEBUG: Error in test direct match update: $e');
         return false;
       }
     });
