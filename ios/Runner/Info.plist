@@ -49,5 +49,13 @@
 	<string>Bluette needs access to your location to find nearby profiles</string>
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>Bluette needs access to your location to find nearby profiles even when the app is in background</string>
+	<!-- URL Launcher schemes -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>http</string>
+		<string>https</string>
+		<string>maps</string>
+		<string>comgooglemaps</string>
+	</array>
 </dict>
 </plist>
