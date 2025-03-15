@@ -642,32 +642,25 @@ class SupabaseService {
             .gte('age', filterMinAge) // Min age filter
             .lte('age', filterMaxAge) // Max age filter
             .not('latitude', 'is', null) // Must have location
-            .not('longitude', 'is', null);
+            .not('longitude', 'is', null)
+            .not(
+              'profile_picture_url',
+              'is',
+              null,
+            ) // Must have a profile picture
+            .not('voice_bio_url', 'is', null); // Must have a voice bio
 
         // Apply gender filter if not interested in everyone
         if (interestedIn != 'Everyone') {
           query = query.eq('gender', interestedIn);
         }
 
-        // Apply limit and offset for batch loading
-        // First execute the query to get the filtered results
+        // Execute the query to get all matching profiles
+        // We'll handle pagination after distance filtering
         matchingProfiles = await query;
 
-        // Then apply pagination to the results in memory
-        final int endIndex = offset + limit;
-        final int safeEndIndex =
-            endIndex < matchingProfiles.length
-                ? endIndex
-                : matchingProfiles.length;
-
-        if (offset < matchingProfiles.length) {
-          matchingProfiles = matchingProfiles.sublist(offset, safeEndIndex);
-        } else {
-          matchingProfiles = [];
-        }
-
         print(
-          'Found ${matchingProfiles.length} matching profiles in batch (offset: $offset, limit: $limit)',
+          'Found ${matchingProfiles.length} matching profiles before distance filtering',
         );
 
         // Convert to list of maps
@@ -708,10 +701,26 @@ class SupabaseService {
         });
 
         print(
-          'Returning ${filteredProfiles.length} profiles after distance filtering',
+          'Found ${filteredProfiles.length} profiles after distance filtering',
         );
 
-        return filteredProfiles;
+        // Now apply pagination to the distance-filtered profiles
+        final int endIndex = offset + limit;
+        final int safeEndIndex =
+            endIndex < filteredProfiles.length
+                ? endIndex
+                : filteredProfiles.length;
+
+        List<Map<String, dynamic>> paginatedProfiles = [];
+        if (offset < filteredProfiles.length) {
+          paginatedProfiles = filteredProfiles.sublist(offset, safeEndIndex);
+        }
+
+        print(
+          'Returning ${paginatedProfiles.length} profiles after pagination (offset: $offset, limit: $limit)',
+        );
+
+        return paginatedProfiles;
       } catch (e) {
         print('Error getting profiles to swipe in batch: $e');
         throw e;

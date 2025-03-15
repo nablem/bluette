@@ -10,6 +10,9 @@ import '../auth/login_screen.dart';
 import 'edit_field_dialog.dart';
 import 'edit_profile_picture.dart';
 import 'edit_voice_bio.dart';
+import '../../utils/network_error_handler.dart';
+import '../../widgets/error_message_widget.dart';
+import '../../services/connectivity_service.dart';
 
 // Add missing import for AudioSource
 import 'package:just_audio/just_audio.dart' show AudioSource;
@@ -112,6 +115,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     try {
+      // Check for internet connection first
+      final hasConnection = await ConnectivityService.isConnected();
+      if (!hasConnection) {
+        throw SocketException('No internet connection');
+      }
+
       final profile = await SupabaseService.getUserProfile();
 
       // Debug print to check profile data
@@ -153,7 +162,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       });
     } catch (e) {
       setState(() {
-        _errorMessage = 'Failed to load profile: ${e.toString()}';
+        _errorMessage = NetworkErrorHandler.getUserFriendlyMessage(e);
         _isLoading = false;
       });
     }
@@ -560,24 +569,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(
-                        Icons.error_outline,
-                        size: 48,
-                        color: AppTheme.errorColor,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _errorMessage ?? 'Failed to load profile',
-                        style: AppTheme.bodyStyle.copyWith(
-                          color: AppTheme.errorColor,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 24),
-                      CustomButton(
-                        text: 'Try Again',
-                        onPressed: _loadUserProfile,
-                        icon: Icons.refresh,
+                      ErrorMessageWidget(
+                        message: _errorMessage ?? 'Failed to load profile',
+                        onRetry: _loadUserProfile,
+                        isNetworkError:
+                            _errorMessage != null &&
+                            (_errorMessage!.contains('internet') ||
+                                _errorMessage!.contains('connection')),
                       ),
                     ],
                   ),
