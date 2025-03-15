@@ -1,6 +1,8 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../constants/app_theme.dart';
 import '../../models/profile_filter.dart';
 import '../../services/location_service.dart';
@@ -10,9 +12,16 @@ import 'filter_dialog.dart';
 import '../../utils/network_error_handler.dart';
 import '../../widgets/error_message_widget.dart';
 import '../../services/connectivity_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:confetti/confetti.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
+
+  // Static method to clear the shown matches set
+  static void clearShownMatches() {
+    _ExploreScreenState.clearShownMatches();
+  }
 
   @override
   State<ExploreScreen> createState() => _ExploreScreenState();
@@ -53,14 +62,42 @@ class _ExploreScreenState extends State<ExploreScreen>
   // Static list to persist profiles between app launches
   static List<Map<String, dynamic>> _persistedProfiles = [];
 
+  // Static set to track which matches have already been shown to the user
+  static Set<String> _shownMatchIds = {};
+
+  // Key for storing shown match IDs in SharedPreferences
+  static const String _shownMatchIdsKey = 'shown_match_ids';
+
   // Add a flag to track if we're returning to the screen
   bool _isReturningToScreen = false;
+
+  // Add a confetti controller for match animation
+  late ConfettiController _confettiController;
+
+  // Add a variable to store the realtime subscription
+  RealtimeChannel? _matchSubscription;
+
+  // Add a variable to track if we need to check for unseen matches
+  bool _needToCheckUnseenMatches = true;
+
+  // Timer for periodic subscription check
+  Timer? _subscriptionCheckTimer;
 
   @override
   void initState() {
     super.initState();
     // Add observer for app lifecycle changes
     WidgetsBinding.instance.addObserver(this);
+
+    // Initialize confetti controller
+    _confettiController = ConfettiController(
+      duration: const Duration(seconds: 5),
+    );
+
+    // Load shown match IDs from storage
+    _loadShownMatchIds().then((_) {
+      print('Shown match IDs loaded, count: ${_shownMatchIds.length}');
+    });
 
     // If location permission was previously granted, set it immediately
     if (_hasLocationPermission) {
@@ -130,6 +167,22 @@ class _ExploreScreenState extends State<ExploreScreen>
     _dislikeButtonAnimation = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _dislikeButtonController, curve: Curves.easeOut),
     );
+
+    // Subscribe to real-time match events
+    _subscribeToMatches();
+
+    // Always check for unseen matches when the app starts
+    // Use a short delay to ensure the UI is ready
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        // Always set this to true to ensure we check for matches
+        _needToCheckUnseenMatches = true;
+        _checkForUnseenMatches();
+      }
+    });
+
+    // Start periodic check for subscription health
+    _startPeriodicSubscriptionCheck();
   }
 
   @override
@@ -156,6 +209,18 @@ class _ExploreScreenState extends State<ExploreScreen>
     _cardController.dispose();
     _likeButtonController.dispose();
     _dislikeButtonController.dispose();
+    _confettiController.dispose();
+
+    // Cancel subscription check timer
+    _subscriptionCheckTimer?.cancel();
+    _subscriptionCheckTimer = null;
+
+    // Unsubscribe from real-time match events
+    if (_matchSubscription != null) {
+      print('Disposing match subscription');
+      Supabase.instance.client.removeChannel(_matchSubscription!);
+      _matchSubscription = null;
+    }
 
     // Note: We intentionally don't reset _hasBeenInitialized here
     // to maintain state between navigations
@@ -167,6 +232,8 @@ class _ExploreScreenState extends State<ExploreScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // When app resumes from background, check if location permission was granted
     if (state == AppLifecycleState.resumed) {
+      print('App resumed from background, checking subscriptions and matches');
+
       // Check if location permission status has changed
       _checkLocationStatusChange();
 
@@ -174,6 +241,305 @@ class _ExploreScreenState extends State<ExploreScreen>
       if (_hasBeenInitialized) {
         _reloadUserProfile();
       }
+
+      // Ensure we have an active match subscription
+      if (_matchSubscription == null) {
+        print('Match subscription is null on resume, resubscribing');
+        _subscribeToMatches();
+      } else {
+        // For safety, resubscribe to ensure we have a fresh connection
+        print('Refreshing match subscription on app resume');
+        _subscribeToMatches();
+      }
+
+      // Always check for unseen matches when app resumes
+      // Use a short delay to ensure the UI is ready
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          _checkForUnseenMatches();
+        }
+      });
+    } else if (state == AppLifecycleState.paused) {
+      print('App paused, current subscription will be maintained');
+    }
+  }
+
+  // Subscribe to real-time match events
+  void _subscribeToMatches() {
+    try {
+      // Clean up any existing subscription first
+      if (_matchSubscription != null) {
+        print('Removing existing match subscription before creating a new one');
+        Supabase.instance.client.removeChannel(_matchSubscription!);
+        _matchSubscription = null;
+      }
+
+      print('Setting up real-time subscription for matches');
+
+      // Enable real-time for the client
+      try {
+        print('Ensuring realtime is connected');
+        Supabase.instance.client.realtime.connect();
+      } catch (e) {
+        print('Error connecting realtime: $e');
+      }
+
+      final channel = Supabase.instance.client.channel('matches_channel');
+
+      // Listen for INSERT events (new matches)
+      channel.onPostgresChanges(
+        event: PostgresChangeEvent.insert,
+        schema: 'public',
+        table: 'matches',
+        callback: (payload) async {
+          print('New match INSERT event received: ${payload.toString()}');
+          _handleMatchEvent(payload.newRecord);
+        },
+      );
+
+      // Listen for UPDATE events (match updates)
+      channel.onPostgresChanges(
+        event: PostgresChangeEvent.update,
+        schema: 'public',
+        table: 'matches',
+        callback: (payload) async {
+          print('Match UPDATE event received: ${payload.toString()}');
+          _handleMatchEvent(payload.newRecord);
+        },
+      );
+
+      // Subscribe to the channel
+      _matchSubscription = channel.subscribe((status, error) {
+        if (error != null) {
+          print('Error subscribing to matches channel: $error');
+        } else {
+          print(
+            'Successfully subscribed to matches channel with status: $status',
+          );
+        }
+      });
+
+      print('Real-time subscription set up successfully');
+    } catch (e) {
+      print('Error subscribing to matches: $e');
+
+      // Try to resubscribe after a delay if there was an error
+      Future.delayed(const Duration(seconds: 5), () {
+        if (mounted && _matchSubscription == null) {
+          print('Attempting to resubscribe to matches after error');
+          _subscribeToMatches();
+        }
+      });
+    }
+  }
+
+  // Helper method to handle match events
+  void _handleMatchEvent(Map<String, dynamic> matchRecord) async {
+    if (!mounted) return;
+
+    // Check if this match involves the current user
+    final currentUserId = SupabaseService.currentUser?.id;
+    if (currentUserId == null) {
+      print('Current user ID is null, cannot process match event');
+      return;
+    }
+
+    String? matchedProfileId;
+    if (matchRecord['user_id1'] == currentUserId) {
+      // Current user is user1
+      matchedProfileId = matchRecord['user_id2'];
+      print('Current user is user1, matched with user2: $matchedProfileId');
+    } else if (matchRecord['user_id2'] == currentUserId) {
+      // Current user is user2
+      matchedProfileId = matchRecord['user_id1'];
+      print('Current user is user2, matched with user1: $matchedProfileId');
+    } else {
+      print('Match does not involve current user: $currentUserId');
+      return;
+    }
+
+    // Check if this match has already been shown
+    final matchId = matchRecord['id'];
+
+    // First check if it's in our local shown matches set
+    if (_shownMatchIds.contains(matchId)) {
+      print('Match $matchId is in local shown matches set, skipping dialog');
+      return;
+    }
+
+    // Then double-check with the server to be sure
+    final hasBeenSeen = await SupabaseService.hasMatchBeenSeen(matchId);
+    if (hasBeenSeen) {
+      print(
+        'Match $matchId has been seen according to server, adding to local set',
+      );
+      await _addToShownMatchIds(matchId);
+      return;
+    }
+
+    // Add this match to the shown matches set
+    await _addToShownMatchIds(matchId);
+
+    // Get the profile of the matched user
+    if (matchedProfileId != null) {
+      print('Fetching profile details for matched user: $matchedProfileId');
+      final matchedProfile = await SupabaseService.getProfileById(
+        matchedProfileId,
+      );
+
+      if (matchedProfile != null && mounted) {
+        print('Showing match dialog for: ${matchedProfile['name']}');
+
+        // Add match_id to the profile data for the dialog
+        final profileWithMatchId = Map<String, dynamic>.from(matchedProfile);
+        profileWithMatchId['match_id'] = matchId;
+
+        // Show match dialog with animation
+        _showEnhancedMatchDialog(profileWithMatchId);
+
+        // Mark the match as seen
+        SupabaseService.markMatchAsSeen(matchId).then((_) {
+          print('Marked match as seen: $matchId');
+        });
+      } else {
+        print('Failed to fetch profile for matched user: $matchedProfileId');
+      }
+    }
+  }
+
+  // Check for unseen matches when returning to the screen
+  Future<void> _checkForUnseenMatches() async {
+    try {
+      print('Checking for unseen matches on app return/startup');
+
+      // Set flag to false to avoid checking multiple times
+      _needToCheckUnseenMatches = false;
+
+      // First, manually check for matches that might have been missed
+      print('Running manual match check first');
+      final manualMatches = await SupabaseService.checkForManualMatches();
+      if (manualMatches.isNotEmpty) {
+        print('Found ${manualMatches.length} new matches from manual check');
+
+        // Find the first match that hasn't been shown yet
+        Map<String, dynamic>? matchToShow;
+        for (final match in manualMatches) {
+          final matchId = match['match']['id'];
+
+          // First check if it's in our local shown matches set
+          if (_shownMatchIds.contains(matchId)) {
+            print('Match $matchId is in local shown matches set, skipping');
+            continue;
+          }
+
+          // Then double-check with the server to be sure
+          final hasBeenSeen = await SupabaseService.hasMatchBeenSeen(matchId);
+          if (hasBeenSeen) {
+            print(
+              'Match $matchId has been seen according to server, adding to local set',
+            );
+            await _addToShownMatchIds(matchId);
+            continue;
+          }
+
+          // If we get here, the match hasn't been shown yet
+          matchToShow = match;
+          await _addToShownMatchIds(matchId);
+          break;
+        }
+
+        if (matchToShow != null) {
+          print('Showing match dialog for: ${matchToShow['profile']['name']}');
+
+          // Add match_id to the profile data for the dialog
+          final matchProfile = Map<String, dynamic>.from(
+            matchToShow['profile'],
+          );
+          matchProfile['match_id'] = matchToShow['match']['id'];
+
+          _showEnhancedMatchDialog(matchProfile);
+
+          // Mark the match as seen
+          await SupabaseService.markMatchAsSeen(matchToShow['match']['id']);
+          print('Marked match as seen: ${matchToShow['match']['id']}');
+
+          // If there are more manual matches, set the flag to check again later
+          if (manualMatches.length > 1) {
+            print(
+              'There are more manual matches (${manualMatches.length - 1}), will check again later',
+            );
+            _needToCheckUnseenMatches = true;
+            return;
+          }
+        } else {
+          print('All manual matches have already been shown');
+        }
+      } else {
+        print('No new matches found from manual check');
+      }
+
+      // Then check for any unseen matches
+      final unseenMatches = await SupabaseService.getUnseenMatches();
+      print('Found ${unseenMatches.length} unseen matches');
+
+      if (unseenMatches.isNotEmpty && mounted) {
+        // Find the first unseen match that hasn't been shown yet
+        Map<String, dynamic>? matchToShow;
+        for (final match in unseenMatches) {
+          final matchId = match['match']['id'];
+
+          // First check if it's in our local shown matches set
+          if (_shownMatchIds.contains(matchId)) {
+            print('Match $matchId is in local shown matches set, skipping');
+            continue;
+          }
+
+          // Then double-check with the server to be sure
+          final hasBeenSeen = await SupabaseService.hasMatchBeenSeen(matchId);
+          if (hasBeenSeen) {
+            print(
+              'Match $matchId has been seen according to server, adding to local set',
+            );
+            await _addToShownMatchIds(matchId);
+            continue;
+          }
+
+          // If we get here, the match hasn't been shown yet
+          matchToShow = match;
+          await _addToShownMatchIds(matchId);
+          break;
+        }
+
+        if (matchToShow != null) {
+          print('Showing match dialog for: ${matchToShow['profile']['name']}');
+
+          // Add match_id to the profile data for the dialog
+          final matchProfile = Map<String, dynamic>.from(
+            matchToShow['profile'],
+          );
+          matchProfile['match_id'] = matchToShow['match']['id'];
+
+          _showEnhancedMatchDialog(matchProfile);
+
+          // Mark the match as seen
+          await SupabaseService.markMatchAsSeen(matchToShow['match']['id']);
+          print('Marked match as seen: ${matchToShow['match']['id']}');
+
+          // If there are more unseen matches, set the flag to check again later
+          if (unseenMatches.length > 1) {
+            print(
+              'There are more unseen matches (${unseenMatches.length - 1}), will check again later',
+            );
+            _needToCheckUnseenMatches = true;
+          }
+        } else {
+          print('All unseen matches have already been shown');
+        }
+      } else {
+        print('No unseen matches found');
+      }
+    } catch (e) {
+      print('Error checking for unseen matches: $e');
     }
   }
 
@@ -275,6 +641,10 @@ class _ExploreScreenState extends State<ExploreScreen>
       // Reset batch loading parameters
       _currentBatchOffset = 0;
       _hasMoreProfiles = true;
+
+      // Always check for unseen matches, even when refreshing the Explore view
+      // This ensures users don't miss any matches
+      _needToCheckUnseenMatches = true;
 
       final profiles = await SupabaseService.getProfilesToSwipeBatch(
         minAge: _currentFilter.minAge,
@@ -439,10 +809,65 @@ class _ExploreScreenState extends State<ExploreScreen>
 
         // If liked, check for a match
         if (liked) {
+          print(
+            'Checking for match after liking profile: ${swipedProfile['name']}',
+          );
+
+          // Add a small delay to allow the database to process the swipe
+          // This helps ensure the real-time subscription has time to detect the match
+          await Future.delayed(const Duration(milliseconds: 300));
+
           final isMatch = await SupabaseService.checkForMatch(swipedProfileId);
+          print('Match check result: ${isMatch ? "MATCH!" : "No match"}');
+
           if (isMatch && mounted) {
-            // Show match dialog
-            _showMatchDialog(swipedProfile);
+            print('Showing match dialog for: ${swipedProfile['name']}');
+
+            // Get the match record to get the match ID
+            final matchRecords = await SupabaseService.getMatchWithProfile(
+              swipedProfileId,
+            );
+            if (matchRecords.isNotEmpty) {
+              final matchId = matchRecords.first['match']['id'];
+
+              // Check if this match has already been shown
+              if (_shownMatchIds.contains(matchId)) {
+                print('Match $matchId has already been shown, skipping dialog');
+              } else {
+                // Double-check with the server to be sure
+                final hasBeenSeen = await SupabaseService.hasMatchBeenSeen(
+                  matchId,
+                );
+                if (hasBeenSeen) {
+                  print(
+                    'Match $matchId has been seen according to server, adding to local set',
+                  );
+                  await _addToShownMatchIds(matchId);
+                } else {
+                  // Add match_id to the profile data for the dialog
+                  final matchProfile = Map<String, dynamic>.from(swipedProfile);
+                  matchProfile['match_id'] = matchId;
+
+                  // Add this match to the shown matches set
+                  await _addToShownMatchIds(matchId);
+
+                  // Show enhanced match dialog with animation
+                  _showEnhancedMatchDialog(matchProfile);
+
+                  // Mark the match as seen
+                  await SupabaseService.markMatchAsSeen(matchId);
+                }
+              }
+            } else {
+              // Fallback if we can't find the match record
+              _showEnhancedMatchDialog(swipedProfile);
+            }
+          } else {
+            // Even if no immediate match was found, check for any unseen matches
+            // This ensures we catch matches from previous sessions or offline periods
+            print('No immediate match found, checking for any unseen matches');
+            _needToCheckUnseenMatches = true;
+            _checkForUnseenMatches();
           }
         }
 
@@ -620,24 +1045,207 @@ class _ExploreScreenState extends State<ExploreScreen>
     }
   }
 
-  void _showMatchDialog(Map<String, dynamic> matchedProfile) {
+  // Enhanced match dialog with animation
+  void _showEnhancedMatchDialog(Map<String, dynamic> matchedProfile) {
+    // Add match ID to the set of shown matches if available
+    if (matchedProfile['match_id'] != null) {
+      _addToShownMatchIds(matchedProfile['match_id']);
+    }
+
+    // Start confetti animation
+    _confettiController.play();
+
     showDialog(
       context: context,
+      barrierDismissible: false, // User must tap button to close dialog
       builder:
-          (context) => AlertDialog(
-            title: const Text('It\'s a Match!'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('You and ${matchedProfile['name']} liked each other!'),
-                const SizedBox(height: 20),
-                // In a future implementation, we could add a button to start a conversation
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Continue Swiping'),
+          (context) => Stack(
+            children: [
+              // Confetti effect
+              Align(
+                alignment: Alignment.topCenter,
+                child: ConfettiWidget(
+                  confettiController: _confettiController,
+                  blastDirectionality: BlastDirectionality.explosive,
+                  particleDrag: 0.05,
+                  emissionFrequency: 0.05,
+                  numberOfParticles: 20,
+                  gravity: 0.2,
+                  shouldLoop: false,
+                  colors: const [
+                    Colors.red,
+                    Colors.pink,
+                    Colors.purple,
+                    Colors.blue,
+                    Colors.green,
+                    Colors.yellow,
+                    Colors.orange,
+                  ],
+                ),
+              ),
+              // Match dialog
+              AlertDialog(
+                title: ShaderMask(
+                  shaderCallback:
+                      (bounds) => AppTheme.primaryGradient.createShader(bounds),
+                  child: Text(
+                    '${matchedProfile['name']} wants to see you!',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color:
+                          Colors
+                              .white, // This color is used as the base for the gradient
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Profile picture
+                    if (matchedProfile['profile_picture_url'] != null)
+                      Container(
+                        width: 126, // Slightly larger to account for the border
+                        height:
+                            126, // Slightly larger to account for the border
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: AppTheme.primaryGradient,
+                        ),
+                        child: Center(
+                          child: Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              image: DecorationImage(
+                                image: NetworkImage(
+                                  matchedProfile['profile_picture_url'],
+                                ),
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      Container(
+                        width: 126, // Slightly larger to account for the border
+                        height:
+                            126, // Slightly larger to account for the border
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: AppTheme.primaryGradient,
+                        ),
+                        child: Center(
+                          child: Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.grey[300],
+                            ),
+                            child: const Icon(
+                              Icons.person,
+                              size: 80,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'We set up a date for you,\nHave fun!',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+                actions: [
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.primaryGradient,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        // Stop confetti when dialog is closed
+                        _confettiController.stop();
+
+                        // Get the match ID before closing the dialog
+                        final matchId = matchedProfile['match_id'];
+
+                        // Close the dialog immediately
+                        Navigator.of(context).pop();
+
+                        // Mark the match as seen if we have a match ID (do this after dialog is closed)
+                        if (matchId != null) {
+                          print(
+                            'Marking match as seen from dialog button: $matchId',
+                          );
+
+                          // Use a microtask to ensure this runs after the dialog is closed
+                          Future.microtask(() async {
+                            try {
+                              await SupabaseService.markMatchAsSeen(matchId);
+                              print(
+                                'Successfully marked match as seen: $matchId',
+                              );
+
+                              // Verify the match was marked as seen
+                              await _verifyMatchSeenStatus(matchId);
+                            } catch (error) {
+                              print('Error marking match as seen: $error');
+
+                              // Show a toast to inform the user
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text(
+                                      'We\'ll remember you\'ve seen this match!',
+                                    ),
+                                    duration: const Duration(seconds: 2),
+                                    backgroundColor: Colors.orange,
+                                  ),
+                                );
+                              }
+                            }
+                          });
+                        } else {
+                          print(
+                            'No match_id found in profile data, cannot mark as seen',
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        foregroundColor: Colors.white,
+                        shadowColor: Colors.transparent,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
+                        ),
+                      ),
+                      child: const Text(
+                        'All right!',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                actionsAlignment: MainAxisAlignment.center,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                backgroundColor: Colors.white,
+                elevation: 10,
               ),
             ],
           ),
@@ -889,6 +1497,32 @@ class _ExploreScreenState extends State<ExploreScreen>
                         ),
                       ),
                     ),
+                    // Debug button in the top-left corner (only in debug mode)
+                    if (const bool.fromEnvironment('dart.vm.product') == false)
+                      Positioned(
+                        top: 10,
+                        left: 10,
+                        child: FloatingActionButton(
+                          mini: true,
+                          heroTag: 'debug',
+                          onPressed: () {
+                            _debugTestSubscription();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Testing real-time subscription...',
+                                ),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          },
+                          backgroundColor: Colors.grey[300],
+                          child: const Icon(
+                            Icons.bug_report,
+                            color: Colors.black54,
+                          ),
+                        ),
+                      ),
                   ],
                 )
                 // When returning to the screen, we should never show the location permission screen
@@ -1139,6 +1773,8 @@ class _ExploreScreenState extends State<ExploreScreen>
             onPressed: () async {
               try {
                 await SupabaseService.clearUserSwipes();
+                // Clear shown matches set when swipes are cleared
+                await _ExploreScreenState.clearShownMatches();
                 // Clear any error message before refreshing
                 setState(() {
                   _errorMessage = null;
@@ -1181,6 +1817,367 @@ class _ExploreScreenState extends State<ExploreScreen>
       }
     } catch (e) {
       print('Error reloading user profile: ${e.toString()}');
+    }
+  }
+
+  // Start periodic check for subscription health
+  void _startPeriodicSubscriptionCheck() {
+    // Cancel any existing timer
+    _subscriptionCheckTimer?.cancel();
+
+    // Check subscription every 30 seconds
+    _subscriptionCheckTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) {
+        print('Performing periodic subscription health check');
+
+        // If subscription is null, resubscribe
+        if (_matchSubscription == null) {
+          print('Match subscription is null, resubscribing');
+          _subscribeToMatches();
+        } else {
+          // For safety, always resubscribe periodically to ensure a fresh connection
+          print('Refreshing match subscription for reliability');
+          _subscribeToMatches();
+        }
+
+        // Only check for unseen matches if the flag is set
+        if (_needToCheckUnseenMatches) {
+          print('Checking for unseen matches from periodic check');
+          _checkForUnseenMatches();
+        } else {
+          print('Skipping unseen matches check from periodic check');
+        }
+      }
+    });
+  }
+
+  // Debug method to test the real-time subscription
+  void _debugTestSubscription() async {
+    print('===== REAL-TIME SUBSCRIPTION DEBUG =====');
+
+    // Show a dialog to the user with debugging options
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Real-time Debug Options'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Choose a debugging action:'),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _resetRealtimeConnection();
+                  },
+                  child: const Text('Reset Realtime Connection'),
+                ),
+                const SizedBox(height: 8),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _testManualMatchCreation();
+                  },
+                  child: const Text('Create Test Match'),
+                ),
+                const SizedBox(height: 8),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _checkRLSPolicies();
+                  },
+                  child: const Text('Check RLS Policies'),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  // Reset the realtime connection
+  void _resetRealtimeConnection() {
+    print('Resetting realtime connection...');
+
+    // Disconnect realtime
+    try {
+      print('Disconnecting realtime...');
+      Supabase.instance.client.realtime.disconnect();
+
+      // Wait a moment before reconnecting
+      Future.delayed(const Duration(seconds: 1), () {
+        print('Reconnecting realtime...');
+        Supabase.instance.client.realtime.connect();
+
+        // Resubscribe to matches
+        Future.delayed(const Duration(seconds: 1), () {
+          print('Resubscribing to matches...');
+          _subscribeToMatches();
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Realtime connection reset and resubscribed'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        });
+      });
+    } catch (e) {
+      print('Error resetting realtime connection: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          duration: const Duration(seconds: 3),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // Test method to manually create a match record
+  Future<void> _testManualMatchCreation() async {
+    try {
+      print('Testing manual match creation to verify real-time events');
+
+      // Show loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Creating test match...'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      // Get the current user ID
+      final currentUserId = SupabaseService.currentUser?.id;
+      if (currentUserId == null) {
+        print('ERROR: Current user ID is null, cannot test match creation');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error: User not logged in'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Try to create a test match directly
+      final testMatch = await SupabaseService.createTestMatch();
+
+      if (testMatch != null) {
+        print('Test match created successfully: $testMatch');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Test match created! Check logs for details'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        print('Failed to create test match');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to create test match'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error in test match creation: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  // Check RLS policies
+  Future<void> _checkRLSPolicies() async {
+    try {
+      print('Checking RLS policies for matches table...');
+
+      // Show loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Checking RLS policies...'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      // Try to get all matches (this will likely fail if RLS is restricting access)
+      try {
+        final allMatches =
+            await Supabase.instance.client.from('matches').select();
+        print(
+          'Successfully retrieved ${allMatches.length} matches - RLS might be too permissive',
+        );
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Retrieved ${allMatches.length} matches - RLS might be too permissive',
+            ),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      } catch (e) {
+        print('Could not retrieve all matches (expected with RLS): $e');
+      }
+
+      // Try to get matches for the current user (this should succeed)
+      final currentUserId = SupabaseService.currentUser?.id;
+      if (currentUserId != null) {
+        try {
+          final userMatches = await Supabase.instance.client
+              .from('matches')
+              .select()
+              .or('user_id1.eq.$currentUserId,user_id2.eq.$currentUserId');
+
+          print(
+            'Successfully retrieved ${userMatches.length} matches for current user',
+          );
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Found ${userMatches.length} matches for your user',
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          // Check if realtime is enabled for this table
+          print('Checking if realtime is enabled for matches table...');
+          print(
+            'Current realtime status: ${Supabase.instance.client.realtime.isConnected ? "Connected ✓" : "Disconnected ✗"}',
+          );
+
+          // Show a message with instructions for the user
+          showDialog(
+            context: context,
+            builder:
+                (context) => AlertDialog(
+                  title: const Text('Supabase Configuration Check'),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Please check your Supabase configuration:'),
+                      const SizedBox(height: 8),
+                      const Text('1. Realtime is enabled for the project'),
+                      const Text(
+                        '2. Realtime is enabled for the "matches" table',
+                      ),
+                      const Text(
+                        '3. RLS policies allow the current user to SELECT from matches',
+                      ),
+                      const Text('4. Database webhook is configured correctly'),
+                      const SizedBox(height: 16),
+                      const Text('Current status:'),
+                      Text(
+                        '• Realtime connection: ${Supabase.instance.client.realtime.isConnected ? "Connected ✓" : "Disconnected ✗"}',
+                      ),
+                      Text(
+                        '• User matches found: ${userMatches.length > 0 ? "Yes ✓" : "No ✗"}',
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                ),
+          );
+        } catch (e) {
+          print('Error retrieving matches for current user: $e');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error checking RLS policies: $e');
+    }
+  }
+
+  // Load shown match IDs from SharedPreferences
+  Future<void> _loadShownMatchIds() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final List<String> storedIds =
+          prefs.getStringList(_shownMatchIdsKey) ?? [];
+
+      setState(() {
+        _shownMatchIds = Set<String>.from(storedIds);
+      });
+
+      print('Loaded ${_shownMatchIds.length} shown match IDs from storage');
+    } catch (e) {
+      print('Error loading shown match IDs: $e');
+    }
+  }
+
+  // Save shown match IDs to SharedPreferences
+  Future<void> _saveShownMatchIds() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_shownMatchIdsKey, _shownMatchIds.toList());
+      print('Saved ${_shownMatchIds.length} shown match IDs to storage');
+    } catch (e) {
+      print('Error saving shown match IDs: $e');
+    }
+  }
+
+  // Add a match ID to the shown matches set and save to storage
+  Future<void> _addToShownMatchIds(String matchId) async {
+    if (!_shownMatchIds.contains(matchId)) {
+      setState(() {
+        _shownMatchIds.add(matchId);
+      });
+      await _saveShownMatchIds();
+      print('Added match ID $matchId to shown matches and saved to storage');
+    }
+  }
+
+  // Clear shown match IDs from memory and storage
+  static Future<void> clearShownMatches() async {
+    _shownMatchIds.clear();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_shownMatchIdsKey);
+      print('Cleared shown matches from storage');
+    } catch (e) {
+      print('Error clearing shown match IDs: $e');
+    }
+  }
+
+  // Add a helper method to verify the match seen status
+  Future<void> _verifyMatchSeenStatus(String matchId) async {
+    try {
+      // Use the hasMatchBeenSeen method to check if the match has been seen
+      final hasBeenSeen = await SupabaseService.hasMatchBeenSeen(matchId);
+
+      print('Verification - Match ID: $matchId, Has been seen: $hasBeenSeen');
+
+      if (!hasBeenSeen) {
+        print(
+          'WARNING: Match was not properly marked as seen after verification',
+        );
+
+        // Try to mark it as seen again
+        print('Attempting to mark match as seen again');
+        await SupabaseService.markMatchAsSeen(matchId);
+      } else {
+        print('Verification successful: Match was properly marked as seen');
+      }
+    } catch (e) {
+      print('Error verifying match seen status: $e');
     }
   }
 }

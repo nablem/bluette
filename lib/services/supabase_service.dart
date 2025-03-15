@@ -768,6 +768,8 @@ class SupabaseService {
     if (currentUser == null) return false;
 
     try {
+      print('Checking for match with profile ID: $swipedProfileId');
+
       // Check if the other user has already liked the current user
       final result = await _supabaseClient
           .from('swipes')
@@ -777,11 +779,338 @@ class SupabaseService {
           .eq('liked', true)
           .limit(1);
 
+      print(
+        'Match check result: ${result.isNotEmpty ? "MATCH FOUND!" : "No match found"}',
+      );
+
+      // If there's a match, create a match record
+      if (result.isNotEmpty) {
+        await _createMatchRecord(swipedProfileId);
+      }
+
       return result.isNotEmpty;
     } catch (e) {
       print('Error checking for match: $e');
       return false;
     }
+  }
+
+  // Create a match record in the matches table
+  static Future<void> _createMatchRecord(String matchedProfileId) async {
+    if (currentUser == null) return;
+
+    try {
+      print(
+        'Creating match record between ${currentUser!.id} and $matchedProfileId',
+      );
+
+      // Check if match already exists to avoid duplicates
+      final existingMatch = await _supabaseClient
+          .from('matches')
+          .select()
+          .or('user_id1.eq.${currentUser!.id},user_id2.eq.${currentUser!.id}')
+          .or('user_id1.eq.$matchedProfileId,user_id2.eq.$matchedProfileId')
+          .limit(1);
+
+      if (existingMatch.isNotEmpty) {
+        print(
+          'Match already exists between ${currentUser!.id} and $matchedProfileId',
+        );
+        return;
+      }
+
+      // Create the match record - use .select() to return the inserted record
+      // This ensures the real-time subscription is triggered
+      final response =
+          await _supabaseClient.from('matches').insert({
+            'user_id1': currentUser!.id,
+            'user_id2': matchedProfileId,
+            'created_at': DateTime.now().toIso8601String(),
+            'seen_by_user1':
+                false, // Changed to false so both users need to see the match
+            'seen_by_user2': false, // Other user hasn't seen it yet
+          }).select();
+
+      print('Match created with response: $response');
+
+      // Add a small delay to ensure the real-time event is processed
+      await Future.delayed(const Duration(milliseconds: 100));
+    } catch (e) {
+      print('Error creating match record: $e');
+    }
+  }
+
+  // Subscribe to new matches for the current user
+  static RealtimeChannel subscribeToMatches(
+    Function(Map<String, dynamic>) onMatchCreated,
+  ) {
+    if (currentUser == null) {
+      throw Exception('User must be logged in to subscribe to matches');
+    }
+
+    print(
+      'Setting up real-time subscription for matches for user: ${currentUser!.id}',
+    );
+
+    // Create a channel for matches
+    final channel = _supabaseClient.channel('matches_channel');
+
+    // Set up the channel to listen for matches
+    channel.onPostgresChanges(
+      event: PostgresChangeEvent.insert,
+      schema: 'public',
+      table: 'matches',
+      callback: (payload) async {
+        print('New match event received: ${payload.toString()}');
+        print('New match record: ${payload.newRecord}');
+
+        // Check if this match involves the current user
+        final Map<String, dynamic> newRecord = payload.newRecord;
+        String? matchedProfileId;
+
+        if (newRecord['user_id1'] == currentUser!.id) {
+          // Current user is user1
+          matchedProfileId = newRecord['user_id2'];
+          print('Current user is user1, matched with user2: $matchedProfileId');
+        } else if (newRecord['user_id2'] == currentUser!.id) {
+          // Current user is user2
+          matchedProfileId = newRecord['user_id1'];
+          print('Current user is user2, matched with user1: $matchedProfileId');
+        } else {
+          print('Match does not involve current user: ${currentUser!.id}');
+          return;
+        }
+
+        if (matchedProfileId != null) {
+          print('Fetching profile details for matched user: $matchedProfileId');
+          final matchedProfile = await getProfileById(matchedProfileId);
+
+          if (matchedProfile != null) {
+            print(
+              'Calling onMatchCreated callback with profile: ${matchedProfile['name']}',
+            );
+            onMatchCreated({'match': newRecord, 'profile': matchedProfile});
+          } else {
+            print(
+              'Failed to fetch profile for matched user: $matchedProfileId',
+            );
+          }
+        }
+      },
+    );
+
+    // Subscribe to the channel
+    print('Subscribing to matches channel');
+    channel.subscribe((status, error) {
+      if (error != null) {
+        print('Error subscribing to matches channel: $error');
+      } else {
+        print(
+          'Successfully subscribed to matches channel with status: $status',
+        );
+      }
+    });
+
+    return channel;
+  }
+
+  // Get profile by ID
+  static Future<Map<String, dynamic>?> getProfileById(String profileId) async {
+    return _safeApiCall(() async {
+      try {
+        final result =
+            await _supabaseClient
+                .from('profiles')
+                .select()
+                .eq('id', profileId)
+                .limit(1)
+                .single();
+
+        return result;
+      } catch (e) {
+        print('Error getting profile by ID: $e');
+        return null;
+      }
+    });
+  }
+
+  // Get all unseen matches for the current user
+  static Future<List<Map<String, dynamic>>> getUnseenMatches() async {
+    return _safeApiCall(() async {
+      if (currentUser == null) return [];
+
+      try {
+        print('Checking for unseen matches for user: ${currentUser!.id}');
+
+        // Get matches where current user is user1 and hasn't seen the match
+        final matchesAsUser1 = await _supabaseClient
+            .from('matches')
+            .select()
+            .eq('user_id1', currentUser!.id)
+            .eq('seen_by_user1', false);
+
+        print('Unseen matches as user1: ${matchesAsUser1.length}');
+
+        // Get matches where current user is user2 and hasn't seen the match
+        final matchesAsUser2 = await _supabaseClient
+            .from('matches')
+            .select()
+            .eq('user_id2', currentUser!.id)
+            .eq('seen_by_user2', false);
+
+        print('Unseen matches as user2: ${matchesAsUser2.length}');
+
+        // Combine the results
+        final List<Map<String, dynamic>> unseenMatches = [];
+
+        // Process matches where user is user1
+        for (final match in matchesAsUser1) {
+          final matchedProfileId = match['user_id2'];
+          final matchedProfile = await getProfileById(matchedProfileId);
+
+          if (matchedProfile != null) {
+            unseenMatches.add({'match': match, 'profile': matchedProfile});
+          }
+        }
+
+        // Process matches where user is user2
+        for (final match in matchesAsUser2) {
+          final matchedProfileId = match['user_id1'];
+          final matchedProfile = await getProfileById(matchedProfileId);
+
+          if (matchedProfile != null) {
+            unseenMatches.add({'match': match, 'profile': matchedProfile});
+          }
+        }
+
+        print('Total unseen matches found: ${unseenMatches.length}');
+        return unseenMatches;
+      } catch (e) {
+        print('Error getting unseen matches: $e');
+        return [];
+      }
+    });
+  }
+
+  // Mark a match as seen by the current user - alternative approach that works with RLS
+  static Future<void> markMatchAsSeen(String matchId) async {
+    return _safeApiCall(() async {
+      if (currentUser == null) return;
+
+      try {
+        print('Marking match as seen: $matchId for user: ${currentUser!.id}');
+
+        // Check if the current user is user1 or user2 in this match
+        final match =
+            await _supabaseClient
+                .from('matches')
+                .select()
+                .eq('id', matchId)
+                .limit(1)
+                .single();
+
+        print('Found match to mark as seen: $match');
+
+        // Determine which field to update based on the user's role
+        String fieldToUpdate;
+        if (match['user_id1'] == currentUser!.id) {
+          // Current user is user1
+          fieldToUpdate = 'seen_by_user1';
+          print('Current user is user1, updating $fieldToUpdate to true');
+        } else if (match['user_id2'] == currentUser!.id) {
+          // Current user is user2
+          fieldToUpdate = 'seen_by_user2';
+          print('Current user is user2, updating $fieldToUpdate to true');
+        } else {
+          print('Current user is neither user1 nor user2 in this match');
+          return;
+        }
+
+        // Check if it's already marked as seen
+        if (match[fieldToUpdate] == true) {
+          print('Match is already marked as seen for this user');
+          return;
+        }
+
+        // WORKAROUND: Since direct updates are blocked by RLS, we'll try a different approach
+        try {
+          print('Using alternative approach to mark match as seen');
+
+          // Try to insert a record in the match_seen table using upsert to handle duplicates
+          await _supabaseClient.from('match_seen').upsert({
+            'match_id': matchId,
+            'user_id': currentUser!.id,
+            'seen_at': DateTime.now().toIso8601String(),
+          }, onConflict: 'match_id,user_id');
+
+          print('Successfully recorded match as seen in match_seen table');
+
+          // For backward compatibility, still try to update the match
+          // but don't throw an error if it fails
+          try {
+            await _supabaseClient
+                .from('matches')
+                .update({fieldToUpdate: true})
+                .eq('id', matchId);
+            print('Successfully updated match record directly');
+          } catch (e) {
+            print(
+              'Could not update match directly due to RLS, but match_seen record was created: $e',
+            );
+            // This is expected to fail with RLS, so we don't rethrow
+          }
+
+          return;
+        } catch (e) {
+          print('Error with alternative approach: $e');
+          throw e;
+        }
+      } catch (e) {
+        print('Error marking match as seen: $e');
+        throw e;
+      }
+    });
+  }
+
+  // Check if a match has been seen by the current user
+  static Future<bool> hasMatchBeenSeen(String matchId) async {
+    return _safeApiCall(() async {
+      if (currentUser == null) return false;
+
+      try {
+        // First check the match_seen table
+        final seenRecords = await _supabaseClient
+            .from('match_seen')
+            .select()
+            .eq('match_id', matchId)
+            .eq('user_id', currentUser!.id)
+            .limit(1);
+
+        if (seenRecords.isNotEmpty) {
+          return true;
+        }
+
+        // If no record in match_seen, check the matches table
+        final match =
+            await _supabaseClient
+                .from('matches')
+                .select()
+                .eq('id', matchId)
+                .limit(1)
+                .single();
+
+        if (match['user_id1'] == currentUser!.id) {
+          return match['seen_by_user1'] == true;
+        } else if (match['user_id2'] == currentUser!.id) {
+          return match['seen_by_user2'] == true;
+        }
+
+        return false;
+      } catch (e) {
+        print('Error checking if match has been seen: $e');
+        return false;
+      }
+    });
   }
 
   // Clear all swipes for the current user (for testing purposes)
@@ -799,5 +1128,230 @@ class SupabaseService {
       print('Error clearing swipes: $e');
       throw e;
     }
+  }
+
+  // Manually check for matches with profiles the user has liked
+  static Future<List<Map<String, dynamic>>> checkForManualMatches() async {
+    return _safeApiCall(() async {
+      if (currentUser == null) return [];
+
+      try {
+        print('Manually checking for matches for user: ${currentUser!.id}');
+
+        // Get profiles that the current user has liked
+        final likedProfiles = await _supabaseClient
+            .from('swipes')
+            .select('swiped_profile_id')
+            .eq('user_id', currentUser!.id)
+            .eq('liked', true);
+
+        print('User has liked ${likedProfiles.length} profiles');
+
+        if (likedProfiles.isEmpty) return [];
+
+        // Extract the IDs of liked profiles
+        final List<String> likedProfileIds =
+            likedProfiles
+                .map((profile) => profile['swiped_profile_id'] as String)
+                .toList();
+
+        // Find profiles that have liked the current user back
+        final mutualLikes = [];
+
+        // Check each liked profile individually
+        for (final likedId in likedProfileIds) {
+          final likes = await _supabaseClient
+              .from('swipes')
+              .select()
+              .eq('user_id', likedId)
+              .eq('swiped_profile_id', currentUser!.id)
+              .eq('liked', true);
+
+          mutualLikes.addAll(likes);
+        }
+
+        print('Found ${mutualLikes.length} mutual likes');
+
+        // Create match records for any mutual likes that don't already have a match
+        final List<Map<String, dynamic>> newMatches = [];
+
+        for (final like in mutualLikes) {
+          final otherUserId = like['user_id'];
+
+          // Check if a match already exists
+          final existingMatch = await _supabaseClient
+              .from('matches')
+              .select()
+              .or(
+                'user_id1.eq.${currentUser!.id},user_id2.eq.${currentUser!.id}',
+              )
+              .or('user_id1.eq.$otherUserId,user_id2.eq.$otherUserId')
+              .limit(1);
+
+          if (existingMatch.isEmpty) {
+            print('Creating new match for mutual like with user: $otherUserId');
+
+            // Create a new match record - use .select() to return the inserted record
+            // This ensures the real-time subscription is triggered
+            final response =
+                await _supabaseClient.from('matches').insert({
+                  'user_id1': currentUser!.id,
+                  'user_id2': otherUserId,
+                  'created_at': DateTime.now().toIso8601String(),
+                  'seen_by_user1': false,
+                  'seen_by_user2': false,
+                }).select();
+
+            if (response.isNotEmpty) {
+              final matchedProfile = await getProfileById(otherUserId);
+              if (matchedProfile != null) {
+                newMatches.add({
+                  'match': response[0],
+                  'profile': matchedProfile,
+                });
+
+                // Add a small delay to ensure the real-time event is processed
+                await Future.delayed(const Duration(milliseconds: 100));
+              }
+            }
+          } else {
+            print(
+              'Match already exists for mutual like with user: $otherUserId',
+            );
+          }
+        }
+
+        print('Created ${newMatches.length} new match records');
+        return newMatches;
+      } catch (e) {
+        print('Error in manual match check: $e');
+        return [];
+      }
+    });
+  }
+
+  // Get match record between current user and another user
+  static Future<List<Map<String, dynamic>>> getMatchWithProfile(
+    String otherUserId,
+  ) async {
+    return _safeApiCall(() async {
+      if (currentUser == null) return [];
+
+      try {
+        print(
+          'Getting match record between ${currentUser!.id} and $otherUserId',
+        );
+
+        // Get the match record
+        final matchRecords = await _supabaseClient
+            .from('matches')
+            .select()
+            .or('user_id1.eq.${currentUser!.id},user_id2.eq.${currentUser!.id}')
+            .or('user_id1.eq.$otherUserId,user_id2.eq.$otherUserId')
+            .limit(1);
+
+        if (matchRecords.isEmpty) {
+          print(
+            'No match record found between ${currentUser!.id} and $otherUserId',
+          );
+          return [];
+        }
+
+        print('Found match record: ${matchRecords.first}');
+
+        // Get the profile of the other user
+        final otherProfile = await getProfileById(otherUserId);
+        if (otherProfile == null) {
+          print('Could not find profile for user: $otherUserId');
+          return [];
+        }
+
+        // Return the match record and profile
+        return [
+          {'match': matchRecords.first, 'profile': otherProfile},
+        ];
+      } catch (e) {
+        print('Error getting match with profile: $e');
+        return [];
+      }
+    });
+  }
+
+  // For debugging: Create a test match to verify real-time events
+  static Future<Map<String, dynamic>?> createTestMatch() async {
+    return _safeApiCall(() async {
+      if (currentUser == null) return null;
+
+      try {
+        print('Creating a test match for debugging real-time events');
+
+        // First, find a random profile to match with
+        final profiles = await _supabaseClient
+            .from('profiles')
+            .select()
+            .neq('id', currentUser!.id)
+            .limit(5);
+
+        if (profiles.isEmpty) {
+          print('No profiles found to create a test match');
+          return null;
+        }
+
+        // Pick the first profile
+        final testMatchUserId = profiles[0]['id'];
+        print('Creating test match with user: $testMatchUserId');
+
+        // Create a match record - use .select() to return the inserted record
+        final response =
+            await _supabaseClient.from('matches').insert({
+              'user_id1': currentUser!.id,
+              'user_id2': testMatchUserId,
+              'created_at': DateTime.now().toIso8601String(),
+              'seen_by_user1': false,
+              'seen_by_user2': false,
+            }).select();
+
+        print('Test match created with response: $response');
+
+        if (response.isNotEmpty) {
+          return response[0];
+        }
+
+        return null;
+      } catch (e) {
+        print('Error creating test match: $e');
+        return null;
+      }
+    });
+  }
+
+  // Check if the current user has liked a specific profile
+  static Future<bool> hasLikedProfile(String profileId) async {
+    return _safeApiCall(() async {
+      if (currentUser == null) return false;
+
+      try {
+        print('Checking if current user has liked profile: $profileId');
+
+        // Query the swipes table to see if the current user has liked this profile
+        final result = await _supabaseClient
+            .from('swipes')
+            .select()
+            .eq('user_id', currentUser!.id)
+            .eq('swiped_profile_id', profileId)
+            .eq('liked', true)
+            .limit(1);
+
+        final hasLiked = result.isNotEmpty;
+        print(
+          'Current user ${hasLiked ? "has" : "has not"} liked profile: $profileId',
+        );
+
+        return hasLiked;
+      } catch (e) {
+        print('Error checking if user has liked profile: $e');
+        return false;
+      }
+    });
   }
 }
