@@ -33,11 +33,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _audioPlayer = AudioPlayer();
   StreamSubscription? _playerSubscription;
 
+  // Static variables to cache profile data and track initialization
+  static bool _hasBeenInitialized = false;
+  static Map<String, dynamic>? _cachedProfile;
+  static DateTime? _lastLoadTime;
+  // Add a static image cache
+  static ImageProvider? _cachedImageProvider;
+
+  // Flag to track if we're returning to the screen
+  bool _isReturningToScreen = false;
+
   @override
   void initState() {
     super.initState();
     _setupAudioPlayerListeners();
+
+    // Always load the profile when the app starts
     _loadUserProfile();
+
+    // Check if we have a cached profile and if it's recent enough (less than 5 minutes old)
+    final bool hasFreshCache =
+        _hasBeenInitialized &&
+        _cachedProfile != null &&
+        _lastLoadTime != null &&
+        DateTime.now().difference(_lastLoadTime!).inMinutes < 5;
+
+    if (hasFreshCache) {
+      // Use cached data while loading
+      setState(() {
+        _userProfile = Map<String, dynamic>.from(_cachedProfile!);
+        _isLoading = false;
+      });
+
+      // Preload the profile image to prevent flickering
+      String? profilePictureUrl = _cachedProfile?['profile_picture_url'];
+      if (profilePictureUrl != null && profilePictureUrl.isNotEmpty) {
+        // Create and cache the image provider if not already cached
+        if (_cachedImageProvider == null) {
+          _cachedImageProvider = NetworkImage(profilePictureUrl);
+        }
+
+        // Use a post-frame callback to ensure the context is available
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _cachedImageProvider != null) {
+            precacheImage(_cachedImageProvider!, context);
+          }
+        });
+      }
+    }
   }
 
   @override
@@ -135,6 +178,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (newImageUrl != null &&
               newImageUrl != profile['profile_picture_url']) {
             profile['profile_picture_url'] = newImageUrl;
+
+            // Update the cached image provider with the new URL
+            _cachedImageProvider = NetworkImage(newImageUrl);
+
+            // Precache the new image
+            if (mounted) {
+              precacheImage(_cachedImageProvider!, context);
+            }
           }
         }
 
@@ -156,6 +207,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
       }
 
+      // Update the cache
+      _cachedProfile =
+          profile != null ? Map<String, dynamic>.from(profile) : null;
+      _lastLoadTime = DateTime.now();
+      _hasBeenInitialized = true;
+
       setState(() {
         _userProfile = profile;
         _isLoading = false;
@@ -165,6 +222,70 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _errorMessage = NetworkErrorHandler.getUserFriendlyMessage(e);
         _isLoading = false;
       });
+    }
+  }
+
+  // Refresh profile in background without showing loading indicator
+  Future<void> _refreshProfileInBackground() async {
+    try {
+      final hasConnection = await ConnectivityService.isConnected();
+      if (!hasConnection) {
+        return; // Silently fail if no connection
+      }
+
+      final profile = await SupabaseService.getUserProfile();
+
+      if (profile != null && mounted) {
+        // Update URLs if needed
+        if (profile['profile_picture_url'] != null) {
+          final newImageUrl = await SupabaseService.refreshProfilePictureUrl();
+          if (newImageUrl != null) {
+            profile['profile_picture_url'] = newImageUrl;
+
+            // Update the cached image provider if the URL has changed
+            if (_userProfile != null &&
+                _userProfile!['profile_picture_url'] != newImageUrl) {
+              _cachedImageProvider = NetworkImage(newImageUrl);
+
+              // Precache the new image
+              if (mounted) {
+                precacheImage(_cachedImageProvider!, context);
+              }
+            }
+          }
+        }
+
+        if (profile['voice_bio_url'] != null) {
+          final newAudioUrl = await SupabaseService.refreshVoiceBioUrl();
+          if (newAudioUrl != null) {
+            profile['voice_bio_url'] = newAudioUrl;
+          }
+        }
+
+        // Update cache and state if there are changes
+        if (_userProfile == null ||
+            _userProfile!['name'] != profile['name'] ||
+            _userProfile!['bio'] != profile['bio'] ||
+            _userProfile!['age'] != profile['age'] ||
+            _userProfile!['gender'] != profile['gender'] ||
+            _userProfile!['profile_picture_url'] !=
+                profile['profile_picture_url'] ||
+            _userProfile!['voice_bio_url'] != profile['voice_bio_url']) {
+          // Update the cache
+          _cachedProfile = Map<String, dynamic>.from(profile);
+          _lastLoadTime = DateTime.now();
+
+          // Update the UI if mounted
+          if (mounted) {
+            setState(() {
+              _userProfile = profile;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      // Silently log errors during background refresh
+      print('Background profile refresh error: ${e.toString()}');
     }
   }
 
@@ -185,6 +306,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() {
           _userProfile = updatedProfile;
         });
+
+        // Also update the cache
+        if (_cachedProfile != null) {
+          _cachedProfile![field] = value;
+          _lastLoadTime = DateTime.now();
+        }
       }
 
       // Update the database
@@ -199,10 +326,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _errorMessage = 'Failed to update $field: ${e.toString()}';
         _isLoading = false;
       });
-
-      // Don't reload the profile here, as it might overwrite local changes
-      // Just log the error and let the user try again if needed
-      print('Error updating field $field: $e');
     }
   }
 
@@ -267,9 +390,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // Update local state with the new image URL but preserve other fields
         if (currentProfile != null && imageUrl != null) {
           currentProfile['profile_picture_url'] = imageUrl;
+
+          // Update the cached image provider with the new URL
+          _cachedImageProvider = NetworkImage(imageUrl);
+
+          // Precache the new image
+          if (mounted) {
+            precacheImage(_cachedImageProvider!, context);
+          }
+
           setState(() {
             _userProfile = currentProfile;
             _isLoading = false;
+            // Reset returning flag to show the fade-in animation for the new image
+            _isReturningToScreen = false;
           });
         } else {
           // Only reload if we couldn't update locally
@@ -500,26 +634,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child:
                 hasValidUrl
                     ? ClipOval(
-                      child: Image.network(
-                        profilePictureUrl,
-                        fit: BoxFit.cover,
-                        // Don't use cacheWidth/cacheHeight with signed URLs
-                        errorBuilder: (context, error, stackTrace) {
-                          print('Error loading profile image: $error');
-                          // Try to refresh the URL if there's an error
-                          _refreshProfilePictureUrlOnError();
-                          return const Icon(
-                            Icons.person,
-                            size: 80,
-                            color: Colors.grey,
-                          );
+                      child: TweenAnimationBuilder<double>(
+                        tween: Tween<double>(begin: 0.0, end: 1.0),
+                        duration: const Duration(milliseconds: 500),
+                        builder: (context, value, child) {
+                          return Opacity(opacity: value, child: child);
                         },
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        },
+                        child: Image.network(
+                          profilePictureUrl,
+                          fit: BoxFit.cover,
+                          key: ValueKey('profile-$profilePictureUrl'),
+                          errorBuilder: (context, error, stackTrace) {
+                            print('Error loading profile image: $error');
+                            _refreshProfilePictureUrlOnError();
+                            return const Icon(
+                              Icons.person,
+                              size: 80,
+                              color: Colors.grey,
+                            );
+                          },
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) {
+                              // Cache the image provider for future use
+                              _cachedImageProvider = NetworkImage(
+                                profilePictureUrl,
+                              );
+                              return child;
+                            }
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          },
+                        ),
                       ),
                     )
                     : const Icon(Icons.person, size: 80, color: Colors.grey),
@@ -558,8 +704,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Single build method that works for both first load and returning to screen
     return Scaffold(
-      // Removing the app bar for a cleaner, more immersive experience
       body: SafeArea(
         child:
             _isLoading
@@ -589,9 +735,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          // Profile Picture
+                          // Profile Picture - always with animation for better visibility
                           _buildProfilePicture().animate().fadeIn(
-                            duration: 600.ms,
+                            duration: 800.ms,
                           ),
                           const SizedBox(height: 24),
 
@@ -646,146 +792,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(height: 32),
 
                           // Voice Bio
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey.shade300),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Voice Bio',
-                                  style: AppTheme.subtitleStyle,
-                                ),
-                                const SizedBox(height: 16),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: GestureDetector(
-                                        onTap:
-                                            _userProfile!['voice_bio_url'] !=
-                                                    null
-                                                ? _playVoiceBio
-                                                : null,
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 12,
-                                            horizontal: 16,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: AppTheme.primaryColor
-                                                .withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                          ),
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Icon(
-                                                _isPlayingAudio
-                                                    ? Icons.stop
-                                                    : Icons.play_arrow,
-                                                color: AppTheme.primaryColor,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                _isPlayingAudio
-                                                    ? 'Playing...'
-                                                    : (_userProfile!['voice_bio_url'] !=
-                                                            null
-                                                        ? 'Play Voice Bio'
-                                                        : 'No Voice Bio'),
-                                                style: AppTheme.bodyStyle
-                                                    .copyWith(
-                                                      color:
-                                                          AppTheme.primaryColor,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    GestureDetector(
-                                      onTap: _editVoiceBio,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(12),
-                                        decoration: BoxDecoration(
-                                          color: AppTheme.primaryColor,
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                        ),
-                                        child: const Icon(
-                                          Icons.edit,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ).animate().fadeIn(delay: 500.ms, duration: 600.ms),
+                          _buildVoiceBioSection().animate().fadeIn(
+                            delay: 500.ms,
+                            duration: 600.ms,
+                          ),
 
                           const SizedBox(height: 40),
 
                           // More Options
-                          GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _showMoreOptions = !_showMoreOptions;
-                              });
-                            },
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'More Options',
-                                  style: AppTheme.bodyStyle.copyWith(
-                                    color: Colors.grey.shade700,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                Icon(
-                                  _showMoreOptions
-                                      ? Icons.keyboard_arrow_up
-                                      : Icons.keyboard_arrow_down,
-                                  color: Colors.grey.shade700,
-                                ),
-                              ],
-                            ),
-                          ).animate().fadeIn(delay: 600.ms, duration: 600.ms),
+                          _buildMoreOptionsButton().animate().fadeIn(
+                            delay: 600.ms,
+                            duration: 600.ms,
+                          ),
 
                           // More Options Expanded
                           if (_showMoreOptions)
-                            Column(
-                              children: [
-                                const SizedBox(height: 24),
-                                CustomButton(
-                                  text: 'Log Out',
-                                  onPressed: _logout,
-                                  icon: Icons.logout,
-                                  isOutlined: true,
-                                ),
-                                const SizedBox(height: 16),
-                                CustomButton(
-                                  text: 'Delete Account',
-                                  onPressed: _deleteAccount,
-                                  icon: Icons.delete_forever,
-                                  backgroundColor: AppTheme.errorColor,
-                                ),
-                              ],
-                            ).animate().fadeIn(duration: 300.ms),
+                            _buildMoreOptionsContent().animate().fadeIn(
+                              duration: 300.ms,
+                            ),
 
                           const SizedBox(height: 40),
                         ],
@@ -794,6 +818,130 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
       ),
+    );
+  }
+
+  // Helper method to build the voice bio section
+  Widget _buildVoiceBioSection() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Voice Bio', style: AppTheme.subtitleStyle),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap:
+                      _userProfile!['voice_bio_url'] != null
+                          ? _playVoiceBio
+                          : null,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          _isPlayingAudio ? Icons.stop : Icons.play_arrow,
+                          color: AppTheme.primaryColor,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _isPlayingAudio
+                              ? 'Playing...'
+                              : (_userProfile!['voice_bio_url'] != null
+                                  ? 'Play Voice Bio'
+                                  : 'No Voice Bio'),
+                          style: AppTheme.bodyStyle.copyWith(
+                            color: AppTheme.primaryColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              GestureDetector(
+                onTap: _editVoiceBio,
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.edit, color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Helper method to build the more options button
+  Widget _buildMoreOptionsButton() {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _showMoreOptions = !_showMoreOptions;
+        });
+      },
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'More Options',
+            style: AppTheme.bodyStyle.copyWith(color: Colors.grey.shade700),
+          ),
+          const SizedBox(width: 4),
+          Icon(
+            _showMoreOptions
+                ? Icons.keyboard_arrow_up
+                : Icons.keyboard_arrow_down,
+            color: Colors.grey.shade700,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Helper method to build the more options content
+  Widget _buildMoreOptionsContent() {
+    return Column(
+      children: [
+        const SizedBox(height: 24),
+        CustomButton(
+          text: 'Log Out',
+          onPressed: _logout,
+          icon: Icons.logout,
+          isOutlined: true,
+        ),
+        const SizedBox(height: 16),
+        CustomButton(
+          text: 'Delete Account',
+          onPressed: _deleteAccount,
+          icon: Icons.delete_forever,
+          backgroundColor: AppTheme.errorColor,
+        ),
+      ],
     );
   }
 
