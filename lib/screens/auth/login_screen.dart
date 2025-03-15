@@ -5,6 +5,10 @@ import '../../services/supabase_service.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
 import 'signup_screen.dart';
+import '../../utils/network_error_handler.dart';
+import '../../widgets/error_message_widget.dart';
+import '../../services/connectivity_service.dart';
+import 'dart:io';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -28,7 +32,10 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
-    if (!_formKey.currentState!.validate()) return;
+    // Validate form
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -36,32 +43,45 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      await SupabaseService.signIn(
+      // Check for internet connection first
+      final hasConnection = await ConnectivityService.isConnected();
+      if (!hasConnection) {
+        throw SocketException('No internet connection');
+      }
+
+      final response = await SupabaseService.signIn(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
 
       if (mounted) {
-        // Check if user has completed their profile
-        final userProfile = await SupabaseService.getUserProfile();
-
-        if (userProfile == null ||
-            userProfile['profile_picture_url'] == null ||
-            userProfile['voice_bio_url'] == null) {
-          // Profile is incomplete, navigate to profile completion
-          Navigator.pushReplacementNamed(context, '/profile_completion');
+        if (response.user != null) {
+          // Check if profile is complete
+          final profile = await SupabaseService.getUserProfile();
+          if (profile == null ||
+              profile['name'] == null ||
+              profile['gender'] == null ||
+              profile['interested_in'] == null ||
+              profile['age'] == null ||
+              profile['profile_picture_url'] == null ||
+              profile['voice_bio_url'] == null) {
+            // Profile is incomplete, go to profile completion
+            Navigator.of(context).pushReplacementNamed('/profile_completion');
+          } else {
+            // Profile is complete, go to home
+            Navigator.of(context).pushReplacementNamed('/home');
+          }
         } else {
-          // Profile is complete, navigate to home
-          Navigator.pushReplacementNamed(context, '/home');
+          setState(() {
+            _errorMessage = 'Login failed. Please check your credentials.';
+            _isLoading = false;
+          });
         }
       }
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Invalid email or password. Please try again.';
-      });
-    } finally {
       if (mounted) {
         setState(() {
+          _errorMessage = NetworkErrorHandler.getUserFriendlyMessage(e);
           _isLoading = false;
         });
       }
@@ -176,30 +196,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   // Error Message
                   if (_errorMessage != null)
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppTheme.errorColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.error_outline,
-                            color: AppTheme.errorColor,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              _errorMessage!,
-                              style: AppTheme.smallTextStyle.copyWith(
-                                color: AppTheme.errorColor,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ).animate().shake(delay: 100.ms),
+                    ErrorMessageWidget(
+                      message: _errorMessage!,
+                      onRetry:
+                          _errorMessage!.contains('internet') ||
+                                  _errorMessage!.contains('connection')
+                              ? _login
+                              : null,
+                      isNetworkError:
+                          _errorMessage!.contains('internet') ||
+                          _errorMessage!.contains('connection'),
+                    ),
 
                   if (_errorMessage != null) const SizedBox(height: 24),
 

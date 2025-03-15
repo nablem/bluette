@@ -9,6 +9,9 @@ import 'package:path_provider/path_provider.dart';
 import '../../../constants/app_theme.dart';
 import '../../../services/profile_completion_service.dart';
 import '../../../widgets/custom_button.dart';
+import '../../../widgets/error_message_widget.dart';
+import '../../../utils/network_error_handler.dart';
+import '../../../services/connectivity_service.dart';
 
 class VoiceBioStep extends StatefulWidget {
   const VoiceBioStep({super.key});
@@ -288,6 +291,7 @@ class _VoiceBioStepState extends State<VoiceBioStep> {
 
     setState(() {
       _isLoading = true;
+      _errorMessage = null;
     });
 
     // Save voice bio and complete profile
@@ -297,12 +301,37 @@ class _VoiceBioStepState extends State<VoiceBioStep> {
     );
     profileService.setVoiceBio(_audioFile!);
 
-    // Complete profile
-    profileService.completeProfile().then((success) {
-      if (!success && mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+    // First check for internet connection
+    ConnectivityService.isConnected().then((hasConnection) async {
+      if (!hasConnection) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _errorMessage = NetworkErrorHandler.getUserFriendlyMessage(
+              SocketException('No internet connection'),
+            );
+          });
+        }
+        return;
+      }
+
+      // Complete profile if we have connection
+      try {
+        final success = await profileService.completeProfile();
+        if (!success && mounted) {
+          setState(() {
+            _isLoading = false;
+            // Get the error message from the service
+            _errorMessage = profileService.errorMessage;
+          });
+        }
+      } catch (error) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _errorMessage = NetworkErrorHandler.getUserFriendlyMessage(error);
+          });
+        }
       }
     });
   }
@@ -315,6 +344,12 @@ class _VoiceBioStepState extends State<VoiceBioStep> {
 
   @override
   Widget build(BuildContext context) {
+    // Check if the error is a network error
+    final bool isNetworkError =
+        _errorMessage != null &&
+        (_errorMessage!.contains('internet') ||
+            _errorMessage!.contains('connection'));
+
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
@@ -333,27 +368,36 @@ class _VoiceBioStepState extends State<VoiceBioStep> {
 
           // Error message
           if (_errorMessage != null)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppTheme.errorColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.error_outline, color: AppTheme.errorColor),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      _errorMessage!,
-                      style: AppTheme.smallTextStyle.copyWith(
+            isNetworkError
+                ? ErrorMessageWidget(
+                  message: _errorMessage!,
+                  onRetry: _confirmVoiceBio,
+                  isNetworkError: true,
+                )
+                : Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.errorColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
                         color: AppTheme.errorColor,
                       ),
-                    ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _errorMessage!,
+                          style: AppTheme.smallTextStyle.copyWith(
+                            color: AppTheme.errorColor,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ).animate().shake(),
+                ).animate().shake(),
 
           if (_errorMessage != null) const SizedBox(height: 24),
 

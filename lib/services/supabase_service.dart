@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:path/path.dart' as path;
 import 'dart:math';
+import '../utils/network_error_handler.dart';
+import 'connectivity_service.dart';
 
 class SupabaseService {
   static final SupabaseClient _supabaseClient = Supabase.instance.client;
@@ -12,19 +14,39 @@ class SupabaseService {
   // Check if user is logged in
   static bool get isLoggedIn => currentUser != null;
 
+  /// Wrapper for API calls to handle network errors consistently
+  static Future<T> _safeApiCall<T>(Future<T> Function() apiCall) async {
+    try {
+      // Check for internet connection before making the call
+      final hasConnection = await ConnectivityService.isConnected();
+      if (!hasConnection) {
+        throw SocketException('No internet connection');
+      }
+
+      return await apiCall();
+    } catch (e) {
+      // Log the error for debugging
+      print('API call error: ${e.toString()}');
+
+      // Rethrow with the original error to preserve stack trace
+      throw e;
+    }
+  }
+
   // Sign up with email and password
   static Future<AuthResponse> signUp({
     required String email,
     required String password,
     Map<String, dynamic>? userData,
   }) async {
-    final response = await _supabaseClient.auth.signUp(
-      email: email,
-      password: password,
-      data: userData,
-    );
-
-    return response;
+    return _safeApiCall(() async {
+      final response = await _supabaseClient.auth.signUp(
+        email: email,
+        password: password,
+        data: userData,
+      );
+      return response;
+    });
   }
 
   // Sign in with email and password
@@ -32,102 +54,69 @@ class SupabaseService {
     required String email,
     required String password,
   }) async {
-    final response = await _supabaseClient.auth.signInWithPassword(
-      email: email,
-      password: password,
-    );
-
-    return response;
+    return _safeApiCall(() async {
+      final response = await _supabaseClient.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+      return response;
+    });
   }
 
   // Sign out
   static Future<void> signOut() async {
-    await _supabaseClient.auth.signOut();
+    return _safeApiCall(() async {
+      await _supabaseClient.auth.signOut();
+    });
   }
 
   // Reset password
   static Future<void> resetPassword(String email) async {
-    await _supabaseClient.auth.resetPasswordForEmail(email);
+    return _safeApiCall(() async {
+      await _supabaseClient.auth.resetPasswordForEmail(email);
+    });
   }
 
   // Update user data
   static Future<void> updateUserData(Map<String, dynamic> userData) async {
-    // Ensure required fields are never null
-    final user = currentUser;
-    if (user != null) {
-      // Ensure email is never null
-      if (!userData.containsKey('email') ||
-          userData['email'] == null ||
-          userData['email'].toString().isEmpty) {
-        if (user.email != null && user.email!.isNotEmpty) {
-          userData['email'] = user.email;
-        } else {
-          // Generate a placeholder email if somehow the user has no email
-          userData['email'] =
-              'user_${DateTime.now().millisecondsSinceEpoch}@example.com';
+    return _safeApiCall(() async {
+      // Ensure required fields are never null
+      final user = currentUser;
+      if (user != null) {
+        // Ensure email is never null
+        if (!userData.containsKey('email') ||
+            userData['email'] == null ||
+            userData['email'].toString().isEmpty) {
+          if (user.email != null && user.email!.isNotEmpty) {
+            userData['email'] = user.email;
+          } else {
+            // Generate a placeholder email if somehow the user has no email
+            userData['email'] =
+                'user_${DateTime.now().millisecondsSinceEpoch}@example.com';
+          }
+        }
+
+        // Ensure name is never null
+        if (!userData.containsKey('name') ||
+            userData['name'] == null ||
+            userData['name'].toString().isEmpty) {
+          // Try to get name from user metadata first
+          if (user.userMetadata != null &&
+              user.userMetadata!.containsKey('name') &&
+              user.userMetadata!['name'] != null &&
+              user.userMetadata!['name'].toString().isNotEmpty) {
+            userData['name'] = user.userMetadata!['name'];
+          }
+          // Use email as fallback (without the domain part)
+          else if (user.email != null && user.email!.isNotEmpty) {
+            userData['name'] = user.email!.split('@')[0];
+          }
+          // Last resort fallback
+          else {
+            userData['name'] = 'User_${DateTime.now().millisecondsSinceEpoch}';
+          }
         }
       }
-
-      // Ensure name is never null
-      if (!userData.containsKey('name') ||
-          userData['name'] == null ||
-          userData['name'].toString().isEmpty) {
-        // Try to get name from user metadata first
-        if (user.userMetadata != null &&
-            user.userMetadata!.containsKey('name') &&
-            user.userMetadata!['name'] != null &&
-            user.userMetadata!['name'].toString().isNotEmpty) {
-          userData['name'] = user.userMetadata!['name'];
-        }
-        // Use email as fallback (without the domain part)
-        else if (user.email != null && user.email!.isNotEmpty) {
-          userData['name'] = user.email!.split('@')[0];
-        }
-        // Last resort fallback
-        else {
-          userData['name'] = 'User_${DateTime.now().millisecondsSinceEpoch}';
-        }
-      }
-    } else {
-      // Default values if somehow no user
-      if (!userData.containsKey('email') ||
-          userData['email'] == null ||
-          userData['email'].toString().isEmpty) {
-        userData['email'] =
-            'anonymous_${DateTime.now().millisecondsSinceEpoch}@example.com';
-      }
-      if (!userData.containsKey('name') ||
-          userData['name'] == null ||
-          userData['name'].toString().isEmpty) {
-        userData['name'] = 'Anonymous_${DateTime.now().millisecondsSinceEpoch}';
-      }
-    }
-
-    // Log the data we're updating
-    print('Updating user data: $userData');
-
-    try {
-      // Make sure we're using upsert with the correct primary key
-      if (!userData.containsKey('id') && currentUser != null) {
-        userData['id'] = currentUser!.id;
-      }
-
-      // If we're updating the name, also update it in the user's metadata
-      if (userData.containsKey('name') && currentUser != null) {
-        try {
-          // Update the user's metadata in the auth system
-          await _supabaseClient.auth.updateUser(
-            UserAttributes(data: {'name': userData['name']}),
-          );
-          print('Updated name in user metadata: ${userData['name']}');
-        } catch (e) {
-          print('Error updating user metadata: $e');
-          // Continue with the profile update even if metadata update fails
-        }
-      }
-
-      // Ensure we're doing a proper upsert with onConflict parameter
-      print('Performing upsert with data: $userData');
 
       // First, try to get the current profile to see what's already there
       Map<String, dynamic>? existingProfile;
@@ -140,11 +129,25 @@ class SupabaseService {
                   .eq('id', currentUser!.id)
                   .single();
           print('Existing profile before update: $existingProfile');
+
+          // Ensure we have the id field in the userData
+          userData['id'] = currentUser!.id;
+
+          // Merge existing profile with new data to ensure we don't lose any fields
+          if (existingProfile != null) {
+            // Only update fields that are provided in userData
+            // Keep all other fields from existingProfile
+            final mergedData = {...existingProfile, ...userData};
+            userData = mergedData;
+          }
         } catch (e) {
           print('Error fetching existing profile: $e');
-          // Continue with the update even if we can't fetch the existing profile
+          // Ensure we have the id field in the userData
+          userData['id'] = currentUser!.id;
         }
       }
+
+      print('Updating profile with data: $userData');
 
       // Perform the upsert operation
       final response = await _supabaseClient
@@ -155,7 +158,7 @@ class SupabaseService {
       print('Profile updated successfully');
 
       // Verify the update by fetching the profile again
-      if (userData.containsKey('name') && currentUser != null) {
+      if (currentUser != null) {
         final updatedProfile =
             await _supabaseClient
                 .from('profiles')
@@ -164,7 +167,19 @@ class SupabaseService {
                 .single();
 
         print('Verified profile after update: $updatedProfile');
-        print('Verified name after update: ${updatedProfile['name']}');
+
+        // Check if filter values were updated correctly
+        if (userData.containsKey('min_age')) {
+          print('Verified min_age after update: ${updatedProfile['min_age']}');
+        }
+        if (userData.containsKey('max_age')) {
+          print('Verified max_age after update: ${updatedProfile['max_age']}');
+        }
+        if (userData.containsKey('max_distance')) {
+          print(
+            'Verified max_distance after update: ${updatedProfile['max_distance']}',
+          );
+        }
 
         // If the name in the database doesn't match what we tried to set,
         // try one more time with a more direct approach
@@ -189,65 +204,69 @@ class SupabaseService {
           print('Final name check: ${finalCheck['name']}');
         }
       }
-    } catch (e) {
-      print('Error updating profile: $e');
-      throw e;
-    }
+    });
   }
 
   // Get user profile
   static Future<Map<String, dynamic>?> getUserProfile() async {
-    if (currentUser == null) return null;
+    return _safeApiCall(() async {
+      if (currentUser == null) return null;
 
-    final response =
-        await _supabaseClient
-            .from('profiles')
-            .select()
-            .eq('id', currentUser!.id)
-            .single();
+      final response =
+          await _supabaseClient
+              .from('profiles')
+              .select()
+              .eq('id', currentUser!.id)
+              .single();
 
-    return response;
+      return response;
+    });
   }
 
   // Upload profile picture
   static Future<String?> uploadProfilePicture(File imageFile) async {
-    if (currentUser == null) return null;
+    return _safeApiCall(() async {
+      if (currentUser == null) return null;
 
-    final fileExt = path.extension(imageFile.path);
-    final fileName = '${currentUser!.id}$fileExt';
+      final fileExt = path.extension(imageFile.path);
+      final fileName = '${currentUser!.id}$fileExt';
 
-    try {
-      print('Uploading profile picture: $fileName');
-      final response = await _supabaseClient.storage
-          .from('profile_pictures')
-          .upload(
-            fileName,
-            imageFile,
-            fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
-          );
-
-      if (response.isNotEmpty) {
-        // Get a signed URL with a token that expires in 2 years (63072000 seconds)
-        final imageUrl = _supabaseClient.storage
+      try {
+        print('Uploading profile picture: $fileName');
+        final response = await _supabaseClient.storage
             .from('profile_pictures')
-            .createSignedUrl(fileName, 63072000);
+            .upload(
+              fileName,
+              imageFile,
+              fileOptions: const FileOptions(
+                cacheControl: '3600',
+                upsert: true,
+              ),
+            );
 
-        print('Profile picture uploaded successfully, getting signed URL');
+        if (response.isNotEmpty) {
+          // Get a signed URL with a token that expires in 2 years (63072000 seconds)
+          final imageUrl = _supabaseClient.storage
+              .from('profile_pictures')
+              .createSignedUrl(fileName, 63072000);
 
-        // Update profile with the signed URL
-        await updateUserData({
-          'id': currentUser!.id,
-          'profile_picture_url': await imageUrl,
-        });
+          print('Profile picture uploaded successfully, getting signed URL');
 
-        return await imageUrl;
+          // Update profile with the signed URL
+          await updateUserData({
+            'id': currentUser!.id,
+            'profile_picture_url': await imageUrl,
+          });
+
+          return await imageUrl;
+        }
+      } catch (e) {
+        print('Error uploading profile picture: $e');
+        throw e;
       }
-    } catch (e) {
-      print('Error uploading profile picture: $e');
-      throw e;
-    }
 
-    return null;
+      return null;
+    });
   }
 
   // Upload voice bio
@@ -426,121 +445,278 @@ class SupabaseService {
     int? maxAge,
     int? maxDistance,
   }) async {
-    if (currentUser == null) return [];
+    return _safeApiCall(() async {
+      if (currentUser == null) return [];
 
-    try {
-      // Get current user profile to determine gender preference and default filters
-      final userProfile = await getUserProfile();
-      if (userProfile == null) return [];
+      try {
+        // Get current user profile to determine gender preference and default filters
+        final userProfile = await getUserProfile();
+        if (userProfile == null) return [];
 
-      final String? interestedIn = userProfile['interested_in'];
-      if (interestedIn == null) return [];
+        final String? interestedIn = userProfile['interested_in'];
+        if (interestedIn == null) return [];
 
-      // Use provided filter values or fall back to user's saved preferences
-      final filterMinAge = minAge ?? userProfile['min_age'] ?? 18;
-      final filterMaxAge = maxAge ?? userProfile['max_age'] ?? 100;
-      final filterMaxDistance = maxDistance ?? userProfile['max_distance'] ?? 5;
+        // Use provided filter values or defaults from user profile
+        final int filterMinAge = minAge ?? userProfile['min_age'] ?? 18;
+        final int filterMaxAge = maxAge ?? userProfile['max_age'] ?? 100;
+        final int filterMaxDistance =
+            maxDistance ?? userProfile['max_distance'] ?? 5;
 
-      print(
-        'Filtering profiles with: minAge=$filterMinAge, maxAge=$filterMaxAge, maxDistance=$filterMaxDistance',
-      );
+        // Get user's location
+        final double? userLat = userProfile['latitude'];
+        final double? userLng = userProfile['longitude'];
 
-      // Get user's already swiped profiles
-      final swipedProfiles = await _supabaseClient
-          .from('swipes')
-          .select('swiped_profile_id')
-          .eq('user_id', currentUser!.id);
+        // If user has no location, return empty list
+        if (userLat == null || userLng == null) {
+          print('User has no location data');
+          return [];
+        }
 
-      final List<String> swipedProfileIds =
-          swipedProfiles.isNotEmpty
-              ? List<String>.from(
-                swipedProfiles.map((profile) => profile['swiped_profile_id']),
-              )
-              : [];
+        // Get profiles that the user has already swiped on
+        final swipedProfiles = await _supabaseClient
+            .from('swipes')
+            .select('swiped_profile_id')
+            .eq('user_id', currentUser!.id);
 
-      print('Already swiped profiles: $swipedProfileIds');
+        // Extract the IDs of swiped profiles
+        final List<String> swipedProfileIds =
+            swipedProfiles.isNotEmpty
+                ? List<String>.from(
+                  swipedProfiles.map((profile) => profile['swiped_profile_id']),
+                )
+                : [];
 
-      // Get current user's location for distance calculation
-      final double? userLat =
-          userProfile['latitude'] != null
-              ? double.tryParse(userProfile['latitude'].toString())
-              : null;
-      final double? userLong =
-          userProfile['longitude'] != null
-              ? double.tryParse(userProfile['longitude'].toString())
-              : null;
+        print('User has already swiped on ${swipedProfileIds.length} profiles');
 
-      // Build query based on gender preference
-      var query = _supabaseClient
-          .from('profiles')
-          .select()
-          .neq('id', currentUser!.id); // Exclude current user
+        // Get profiles that match gender preference
+        List<dynamic> matchingProfiles;
 
-      // Filter out already swiped profiles
-      if (swipedProfileIds.isNotEmpty) {
-        // Use 'not in' to exclude all swiped profile IDs
-        query = query.not('id', 'in', swipedProfileIds);
-      }
+        // Base query excluding current user and already swiped profiles
+        var query = _supabaseClient
+            .from('profiles')
+            .select()
+            .neq('id', currentUser!.id); // Exclude current user
 
-      // Apply gender filter based on preference
-      if (interestedIn != 'Everyone') {
-        query = query.eq('gender', interestedIn);
-      }
+        // Exclude already swiped profiles if there are any
+        if (swipedProfileIds.isNotEmpty) {
+          // Use 'not in' to exclude all swiped profile IDs
+          query = query.not('id', 'in', swipedProfileIds);
+        }
 
-      // Apply age filters
-      query = query.gte('age', filterMinAge).lte('age', filterMaxAge);
+        // Apply age filters
+        query = query
+            .gte('age', filterMinAge) // Min age filter
+            .lte('age', filterMaxAge) // Max age filter
+            .not('latitude', 'is', null) // Must have location
+            .not('longitude', 'is', null);
 
-      // Fetch profiles that match the criteria
-      final profiles = await query.limit(7);
-      print('Fetched ${profiles.length} profiles before distance filtering');
+        // Apply gender filter if not interested in everyone
+        if (interestedIn != 'Everyone') {
+          query = query.eq('gender', interestedIn);
+        }
 
-      // Filter by distance (if location is available)
-      List<Map<String, dynamic>> filteredProfiles = [];
-      if (userLat != null && userLong != null) {
-        for (var profile in profiles) {
-          final double? profileLat =
-              profile['latitude'] != null
-                  ? double.tryParse(profile['latitude'].toString())
-                  : null;
-          final double? profileLong =
-              profile['longitude'] != null
-                  ? double.tryParse(profile['longitude'].toString())
-                  : null;
+        // Execute the query
+        matchingProfiles = await query;
 
-          if (profileLat != null && profileLong != null) {
-            final distance = _calculateDistance(
+        print(
+          'Found ${matchingProfiles.length} matching profiles before distance filtering',
+        );
+
+        // Convert to list of maps
+        final List<Map<String, dynamic>> profiles =
+            matchingProfiles
+                .map((profile) => profile as Map<String, dynamic>)
+                .toList();
+
+        // Filter by distance (done client-side since Supabase doesn't support geospatial queries)
+        final List<Map<String, dynamic>> filteredProfiles = [];
+        for (final profile in profiles) {
+          final double? profileLat = profile['latitude'];
+          final double? profileLng = profile['longitude'];
+
+          if (profileLat != null && profileLng != null) {
+            final double distance = _calculateDistance(
               userLat,
-              userLong,
+              userLng,
               profileLat,
-              profileLong,
+              profileLng,
             );
 
-            // Add distance to profile for display purposes
+            // Add distance to profile data
             profile['distance'] = distance.round();
 
-            // Only include profiles within the max distance
+            // Only include profiles within max distance
             if (distance <= filterMaxDistance) {
               filteredProfiles.add(profile);
             }
-          } else {
-            // Include profiles without location data (optional)
-            profile['distance'] = null;
-            filteredProfiles.add(profile);
           }
         }
-      } else {
-        // If user location is not available, include all profiles
-        filteredProfiles = List<Map<String, dynamic>>.from(profiles);
-      }
 
-      print(
-        'Returning ${filteredProfiles.length} profiles after distance filtering',
-      );
-      return filteredProfiles;
-    } catch (e) {
-      print('Error fetching profiles to swipe: $e');
-      return [];
-    }
+        // Sort by distance (closest first)
+        filteredProfiles.sort((a, b) {
+          final distanceA = a['distance'] as int;
+          final distanceB = b['distance'] as int;
+          return distanceA.compareTo(distanceB);
+        });
+
+        print(
+          'Returning ${filteredProfiles.length} profiles after distance filtering',
+        );
+
+        return filteredProfiles;
+      } catch (e) {
+        print('Error getting profiles to swipe: $e');
+        throw e;
+      }
+    });
+  }
+
+  // Fetch profiles based on gender preference and filter settings with batch loading
+  static Future<List<Map<String, dynamic>>> getProfilesToSwipeBatch({
+    int? minAge,
+    int? maxAge,
+    int? maxDistance,
+    required int limit,
+    required int offset,
+  }) async {
+    return _safeApiCall(() async {
+      if (currentUser == null) return [];
+
+      try {
+        // Get current user profile to determine gender preference and default filters
+        final userProfile = await getUserProfile();
+        if (userProfile == null) return [];
+
+        final String? interestedIn = userProfile['interested_in'];
+        if (interestedIn == null) return [];
+
+        // Use provided filter values or defaults from user profile
+        final int filterMinAge = minAge ?? userProfile['min_age'] ?? 18;
+        final int filterMaxAge = maxAge ?? userProfile['max_age'] ?? 100;
+        final int filterMaxDistance =
+            maxDistance ?? userProfile['max_distance'] ?? 5;
+
+        // Get user's location
+        final double? userLat = userProfile['latitude'];
+        final double? userLng = userProfile['longitude'];
+
+        // If user has no location, return empty list
+        if (userLat == null || userLng == null) {
+          print('User has no location data');
+          return [];
+        }
+
+        // Get profiles that the user has already swiped on
+        final swipedProfiles = await _supabaseClient
+            .from('swipes')
+            .select('swiped_profile_id')
+            .eq('user_id', currentUser!.id);
+
+        // Extract the IDs of swiped profiles
+        final List<String> swipedProfileIds =
+            swipedProfiles.isNotEmpty
+                ? List<String>.from(
+                  swipedProfiles.map((profile) => profile['swiped_profile_id']),
+                )
+                : [];
+
+        print('User has already swiped on ${swipedProfileIds.length} profiles');
+
+        // Get profiles that match gender preference
+        List<dynamic> matchingProfiles;
+
+        // Base query excluding current user and already swiped profiles
+        var query = _supabaseClient
+            .from('profiles')
+            .select()
+            .neq('id', currentUser!.id); // Exclude current user
+
+        // Exclude already swiped profiles if there are any
+        if (swipedProfileIds.isNotEmpty) {
+          // Use 'not in' to exclude all swiped profile IDs
+          query = query.not('id', 'in', swipedProfileIds);
+        }
+
+        // Apply age filters
+        query = query
+            .gte('age', filterMinAge) // Min age filter
+            .lte('age', filterMaxAge) // Max age filter
+            .not('latitude', 'is', null) // Must have location
+            .not('longitude', 'is', null);
+
+        // Apply gender filter if not interested in everyone
+        if (interestedIn != 'Everyone') {
+          query = query.eq('gender', interestedIn);
+        }
+
+        // Apply limit and offset for batch loading
+        // First execute the query to get the filtered results
+        matchingProfiles = await query;
+
+        // Then apply pagination to the results in memory
+        final int endIndex = offset + limit;
+        final int safeEndIndex =
+            endIndex < matchingProfiles.length
+                ? endIndex
+                : matchingProfiles.length;
+
+        if (offset < matchingProfiles.length) {
+          matchingProfiles = matchingProfiles.sublist(offset, safeEndIndex);
+        } else {
+          matchingProfiles = [];
+        }
+
+        print(
+          'Found ${matchingProfiles.length} matching profiles in batch (offset: $offset, limit: $limit)',
+        );
+
+        // Convert to list of maps
+        final List<Map<String, dynamic>> profiles =
+            matchingProfiles
+                .map((profile) => profile as Map<String, dynamic>)
+                .toList();
+
+        // Filter by distance (done client-side since Supabase doesn't support geospatial queries)
+        final List<Map<String, dynamic>> filteredProfiles = [];
+        for (final profile in profiles) {
+          final double? profileLat = profile['latitude'];
+          final double? profileLng = profile['longitude'];
+
+          if (profileLat != null && profileLng != null) {
+            final double distance = _calculateDistance(
+              userLat,
+              userLng,
+              profileLat,
+              profileLng,
+            );
+
+            // Add distance to profile data
+            profile['distance'] = distance.round();
+
+            // Only include profiles within max distance
+            if (distance <= filterMaxDistance) {
+              filteredProfiles.add(profile);
+            }
+          }
+        }
+
+        // Sort by distance (closest first)
+        filteredProfiles.sort((a, b) {
+          final distanceA = a['distance'] as int;
+          final distanceB = b['distance'] as int;
+          return distanceA.compareTo(distanceB);
+        });
+
+        print(
+          'Returning ${filteredProfiles.length} profiles after distance filtering',
+        );
+
+        return filteredProfiles;
+      } catch (e) {
+        print('Error getting profiles to swipe in batch: $e');
+        throw e;
+      }
+    });
   }
 
   // Calculate distance between two points using Haversine formula
