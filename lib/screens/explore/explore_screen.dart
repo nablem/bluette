@@ -61,9 +61,6 @@ class _ExploreScreenState extends State<ExploreScreen>
   // Static flag to track if the screen has been initialized before
   static bool _hasBeenInitialized = false;
 
-  // Static flag to track if location permission has been granted
-  static bool _hasLocationPermission = false;
-
   // Static list to persist profiles between app launches
 
   // Static set to track which matches have already been shown to the user
@@ -519,9 +516,6 @@ class _ExploreScreenState extends State<ExploreScreen>
         _locationStatus = locationStatus;
       });
 
-      // Update static flag
-      _hasLocationPermission = isPermissionGranted;
-
       // If permission was granted, initialize explore
       if (isPermissionGranted) {
         if (_profiles.isEmpty) {
@@ -564,9 +558,6 @@ class _ExploreScreenState extends State<ExploreScreen>
           _isLoading = false;
         });
 
-        // Update the static flag to remember permission was granted
-        _hasLocationPermission = true;
-
         // Initialize explore if permission is granted
         await _initializeExplore();
         return;
@@ -584,11 +575,6 @@ class _ExploreScreenState extends State<ExploreScreen>
         _locationStatus = permissionStatus;
         _isLoading = false;
       });
-
-      // Update the static flag to remember permission was granted
-      if (isPermissionGranted) {
-        _hasLocationPermission = true;
-      }
 
       if (isPermissionGranted) {
         // Only initialize explore if permission is granted
@@ -2080,9 +2066,6 @@ class _ExploreScreenState extends State<ExploreScreen>
         _isLocationPermissionGranted = true;
         _locationStatus = locationStatus;
       });
-
-      // Update static flag
-      _hasLocationPermission = true;
 
       // Initialize explore if we don't have profiles
       if (_profiles.isEmpty) {
