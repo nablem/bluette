@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import '../../constants/app_theme.dart';
@@ -117,8 +118,7 @@ class _MeetupViewState extends State<MeetupView> with TickerProviderStateMixin {
 
     // Get screen height to calculate top third
     final screenHeight = MediaQuery.of(context).size.height;
-    final topThirdHeight =
-        screenHeight / 2.2; // Slightly reduced to avoid overflow
+    final topThirdHeight = screenHeight / 3.0;
 
     // Define gradient colors for consistency
     final gradientColors = [Colors.purple.shade300, Colors.blue.shade300];
@@ -128,57 +128,57 @@ class _MeetupViewState extends State<MeetupView> with TickerProviderStateMixin {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Spacer to push content down a bit
-          SizedBox(height: topThirdHeight * 0.1),
+          // Add more top padding to push content lower
+          SizedBox(height: MediaQuery.of(context).size.height * 0.05),
 
-          // New header text positioned lower with gradient username
+          // Header text with gradient username
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: RichText(
-              textAlign: TextAlign.center,
-              text: TextSpan(
-                style: AppTheme.headingStyle.copyWith(
-                  fontSize: 22,
-                  color: Colors.black87,
-                ),
-                children: [
-                  TextSpan(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                RichText(
+                  text: TextSpan(
+                    style: AppTheme.headingStyle.copyWith(
+                      fontSize: 22,
+                      color: Colors.black87,
+                    ),
                     text:
                         meetupPassed
                             ? "You recently met "
                             : "You're about to meet ",
                   ),
-                  TextSpan(
-                    text: otherUser['name'] ?? 'someone',
-                    style: TextStyle(
+                ),
+                ShaderMask(
+                  shaderCallback:
+                      (bounds) => LinearGradient(
+                        colors: gradientColors,
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ).createShader(bounds),
+                  child: Text(
+                    otherUser['name'] ?? 'someone',
+                    style: AppTheme.headingStyle.copyWith(
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      foreground:
-                          Paint()
-                            ..shader = LinearGradient(
-                              colors: gradientColors,
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ).createShader(
-                              const Rect.fromLTWH(0.0, 0.0, 200.0, 70.0),
-                            ),
+                      color: Colors.white, // This color is used as the mask
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
 
-          // Profile pictures floating in top half of screen with more space
+          // Profile pictures section with adjusted height
           SizedBox(
-            height: topThirdHeight,
+            height: topThirdHeight * 1.0, // Increased height
             child: Stack(
+              clipBehavior: Clip.none, // Allow children to overflow
               children: [
                 // Current user profile picture with animation
                 Positioned(
-                  left:
-                      MediaQuery.of(context).size.width *
-                      0.1, // More to the left
-                  top: topThirdHeight * 0.2,
+                  left: MediaQuery.of(context).size.width * 0.1,
+                  top: topThirdHeight * 0.2, // Adjusted position
                   child: AnimatedBuilder(
                     animation: _currentUserAnimController,
                     builder: (context, child) {
@@ -190,8 +190,8 @@ class _MeetupViewState extends State<MeetupView> with TickerProviderStateMixin {
                               _currentUserAnimController.value,
                         ),
                         child: Container(
-                          height: 180, // Reduced size to fix overflow
-                          width: 180,
+                          height: 135,
+                          width: 135,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             gradient: LinearGradient(
@@ -201,9 +201,9 @@ class _MeetupViewState extends State<MeetupView> with TickerProviderStateMixin {
                             ),
                           ),
                           child: Padding(
-                            padding: const EdgeInsets.all(4.0), // Border width
+                            padding: const EdgeInsets.all(4.0),
                             child: CircleAvatar(
-                              radius: 86,
+                              radius: 63.5,
                               backgroundImage:
                                   currentUser['profile_picture_url'] != null
                                       ? NetworkImage(
@@ -212,7 +212,7 @@ class _MeetupViewState extends State<MeetupView> with TickerProviderStateMixin {
                                       : null,
                               child:
                                   currentUser['profile_picture_url'] == null
-                                      ? const Icon(Icons.person, size: 80)
+                                      ? const Icon(Icons.person, size: 58)
                                       : null,
                             ),
                           ),
@@ -224,10 +224,8 @@ class _MeetupViewState extends State<MeetupView> with TickerProviderStateMixin {
 
                 // Other user profile picture with animation
                 Positioned(
-                  right:
-                      MediaQuery.of(context).size.width *
-                      0.1, // More to the right
-                  top: topThirdHeight * 0.4, // Lower position to avoid overlap
+                  right: MediaQuery.of(context).size.width * 0.1,
+                  top: topThirdHeight * 0.35, // Adjusted position
                   child: AnimatedBuilder(
                     animation: _otherUserAnimController,
                     builder: (context, child) {
@@ -237,7 +235,7 @@ class _MeetupViewState extends State<MeetupView> with TickerProviderStateMixin {
                           _otherUserOffsetY * _otherUserAnimController.value,
                         ),
                         child: Container(
-                          height: 180, // Reduced size to fix overflow
+                          height: 180,
                           width: 180,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
@@ -248,7 +246,7 @@ class _MeetupViewState extends State<MeetupView> with TickerProviderStateMixin {
                             ),
                           ),
                           child: Padding(
-                            padding: const EdgeInsets.all(4.0), // Border width
+                            padding: const EdgeInsets.all(4.0),
                             child: CircleAvatar(
                               radius: 86,
                               backgroundImage:
@@ -259,7 +257,7 @@ class _MeetupViewState extends State<MeetupView> with TickerProviderStateMixin {
                                       : null,
                               child:
                                   otherUser['profile_picture_url'] == null
-                                      ? const Icon(Icons.person, size: 80)
+                                      ? const Icon(Icons.person, size: 78)
                                       : null,
                             ),
                           ),
@@ -272,12 +270,13 @@ class _MeetupViewState extends State<MeetupView> with TickerProviderStateMixin {
             ),
           ),
 
-          // Spacer to push the card to the bottom
-          const Spacer(),
+          // Spacer with flex to push the card to the bottom
+          const Spacer(flex: 1),
 
-          // Meetup details card (now at the bottom)
+          // Meetup details card - positioned at the bottom with enough space
           Card(
             elevation: 4,
+            margin: const EdgeInsets.only(bottom: 16.0),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
@@ -367,7 +366,6 @@ class _MeetupViewState extends State<MeetupView> with TickerProviderStateMixin {
                         Center(
                           child: ElevatedButton.icon(
                             onPressed: () async {
-                              // Open Google Maps link
                               final Uri url = Uri.parse(
                                 place['google_maps_uri'],
                               );
@@ -404,7 +402,6 @@ class _MeetupViewState extends State<MeetupView> with TickerProviderStateMixin {
                         color: AppTheme.accentColor,
                       ),
                       onPressed: () {
-                        // Show confirmation dialog
                         showDialog(
                           context: context,
                           builder:
@@ -439,7 +436,7 @@ class _MeetupViewState extends State<MeetupView> with TickerProviderStateMixin {
           // Return to swiping button (only shown if meetup has passed)
           if (meetupPassed)
             Padding(
-              padding: const EdgeInsets.only(top: 16.0),
+              padding: const EdgeInsets.only(top: 8.0),
               child: ElevatedButton.icon(
                 onPressed: widget.onReturnToSwiping,
                 icon: const Icon(Icons.refresh),
