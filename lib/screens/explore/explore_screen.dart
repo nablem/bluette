@@ -61,8 +61,6 @@ class _ExploreScreenState extends State<ExploreScreen>
   // Static flag to track if the screen has been initialized before
   static bool _hasBeenInitialized = false;
 
-  // Static list to persist profiles between app launches
-
   // Static set to track which matches have already been shown to the user
   static Set<String> _shownMatchIds = {};
 
