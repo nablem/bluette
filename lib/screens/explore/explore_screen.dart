@@ -995,39 +995,17 @@ class _ExploreScreenState extends State<ExploreScreen>
             // Always turn off loading state
             _isLoading = false;
 
-            // Add new profiles, avoiding duplicates
-            final existingIds = _profiles.map((p) => p['id']).toSet();
-            final uniqueNewProfiles =
-                newProfiles
-                    .where((p) => !existingIds.contains(p['id']))
-                    .toList();
+            // Add new profiles directly since there are never duplicates
+            print('Adding ${newProfiles.length} new profiles to the stack');
+            _profiles.addAll(newProfiles);
 
-            if (uniqueNewProfiles.isNotEmpty) {
-              print(
-                'Adding ${uniqueNewProfiles.length} new profiles to the stack',
-              );
-              _profiles.addAll(uniqueNewProfiles);
+            // Update persisted profiles
+            _persistedProfiles = List.from(_profiles);
 
-              // Update persisted profiles
-              _persistedProfiles = List.from(_profiles);
-
-              // Update batch parameters
-              _currentBatchOffset += uniqueNewProfiles.length;
-              // If we got fewer profiles than the batch size, there are no more profiles
-              _hasMoreProfiles = newProfiles.length == _batchSize;
-            } else {
-              print('No new unique profiles found');
-              // If we got profiles but none were unique, try the next batch
-              _currentBatchOffset += newProfiles.length;
-
-              // If we have no profiles at all, try to fetch more immediately
-              if (_profiles.isEmpty && _hasMoreProfiles) {
-                // Use a short delay to avoid infinite loops
-                Future.delayed(const Duration(milliseconds: 500), () {
-                  _fetchMoreProfiles();
-                });
-              }
-            }
+            // Update batch parameters
+            _currentBatchOffset += newProfiles.length;
+            // If we got fewer profiles than the batch size, there are no more profiles
+            _hasMoreProfiles = newProfiles.length == _batchSize;
           });
         } else {
           print('No more profiles available to fetch');
