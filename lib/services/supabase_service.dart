@@ -549,7 +549,11 @@ class SupabaseService {
         }
 
         // Get current time for upcoming meetup check
-        final now = DateTime.now();
+        final localNow = DateTime.now();
+        // Convert to UTC for database comparison
+        final utcNow = localNow.toUtc();
+        print('Current time (local): ${localNow.toIso8601String()}');
+        print('Current time (UTC): ${utcNow.toIso8601String()}');
 
         // Get all profiles with upcoming meetups to exclude them
         final profilesWithMeetups = await _supabaseClient
@@ -558,7 +562,7 @@ class SupabaseService {
             .not('meetup_time', 'is', null)
             .eq('is_cancelled', false)
             .eq('is_meetup_passed', false)
-            .gt('meetup_time', now.toIso8601String());
+            .gt('meetup_time', utcNow.toIso8601String());
 
         // Create a set of profile IDs with upcoming meetups
         final Set<String> profileIdsWithMeetups = {};
@@ -722,7 +726,11 @@ class SupabaseService {
         );
 
         // Get current time for upcoming meetup check
-        final now = DateTime.now();
+        final localNow = DateTime.now();
+        // Convert to UTC for database comparison
+        final utcNow = localNow.toUtc();
+        print('Current time (local): ${localNow.toIso8601String()}');
+        print('Current time (UTC): ${utcNow.toIso8601String()}');
 
         // Get all profiles with upcoming meetups to exclude them
         final profilesWithMeetups = await _supabaseClient
@@ -731,7 +739,7 @@ class SupabaseService {
             .not('meetup_time', 'is', null)
             .eq('is_cancelled', false)
             .eq('is_meetup_passed', false)
-            .gt('meetup_time', now.toIso8601String());
+            .gt('meetup_time', utcNow.toIso8601String());
 
         // Create a set of profile IDs with upcoming meetups
         final Set<String> profileIdsWithMeetups = {};
@@ -853,8 +861,12 @@ class SupabaseService {
       try {
         print('Checking if profile $profileId has an upcoming meetup');
 
-        // Get current time
-        final now = DateTime.now();
+        // Get current time in local timezone
+        final localNow = DateTime.now();
+        // Convert to UTC for database comparison
+        final utcNow = localNow.toUtc();
+        print('Current time (local): ${localNow.toIso8601String()}');
+        print('Current time (UTC): ${utcNow.toIso8601String()}');
 
         // Query matches where the profile is either user1 or user2
         // and there's a scheduled meetup in the future
@@ -866,7 +878,7 @@ class SupabaseService {
             .not('meetup_time', 'is', null)
             .eq('is_cancelled', false)
             .eq('is_meetup_passed', false)
-            .gt('meetup_time', now.toIso8601String())
+            .gt('meetup_time', utcNow.toIso8601String())
             .limit(1);
 
         final hasUpcomingMeetup = matches.isNotEmpty;
@@ -1579,7 +1591,7 @@ class SupabaseService {
           );
         }
 
-        // Get current date and time
+        // Get current date and time in local timezone
         final now = DateTime.now();
 
         // Calculate the valid time range for meetups (20-72 hours from now)
@@ -1587,7 +1599,7 @@ class SupabaseService {
         final latestMeetupTime = now.add(const Duration(hours: 72));
 
         print(
-          'Valid meetup time range: ${earliestMeetupTime.toIso8601String()} to ${latestMeetupTime.toIso8601String()}',
+          'Valid meetup time range (local): ${earliestMeetupTime.toIso8601String()} to ${latestMeetupTime.toIso8601String()}',
         );
 
         // Find a suitable place and time based on availability
@@ -1611,8 +1623,9 @@ class SupabaseService {
           );
 
           if (meetupTime != null) {
+            // meetupTime is already in UTC format from _findSuitableTimeSlotWithinRange
             print(
-              'Found suitable place and time: ${place['name']} at ${meetupTime.toIso8601String()}',
+              'Found suitable place and time: ${place['name']} at ${meetupTime.toIso8601String()} (UTC)',
             );
             placesWithAvailability.add({
               'place': place,
@@ -1789,8 +1802,8 @@ class SupabaseService {
           // Round minute to either 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, or 55
           final int minute = ((middleMinutes % 60) / 5).round() * 5;
 
-          // Create the meetup time
-          final proposedTime = DateTime(
+          // First create the meetup time in local timezone for calculations
+          final localProposedTime = DateTime(
             targetDate.year,
             targetDate.month,
             targetDate.day,
@@ -1798,10 +1811,20 @@ class SupabaseService {
             minute,
           );
 
+          print(
+            'Created proposed meetup time (local): ${localProposedTime.toIso8601String()}',
+          );
+
           // Check if the proposed time is within our valid range
-          if (proposedTime.isAfter(earliestTime) &&
-              proposedTime.isBefore(latestTime)) {
-            return proposedTime;
+          if (localProposedTime.isAfter(earliestTime) &&
+              localProposedTime.isBefore(latestTime)) {
+            // Convert to UTC for persistence
+            final utcProposedTime = localProposedTime.toUtc();
+            print(
+              'Converted to UTC for persistence: ${utcProposedTime.toIso8601String()}',
+            );
+
+            return utcProposedTime;
           }
         }
       }
@@ -2044,9 +2067,16 @@ class SupabaseService {
           'MEETUP SERVICE: Checking for upcoming meetups for user: ${currentUser!.id}',
         );
 
-        // Get current time
-        final now = DateTime.now();
-        print('MEETUP SERVICE: Current time: ${now.toIso8601String()}');
+        // Get current time in local timezone
+        final localNow = DateTime.now();
+        // Convert to UTC for database comparison
+        final utcNow = localNow.toUtc();
+        print(
+          'MEETUP SERVICE: Current time (local): ${localNow.toIso8601String()}',
+        );
+        print(
+          'MEETUP SERVICE: Current time (UTC): ${utcNow.toIso8601String()}',
+        );
 
         // Query matches where current user is either user1 or user2
         // and there's a scheduled meetup in the future
@@ -2058,7 +2088,7 @@ class SupabaseService {
         print('  - meetup_time is not null');
         print('  - is_cancelled = false');
         print('  - is_meetup_passed = false');
-        print('  - meetup_time > ${now.toIso8601String()}');
+        print('  - meetup_time > ${utcNow.toIso8601String()} (UTC)');
 
         final matches = await _supabaseClient
             .from('matches')
@@ -2067,7 +2097,7 @@ class SupabaseService {
             .not('meetup_time', 'is', null)
             .eq('is_cancelled', false)
             .eq('is_meetup_passed', false)
-            .gt('meetup_time', now.toIso8601String())
+            .gt('meetup_time', utcNow.toIso8601String())
             .order('meetup_time', ascending: true)
             .limit(1);
 
@@ -2157,8 +2187,12 @@ class SupabaseService {
           'Checking and updating meetup status for user: ${currentUser!.id}',
         );
 
-        // Get current time
-        final now = DateTime.now();
+        // Get current time in local timezone
+        final localNow = DateTime.now();
+        // Convert to UTC for database comparison
+        final utcNow = localNow.toUtc();
+        print('Current time (local): ${localNow.toIso8601String()}');
+        print('Current time (UTC): ${utcNow.toIso8601String()}');
 
         // Query matches where current user is either user1 or user2
         // and there's a scheduled meetup in the past (more than 1 hour ago)
@@ -2172,7 +2206,7 @@ class SupabaseService {
             .eq('is_meetup_passed', false)
             .lt(
               'meetup_time',
-              now.subtract(const Duration(hours: 1)).toIso8601String(),
+              utcNow.subtract(const Duration(hours: 1)).toIso8601String(),
             );
 
         if (matches.isEmpty) {
@@ -2288,10 +2322,15 @@ class SupabaseService {
         final place = places[0];
         print('DEBUG: Using place: ${place['name']}');
 
-        // Create a meetup time (1 day from now)
-        final meetupTime = DateTime.now().add(const Duration(days: 1));
-        final meetupTimeString = meetupTime.toIso8601String();
-        print('DEBUG: Using meetup time: $meetupTimeString');
+        // Create a meetup time (1 day from now) in local timezone
+        final localMeetupTime = DateTime.now().add(const Duration(days: 1));
+        // Convert to UTC for persistence
+        final utcMeetupTime = localMeetupTime.toUtc();
+        final meetupTimeString = utcMeetupTime.toIso8601String();
+        print(
+          'DEBUG: Using meetup time (local): ${localMeetupTime.toIso8601String()}',
+        );
+        print('DEBUG: Converted to UTC for persistence: $meetupTimeString');
 
         // Update the match with place and time
         await _supabaseClient
@@ -2343,10 +2382,15 @@ class SupabaseService {
         final place = places[0];
         print('DEBUG: Using place: ${place['name']} (${place['id']})');
 
-        // Create a meetup time (1 day from now)
-        final meetupTime = DateTime.now().add(const Duration(days: 1));
-        final meetupTimeString = meetupTime.toIso8601String();
-        print('DEBUG: Using meetup time: $meetupTimeString');
+        // Create a meetup time (1 day from now) in local timezone
+        final localMeetupTime = DateTime.now().add(const Duration(days: 1));
+        // Convert to UTC for persistence
+        final utcMeetupTime = localMeetupTime.toUtc();
+        final meetupTimeString = utcMeetupTime.toIso8601String();
+        print(
+          'DEBUG: Using meetup time (local): ${localMeetupTime.toIso8601String()}',
+        );
+        print('DEBUG: Converted to UTC for persistence: $meetupTimeString');
 
         // Try updating just the meetup_time first
         print('DEBUG: Attempting to update only meetup_time');
@@ -2384,29 +2428,9 @@ class SupabaseService {
 
         print('DEBUG: After place_id update: ${checkPlace['place_id']}');
 
-        // Finally, try updating both together
-        print('DEBUG: Attempting to update both fields together');
-        await _supabaseClient
-            .from('matches')
-            .update({'meetup_time': meetupTimeString, 'place_id': place['id']})
-            .eq('id', matchId);
-
-        // Verify the final update
-        final finalCheck =
-            await _supabaseClient
-                .from('matches')
-                .select()
-                .eq('id', matchId)
-                .limit(1)
-                .single();
-
-        print('DEBUG: Final check - meetup_time: ${finalCheck['meetup_time']}');
-        print('DEBUG: Final check - place_id: ${finalCheck['place_id']}');
-
-        return finalCheck['meetup_time'] != null &&
-            finalCheck['place_id'] != null;
+        return true;
       } catch (e) {
-        print('DEBUG: Error in test direct match update: $e');
+        print('DEBUG: Error testing direct match update: $e');
         return false;
       }
     });

@@ -95,21 +95,24 @@ class _MeetupViewState extends State<MeetupView> with TickerProviderStateMixin {
     final otherUser = widget.meetup['other_user'];
     final currentUser = widget.meetup['current_user'];
 
-    // Parse the meetup time
-    final DateTime meetupTime = DateTime.parse(match['meetup_time']);
+    // Parse the meetup time from UTC
+    final DateTime utcMeetupTime = DateTime.parse(match['meetup_time']);
+
+    // Convert UTC time to local time
+    final DateTime localMeetupTime = utcMeetupTime.toLocal();
 
     // Format the time as HH:MM
     final String formattedTime =
-        '${meetupTime.hour.toString().padLeft(2, '0')}:${meetupTime.minute.toString().padLeft(2, '0')}';
+        '${localMeetupTime.hour.toString().padLeft(2, '0')}:${localMeetupTime.minute.toString().padLeft(2, '0')}';
 
     // Format the date as "Thursday, May 6th"
     final String formattedDate =
-        DateFormat('EEEE, MMMM d').format(meetupTime) +
-        _getDaySuffix(meetupTime.day);
+        DateFormat('EEEE, MMMM d').format(localMeetupTime) +
+        _getDaySuffix(localMeetupTime.day);
 
     // Check if the meetup has passed (more than 1 hour after the meetup time)
     final bool meetupPassed = DateTime.now().isAfter(
-      meetupTime.add(const Duration(hours: 1)),
+      localMeetupTime.add(const Duration(hours: 1)),
     );
 
     // Get screen height to calculate top third
