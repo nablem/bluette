@@ -764,12 +764,23 @@ class SupabaseService {
           'Found ${profilesWithoutMeetups.length} profiles after excluding those with upcoming meetups',
         );
 
-        // Sort by distance (closest first)
+        // Sort by score (descending) first, then by distance (ascending)
         profilesWithoutMeetups.sort((a, b) {
+          // First compare by score (higher scores first)
+          final scoreA = a['score'] ?? 0;
+          final scoreB = b['score'] ?? 0;
+
+          if (scoreA != scoreB) {
+            return scoreB.compareTo(scoreA); // Descending order
+          }
+
+          // If scores are equal, sort by distance (closest first)
           final distanceA = a['distance'] as int;
           final distanceB = b['distance'] as int;
           return distanceA.compareTo(distanceB);
         });
+
+        print('Profiles sorted by score (DESC) and then by distance');
 
         // Apply pagination
         final int endIndex = offset + limit;
@@ -2247,6 +2258,32 @@ class SupabaseService {
             .from('matches')
             .update({'is_cancelled': true, 'cancelled_by': currentUser!.id})
             .eq('id', matchId);
+
+        // Decrease the user's score by 1
+        try {
+          // First get the current score
+          final userProfile =
+              await _supabaseClient
+                  .from('profiles')
+                  .select('score')
+                  .eq('id', currentUser!.id)
+                  .single();
+
+          // Calculate new score (default to 0 if null, and ensure it doesn't go below 0)
+          final currentScore = userProfile['score'] ?? 0;
+          final newScore = currentScore - 1;
+
+          // Update the score
+          await _supabaseClient
+              .from('profiles')
+              .update({'score': newScore})
+              .eq('id', currentUser!.id);
+
+          print('User score decreased to $newScore');
+        } catch (e) {
+          print('Error updating user score: $e');
+          // Continue with cancellation even if score update fails
+        }
 
         print('Meetup cancelled successfully');
         return true;

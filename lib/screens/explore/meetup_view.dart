@@ -407,7 +407,7 @@ class _MeetupViewState extends State<MeetupView> with TickerProviderStateMixin {
                               (context) => AlertDialog(
                                 title: const Text('Cancel Meetup?'),
                                 content: const Text(
-                                  'Are you sure you want to cancel this meetup?',
+                                  'Are you sure? You may lose visibility.',
                                 ),
                                 actions: [
                                   TextButton(
