@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import '../../constants/app_theme.dart';
-import '../../services/supabase_service.dart';
 
 class MeetupView extends StatefulWidget {
   final Map<String, dynamic> meetup;

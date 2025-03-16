@@ -14,9 +14,6 @@ import '../../utils/network_error_handler.dart';
 import '../../widgets/error_message_widget.dart';
 import '../../services/connectivity_service.dart';
 
-// Add missing import for AudioSource
-import 'package:just_audio/just_audio.dart' show AudioSource;
-
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -39,9 +36,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   static DateTime? _lastLoadTime;
   // Add a static image cache
   static ImageProvider? _cachedImageProvider;
-
-  // Flag to track if we're returning to the screen
-  bool _isReturningToScreen = false;
 
   @override
   void initState() {
@@ -225,70 +219,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // Refresh profile in background without showing loading indicator
-  Future<void> _refreshProfileInBackground() async {
-    try {
-      final hasConnection = await ConnectivityService.isConnected();
-      if (!hasConnection) {
-        return; // Silently fail if no connection
-      }
-
-      final profile = await SupabaseService.getUserProfile();
-
-      if (profile != null && mounted) {
-        // Update URLs if needed
-        if (profile['profile_picture_url'] != null) {
-          final newImageUrl = await SupabaseService.refreshProfilePictureUrl();
-          if (newImageUrl != null) {
-            profile['profile_picture_url'] = newImageUrl;
-
-            // Update the cached image provider if the URL has changed
-            if (_userProfile != null &&
-                _userProfile!['profile_picture_url'] != newImageUrl) {
-              _cachedImageProvider = NetworkImage(newImageUrl);
-
-              // Precache the new image
-              if (mounted) {
-                precacheImage(_cachedImageProvider!, context);
-              }
-            }
-          }
-        }
-
-        if (profile['voice_bio_url'] != null) {
-          final newAudioUrl = await SupabaseService.refreshVoiceBioUrl();
-          if (newAudioUrl != null) {
-            profile['voice_bio_url'] = newAudioUrl;
-          }
-        }
-
-        // Update cache and state if there are changes
-        if (_userProfile == null ||
-            _userProfile!['name'] != profile['name'] ||
-            _userProfile!['bio'] != profile['bio'] ||
-            _userProfile!['age'] != profile['age'] ||
-            _userProfile!['gender'] != profile['gender'] ||
-            _userProfile!['profile_picture_url'] !=
-                profile['profile_picture_url'] ||
-            _userProfile!['voice_bio_url'] != profile['voice_bio_url']) {
-          // Update the cache
-          _cachedProfile = Map<String, dynamic>.from(profile);
-          _lastLoadTime = DateTime.now();
-
-          // Update the UI if mounted
-          if (mounted) {
-            setState(() {
-              _userProfile = profile;
-            });
-          }
-        }
-      }
-    } catch (e) {
-      // Silently log errors during background refresh
-      print('Background profile refresh error: ${e.toString()}');
-    }
-  }
-
   Future<void> _updateField(String field, dynamic value) async {
     setState(() {
       _isLoading = true;
@@ -402,8 +332,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           setState(() {
             _userProfile = currentProfile;
             _isLoading = false;
-            // Reset returning flag to show the fade-in animation for the new image
-            _isReturningToScreen = false;
           });
         } else {
           // Only reload if we couldn't update locally

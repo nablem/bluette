@@ -660,8 +660,7 @@ class SupabaseService {
         final List<Map<String, dynamic>> filteredProfiles = [];
 
         for (final profile in matchingProfiles) {
-          final Map<String, dynamic> profileMap =
-              profile as Map<String, dynamic>;
+          final Map<String, dynamic> profileMap = profile;
           final double? profileLat = profileMap['latitude'];
           final double? profileLng = profileMap['longitude'];
 
@@ -1744,15 +1743,6 @@ class SupabaseService {
   static TimeOfDay _subtractHours(TimeOfDay time, int hours) {
     int totalMinutes = time.hour * 60 + time.minute - hours * 60;
     if (totalMinutes < 0) totalMinutes += 24 * 60;
-    return TimeOfDay(
-      hour: (totalMinutes ~/ 60) % 24,
-      minute: totalMinutes % 60,
-    );
-  }
-
-  // Helper method to add hours to a TimeOfDay
-  static TimeOfDay _addHours(TimeOfDay time, int hours) {
-    int totalMinutes = time.hour * 60 + time.minute + hours * 60;
     return TimeOfDay(
       hour: (totalMinutes ~/ 60) % 24,
       minute: totalMinutes % 60,

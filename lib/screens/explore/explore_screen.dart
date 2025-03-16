@@ -41,7 +41,6 @@ class _ExploreScreenState extends State<ExploreScreen>
   // Add a variable to store upcoming meetup details
   Map<String, dynamic>? _upcomingMeetup;
   bool _isCheckingMeetup = false;
-  bool _showMeetupCancelOptions = false;
 
   // Animation controllers for the like and dislike buttons
   late AnimationController _likeButtonController;
@@ -291,6 +290,7 @@ class _ExploreScreenState extends State<ExploreScreen>
       // Enable real-time for the client
       try {
         print('Ensuring realtime is connected');
+        // ignore: invalid_use_of_internal_member
         Supabase.instance.client.realtime.connect();
       } catch (e) {
         print('Error connecting realtime: $e');
@@ -2037,6 +2037,7 @@ class _ExploreScreenState extends State<ExploreScreen>
       // Wait a moment before reconnecting
       Future.delayed(const Duration(seconds: 1), () {
         print('Reconnecting realtime...');
+        // ignore: invalid_use_of_internal_member
         Supabase.instance.client.realtime.connect();
 
         // Resubscribe to matches
@@ -2432,7 +2433,6 @@ class _ExploreScreenState extends State<ExploreScreen>
         // Clear the upcoming meetup
         setState(() {
           _upcomingMeetup = null;
-          _showMeetupCancelOptions = false;
         });
 
         // Show success message
