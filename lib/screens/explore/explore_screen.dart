@@ -1832,30 +1832,6 @@ class _ExploreScreenState extends State<ExploreScreen>
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          // For testing purposes - clear swipes
-          TextButton.icon(
-            onPressed: () async {
-              try {
-                await SupabaseService.clearUserSwipes();
-                // Clear shown matches set when swipes are cleared
-                await _ExploreScreenState.clearShownMatches();
-                // Clear any error message before refreshing
-                setState(() {
-                  _errorMessage = null;
-                });
-                _initializeExplore();
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error clearing swipes: $e')),
-                  );
-                }
-              }
-            },
-            icon: const Icon(Icons.refresh),
-            label: const Text('Reset All Swipes (Testing)'),
-          ),
         ],
       ),
     );
