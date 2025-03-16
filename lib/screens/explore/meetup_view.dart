@@ -399,7 +399,10 @@ class _MeetupViewState extends State<MeetupView> with TickerProviderStateMixin {
                     top: 8,
                     right: 8,
                     child: IconButton(
-                      icon: const Icon(Icons.cancel, color: Colors.red),
+                      icon: const Icon(
+                        Icons.cancel,
+                        color: AppTheme.accentColor,
+                      ),
                       onPressed: () {
                         // Show confirmation dialog
                         showDialog(
