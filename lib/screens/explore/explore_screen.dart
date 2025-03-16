@@ -1263,16 +1263,7 @@ class _ExploreScreenState extends State<ExploreScreen>
                                 print('MATCH DEBUG: Meetup scheduling failed');
 
                                 if (mounted) {
-                                  // Show a message to the user
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'We couldn\'t find a suitable place for your meetup. You can still chat with your match!',
-                                      ),
-                                      duration: Duration(seconds: 4),
-                                      backgroundColor: Colors.orange,
-                                    ),
-                                  );
+                                  // Message to user removed
 
                                   // Refresh the UI to show the swipe stack
                                   setState(() {
@@ -1597,33 +1588,9 @@ class _ExploreScreenState extends State<ExploreScreen>
                       ),
                     ),
                     // Debug button in the top-left corner (only in debug mode)
-                    if (const bool.fromEnvironment('dart.vm.product') == false)
-                      Positioned(
-                        top: 10,
-                        left: 10,
-                        child: FloatingActionButton(
-                          mini: true,
-                          heroTag: 'debug',
-                          onPressed: () {
-                            _debugTestSubscription();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Testing real-time subscription...',
-                                ),
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
-                          },
-                          backgroundColor: Colors.grey[300],
-                          child: const Icon(
-                            Icons.bug_report,
-                            color: Colors.black54,
-                          ),
-                        ),
-                      ),
+                    // Removed debug button from top-left corner
                     // Add the test button
-                    _buildTestButton(),
+                    // Removed test button from bottom-right corner
                   ],
                 )
                 // When returning to the screen, we should never show the location permission screen
@@ -2396,14 +2363,6 @@ class _ExploreScreenState extends State<ExploreScreen>
     try {
       print('Cancelling meetup: $matchId');
 
-      // Show loading indicator
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Cancelling meetup...'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-
       // Cancel the meetup
       final success = await SupabaseService.cancelMeetup(matchId);
 
@@ -2413,32 +2372,14 @@ class _ExploreScreenState extends State<ExploreScreen>
           _upcomingMeetup = null;
         });
 
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Meetup cancelled successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
-
         // Refresh the explore screen
         _initializeExplore();
       } else if (mounted) {
-        // Show error message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to cancel meetup'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        // Error message removed
       }
     } catch (e) {
       print('Error cancelling meetup: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
-      }
+      // Error snackbar removed
     }
   }
 
@@ -2530,28 +2471,10 @@ class _ExploreScreenState extends State<ExploreScreen>
 
       if (matches.isEmpty) {
         print('No matches with meetups found');
-
-        // Show a snackbar
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No matches with meetups found'),
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
+        // Snackbar removed
       } else {
         print('Found ${matches.length} matches with meetups');
-
-        // Show a snackbar
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Found ${matches.length} matches with meetups'),
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        }
+        // Snackbar removed
       }
     } catch (e) {
       print('Error debugging matches with meetups: $e');
@@ -2569,17 +2492,7 @@ class _ExploreScreenState extends State<ExploreScreen>
     print('  _isReturningToScreen: $_isReturningToScreen');
     print('  _isCheckingMeetup: $_isCheckingMeetup');
 
-    // Show a snackbar with the state
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Meetup: ${_upcomingMeetup != null ? "YES" : "NO"}, Profiles: ${_profiles.length}',
-          ),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
+    // Removed debug snackbar
 
     // If we have an upcoming meetup, print its details
     if (_upcomingMeetup != null) {
@@ -2597,13 +2510,7 @@ class _ExploreScreenState extends State<ExploreScreen>
     try {
       print('Testing direct meetup creation');
 
-      // Show loading indicator
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Creating test meetup...'),
-          duration: Duration(seconds: 2),
-        ),
-      );
+      // Removed loading indicator snackbar
 
       // Create a test meetup directly
       final success = await SupabaseService.createTestMeetupDirectly();
@@ -2617,28 +2524,6 @@ class _ExploreScreenState extends State<ExploreScreen>
         // Force UI refresh
         if (mounted) {
           setState(() {});
-
-          // Show success message
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Test meetup created successfully'),
-              duration: Duration(seconds: 2),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } else {
-        print('Failed to create test meetup');
-
-        // Show error message
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Failed to create test meetup'),
-              duration: Duration(seconds: 2),
-              backgroundColor: Colors.red,
-            ),
-          );
         }
       }
     } catch (e) {
@@ -2657,12 +2542,7 @@ class _ExploreScreenState extends State<ExploreScreen>
         print('No matches found, creating a test match first');
         final testMatch = await SupabaseService.createTestMatch();
         if (testMatch == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Failed to create test match'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          // Snackbar removed
           return;
         }
 
@@ -2671,16 +2551,7 @@ class _ExploreScreenState extends State<ExploreScreen>
           testMatch['id'],
         );
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              success
-                  ? 'Successfully updated test match'
-                  : 'Failed to update test match',
-            ),
-            backgroundColor: success ? Colors.green : Colors.red,
-          ),
-        );
+        // Snackbar removed
       } else {
         // Use the first match from the list
         final matchId = matches[0]['id'];
@@ -2688,16 +2559,7 @@ class _ExploreScreenState extends State<ExploreScreen>
 
         final success = await SupabaseService.testDirectMatchUpdate(matchId);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              success
-                  ? 'Successfully updated existing match'
-                  : 'Failed to update existing match',
-            ),
-            backgroundColor: success ? Colors.green : Colors.red,
-          ),
-        );
+        // Snackbar removed
       }
 
       // Check for upcoming meetups after the update
@@ -2709,90 +2571,7 @@ class _ExploreScreenState extends State<ExploreScreen>
       }
     } catch (e) {
       print('Error in test direct match update: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      // Snackbar removed
     }
-  }
-
-  // Build test button with popup menu
-  Widget _buildTestButton() {
-    return Positioned(
-      bottom: 16,
-      right: 16,
-      child: PopupMenuButton<String>(
-        icon: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.blue.withOpacity(0.7),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(Icons.bug_report, color: Colors.white),
-        ),
-        onSelected: (value) async {
-          switch (value) {
-            case 'test_places':
-              await _testFindPlacesNearPoint();
-              break;
-            case 'test_schedule':
-              await _testScheduleMeetup();
-              break;
-            case 'test_check_meetup':
-              await _checkForUpcomingMeetup();
-              if (mounted) {
-                setState(() {});
-                _debugMeetupViewState();
-              }
-              break;
-            case 'test_debug_matches':
-              await _debugQueryMatchesWithMeetups();
-              break;
-            case 'test_debug_view':
-              _debugMeetupViewState();
-              break;
-            case 'test_direct_meetup':
-              await _testDirectMeetupCreation();
-              break;
-            case 'test_direct_update':
-              await _testDirectMatchUpdate();
-              break;
-          }
-        },
-        itemBuilder:
-            (context) => [
-              const PopupMenuItem(
-                value: 'test_places',
-                child: Text('Test Find Places'),
-              ),
-              const PopupMenuItem(
-                value: 'test_schedule',
-                child: Text('Test Schedule Meetup'),
-              ),
-              const PopupMenuItem(
-                value: 'test_check_meetup',
-                child: Text('Check for Upcoming Meetup'),
-              ),
-              const PopupMenuItem(
-                value: 'test_debug_matches',
-                child: Text('Debug Matches with Meetups'),
-              ),
-              const PopupMenuItem(
-                value: 'test_debug_view',
-                child: Text('Debug View State'),
-              ),
-              const PopupMenuItem(
-                value: 'test_direct_meetup',
-                child: Text('Create Test Meetup'),
-              ),
-              const PopupMenuItem(
-                value: 'test_direct_update',
-                child: Text('Test Direct Match Update'),
-              ),
-            ],
-      ),
-    );
   }
 }
