@@ -52,6 +52,36 @@ class LocationService {
     }
   }
 
+  // Check current location status without requesting permission
+  static Future<LocationStatus> checkLocationStatus() async {
+    try {
+      // Test if location services are enabled
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        print('Location services are disabled.');
+        return LocationStatus.serviceDisabled;
+      }
+
+      // Check location permission
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        print('Location permissions are denied');
+        return LocationStatus.permissionDenied;
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        print('Location permissions are permanently denied');
+        return LocationStatus.permissionDeniedForever;
+      }
+
+      // When we reach here, permissions are granted
+      return LocationStatus.permissionGranted;
+    } catch (e) {
+      print('Error checking location status: $e');
+      return LocationStatus.error;
+    }
+  }
+
   // Get current position if permission is granted
   static Future<Position?> getCurrentPosition() async {
     try {

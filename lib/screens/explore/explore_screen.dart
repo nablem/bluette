@@ -65,7 +65,6 @@ class _ExploreScreenState extends State<ExploreScreen>
   static bool _hasLocationPermission = false;
 
   // Static list to persist profiles between app launches
-  static List<Map<String, dynamic>> _persistedProfiles = [];
 
   // Static set to track which matches have already been shown to the user
   static Set<String> _shownMatchIds = {};
@@ -107,54 +106,8 @@ class _ExploreScreenState extends State<ExploreScreen>
     // Check for upcoming meetups
     _checkForUpcomingMeetup();
 
-    // If location permission was previously granted, set it immediately
-    if (_hasLocationPermission) {
-      setState(() {
-        _isLocationPermissionGranted = true;
-      });
-    }
-
-    // Only do full initialization if this is the first time
-    if (!_hasBeenInitialized) {
-      _checkLocationPermissionAndInitialize();
-    } else {
-      // If we've been initialized before, set returning flag and restore persisted profiles
-      setState(() {
-        _isLoading = false;
-        _isReturningToScreen = true;
-
-        // Restore profiles from static list
-        _profiles = List.from(_persistedProfiles);
-
-        // Always ensure location permission is set correctly when returning
-        if (_hasLocationPermission) {
-          _isLocationPermissionGranted = true;
-        }
-      });
-
-      // Clear returning flag after a short delay
-      Future.delayed(const Duration(milliseconds: 300), () {
-        if (mounted) {
-          setState(() {
-            _isReturningToScreen = false;
-          });
-        }
-      });
-
-      // Reload user profile to get the latest filter values
-      _reloadUserProfile();
-
-      // If we have no profiles or very few, fetch more
-      // This ensures we always have profiles to show, even after app restart
-      if (_profiles.isEmpty) {
-        // Reset batch offset to ensure we get all profiles
-        _currentBatchOffset = 0;
-        _hasMoreProfiles = true;
-        _initializeExplore();
-      } else if (_profiles.length < _batchSize) {
-        _fetchMoreProfiles();
-      }
-    }
+    // Always check location status first before proceeding with any other initialization
+    _checkLocationStatusAndInitialize();
 
     // Initialize animation controllers - one for each button
     _likeButtonController = AnimationController(
@@ -197,12 +150,8 @@ class _ExploreScreenState extends State<ExploreScreen>
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    // If we have static permission but the instance flag is not set, update it
-    if (_hasLocationPermission && !_isLocationPermissionGranted) {
-      setState(() {
-        _isLocationPermissionGranted = true;
-      });
-    }
+    // Ensure location permission is checked when the widget is built
+    _ensureLocationPermission();
 
     // If we've been initialized before, reload the user profile to get the latest filter values
     if (_hasBeenInitialized && !_isLoading && !_isReturningToScreen) {
@@ -240,9 +189,9 @@ class _ExploreScreenState extends State<ExploreScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // When app resumes from background, check if location permission was granted
     if (state == AppLifecycleState.resumed) {
-      print('App resumed from background, checking subscriptions and matches');
+      print('App resumed from background, checking location and subscriptions');
 
-      // Check if location permission status has changed
+      // Always check location status when app resumes
       _checkLocationStatusChange();
 
       // Reload user profile to get the latest filter values
@@ -557,25 +506,37 @@ class _ExploreScreenState extends State<ExploreScreen>
 
   // Check if location permission status has changed
   Future<void> _checkLocationStatusChange() async {
-    // Only check if we don't already have permission
-    if (!_isLocationPermissionGranted) {
-      final isGranted = await LocationService.isLocationPermissionGranted();
-      if (isGranted) {
-        // Update both instance and static flags
-        setState(() {
-          _isLocationPermissionGranted = true;
-        });
-        _hasLocationPermission = true;
+    print('Checking if location status has changed...');
 
-        // Only reinitialize if we don't have profiles
+    final locationStatus = await LocationService.checkLocationStatus();
+    final isPermissionGranted =
+        locationStatus == LocationStatus.permissionGranted;
+
+    // If status changed, update state
+    if (isPermissionGranted != _isLocationPermissionGranted) {
+      setState(() {
+        _isLocationPermissionGranted = isPermissionGranted;
+        _locationStatus = locationStatus;
+      });
+
+      // Update static flag
+      _hasLocationPermission = isPermissionGranted;
+
+      // If permission was granted, initialize explore
+      if (isPermissionGranted) {
         if (_profiles.isEmpty) {
-          _checkLocationPermissionAndInitialize();
+          _initializeExplore();
         }
+      } else {
+        // If permission was revoked, clear profiles
+        setState(() {
+          _profiles = [];
+        });
       }
     }
   }
 
-  Future<void> _checkLocationPermissionAndInitialize() async {
+  Future<void> _checkLocationStatusAndInitialize() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -588,7 +549,30 @@ class _ExploreScreenState extends State<ExploreScreen>
         throw SocketException('No internet connection');
       }
 
-      // Request location permission using the native dialog
+      // Check current location status without requesting permission first
+      final locationStatus = await LocationService.checkLocationStatus();
+
+      // Update location status in state
+      setState(() {
+        _locationStatus = locationStatus;
+      });
+
+      // If permission is already granted, proceed
+      if (locationStatus == LocationStatus.permissionGranted) {
+        setState(() {
+          _isLocationPermissionGranted = true;
+          _isLoading = false;
+        });
+
+        // Update the static flag to remember permission was granted
+        _hasLocationPermission = true;
+
+        // Initialize explore if permission is granted
+        await _initializeExplore();
+        return;
+      }
+
+      // If permission is not granted, request it
       final permissionStatus =
           await LocationService.requestLocationPermission();
       final isPermissionGranted =
@@ -609,6 +593,13 @@ class _ExploreScreenState extends State<ExploreScreen>
       if (isPermissionGranted) {
         // Only initialize explore if permission is granted
         await _initializeExplore();
+      } else {
+        // If we've been initialized before but lost permission, clear profiles
+        if (_hasBeenInitialized) {
+          setState(() {
+            _profiles = [];
+          });
+        }
       }
     } catch (e) {
       setState(() {
@@ -622,6 +613,13 @@ class _ExploreScreenState extends State<ExploreScreen>
   }
 
   Future<void> _initializeExplore() async {
+    // Ensure location permission is granted before initializing
+    if (!_isLocationPermissionGranted) {
+      print('Cannot initialize explore: location permission not granted');
+      await _checkLocationStatusAndInitialize();
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -678,9 +676,6 @@ class _ExploreScreenState extends State<ExploreScreen>
 
           // Mark as initialized
           _hasBeenInitialized = true;
-
-          // Update persisted profiles
-          _persistedProfiles = List.from(profiles);
         });
       }
 
@@ -768,9 +763,6 @@ class _ExploreScreenState extends State<ExploreScreen>
           // Update batch parameters
           _currentBatchOffset += profiles.length;
           _hasMoreProfiles = profiles.length == _batchSize;
-
-          // Update persisted profiles
-          _persistedProfiles = List.from(profiles);
         });
       }
     } catch (e) {
@@ -899,9 +891,6 @@ class _ExploreScreenState extends State<ExploreScreen>
               print(
                 'Removed profile at index $index, ${_profiles.length} profiles remaining',
               );
-
-              // Update persisted profiles
-              _persistedProfiles = List.from(_profiles);
             }
           });
         }
@@ -952,6 +941,12 @@ class _ExploreScreenState extends State<ExploreScreen>
       return;
     }
 
+    // Ensure location permission is granted before fetching profiles
+    if (!_isLocationPermissionGranted) {
+      print('Cannot fetch profiles: location permission not granted');
+      return;
+    }
+
     // Set fetching flag to prevent multiple simultaneous fetches
     _isFetchingBatch = true;
 
@@ -998,9 +993,6 @@ class _ExploreScreenState extends State<ExploreScreen>
             // Add new profiles directly since there are never duplicates
             print('Adding ${newProfiles.length} new profiles to the stack');
             _profiles.addAll(newProfiles);
-
-            // Update persisted profiles
-            _persistedProfiles = List.from(_profiles);
 
             // Update batch parameters
             _currentBatchOffset += newProfiles.length;
@@ -1380,6 +1372,7 @@ class _ExploreScreenState extends State<ExploreScreen>
           !_isFetchingBatch &&
           hasConnection &&
           !hasUpcomingMeetup && // Only fetch more if no upcoming meetup
+          _isLocationPermissionGranted && // Only fetch if location permission is granted
           mounted) {
         // Use a post-frame callback to avoid setState during build
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1402,7 +1395,10 @@ class _ExploreScreenState extends State<ExploreScreen>
                 // If we have an upcoming meetup, show it instead of profiles
                 : hasUpcomingMeetup
                 ? _buildUpcomingMeetupView()
-                // If we have profiles, always show them regardless of permission or error state
+                // Always check location permission before showing profiles
+                : !_isLocationPermissionGranted
+                ? _buildLocationPermissionRequired()
+                // If we have profiles, show them
                 : hasProfiles
                 ? Stack(
                   children: [
@@ -1584,42 +1580,8 @@ class _ExploreScreenState extends State<ExploreScreen>
                         ),
                       ),
                     ),
-                    // Debug button in the top-left corner (only in debug mode)
-                    // Removed debug button from top-left corner
-                    // Add the test button
-                    // Removed test button from bottom-right corner
                   ],
                 )
-                // When returning to the screen, we should never show the location permission screen
-                // if we've been initialized before
-                : _hasBeenInitialized && !_isLocationPermissionGranted
-                ? Stack(
-                  // This is a workaround to ensure we don't show the location permission screen
-                  // when returning to the screen. We'll set the location permission flag to true
-                  // and trigger a rebuild.
-                  children: [
-                    const Center(child: CircularProgressIndicator()),
-                    Builder(
-                      builder: (context) {
-                        // Update the location permission flag if we have static permission
-                        if (_hasLocationPermission) {
-                          // Use a post-frame callback to avoid setState during build
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (mounted) {
-                              setState(() {
-                                _isLocationPermissionGranted = true;
-                              });
-                            }
-                          });
-                        }
-                        return const SizedBox.shrink();
-                      },
-                    ),
-                  ],
-                )
-                // Location permission check only if we don't have profiles
-                : !_isLocationPermissionGranted
-                ? _buildLocationPermissionRequired()
                 // Only show network error if we have no profiles
                 : _errorMessage != null && isNetworkError
                 ? Center(
@@ -1628,7 +1590,7 @@ class _ExploreScreenState extends State<ExploreScreen>
                     children: [
                       ErrorMessageWidget(
                         message: _errorMessage!,
-                        onRetry: _checkLocationPermissionAndInitialize,
+                        onRetry: _checkLocationStatusAndInitialize,
                         isNetworkError: true,
                       ),
                     ],
@@ -1680,13 +1642,13 @@ class _ExploreScreenState extends State<ExploreScreen>
           if (_locationStatus == LocationStatus.serviceDisabled ||
               _locationStatus == LocationStatus.permissionDeniedForever)
             TextButton(
-              onPressed: _checkLocationPermissionAndInitialize,
+              onPressed: _checkLocationStatusAndInitialize,
               child: const Text('Grant Permission'),
             )
           // Otherwise show as ElevatedButton with the same style as the other buttons
           else
             ElevatedButton(
-              onPressed: _checkLocationPermissionAndInitialize,
+              onPressed: _checkLocationStatusAndInitialize,
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24,
@@ -1743,7 +1705,7 @@ class _ExploreScreenState extends State<ExploreScreen>
           children: [
             ErrorMessageWidget(
               message: _errorMessage!,
-              onRetry: _checkLocationPermissionAndInitialize,
+              onRetry: _checkLocationStatusAndInitialize,
               isNetworkError: true,
             ),
             const SizedBox(height: 20),
@@ -2097,6 +2059,40 @@ class _ExploreScreenState extends State<ExploreScreen>
     } catch (e) {
       print('Error cancelling meetup: $e');
       // Error snackbar removed
+    }
+  }
+
+  // Add a helper method to ensure location permission is checked before showing the swipe stack
+  Future<void> _ensureLocationPermission() async {
+    // If we already have permission, no need to check again
+    if (_isLocationPermissionGranted) return;
+
+    print('Ensuring location permission before showing swipe stack');
+
+    // Check current location status
+    final locationStatus = await LocationService.checkLocationStatus();
+    final isPermissionGranted =
+        locationStatus == LocationStatus.permissionGranted;
+
+    if (isPermissionGranted) {
+      // Update state if permission is granted
+      setState(() {
+        _isLocationPermissionGranted = true;
+        _locationStatus = locationStatus;
+      });
+
+      // Update static flag
+      _hasLocationPermission = true;
+
+      // Initialize explore if we don't have profiles
+      if (_profiles.isEmpty) {
+        await _initializeExplore();
+      }
+    } else {
+      // If permission is not granted, clear profiles
+      setState(() {
+        _profiles = [];
+      });
     }
   }
 }
