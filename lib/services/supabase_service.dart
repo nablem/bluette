@@ -548,18 +548,53 @@ class SupabaseService {
           }
         }
 
+        // Get current time for upcoming meetup check
+        final now = DateTime.now();
+
+        // Get all profiles with upcoming meetups to exclude them
+        final profilesWithMeetups = await _supabaseClient
+            .from('matches')
+            .select('user_id1, user_id2')
+            .not('meetup_time', 'is', null)
+            .eq('is_cancelled', false)
+            .eq('is_meetup_passed', false)
+            .gt('meetup_time', now.toIso8601String());
+
+        // Create a set of profile IDs with upcoming meetups
+        final Set<String> profileIdsWithMeetups = {};
+        for (final match in profilesWithMeetups) {
+          profileIdsWithMeetups.add(match['user_id1']);
+          profileIdsWithMeetups.add(match['user_id2']);
+        }
+
+        print(
+          'Found ${profileIdsWithMeetups.length} profiles with upcoming meetups to exclude',
+        );
+
+        // Filter out profiles with upcoming meetups
+        final List<Map<String, dynamic>> profilesWithoutMeetups =
+            filteredProfiles
+                .where(
+                  (profile) => !profileIdsWithMeetups.contains(profile['id']),
+                )
+                .toList();
+
+        print(
+          'Found ${profilesWithoutMeetups.length} profiles after excluding those with upcoming meetups',
+        );
+
         // Sort by distance (closest first)
-        filteredProfiles.sort((a, b) {
+        profilesWithoutMeetups.sort((a, b) {
           final distanceA = a['distance'] as int;
           final distanceB = b['distance'] as int;
           return distanceA.compareTo(distanceB);
         });
 
         print(
-          'Returning ${filteredProfiles.length} profiles after distance filtering',
+          'Returning ${profilesWithoutMeetups.length} profiles after distance filtering',
         );
 
-        return filteredProfiles;
+        return profilesWithoutMeetups;
       } catch (e) {
         print('Error getting profiles to swipe: $e');
         throw e;
@@ -686,8 +721,43 @@ class SupabaseService {
           'Found ${filteredProfiles.length} profiles after distance filtering',
         );
 
+        // Get current time for upcoming meetup check
+        final now = DateTime.now();
+
+        // Get all profiles with upcoming meetups to exclude them
+        final profilesWithMeetups = await _supabaseClient
+            .from('matches')
+            .select('user_id1, user_id2')
+            .not('meetup_time', 'is', null)
+            .eq('is_cancelled', false)
+            .eq('is_meetup_passed', false)
+            .gt('meetup_time', now.toIso8601String());
+
+        // Create a set of profile IDs with upcoming meetups
+        final Set<String> profileIdsWithMeetups = {};
+        for (final match in profilesWithMeetups) {
+          profileIdsWithMeetups.add(match['user_id1']);
+          profileIdsWithMeetups.add(match['user_id2']);
+        }
+
+        print(
+          'Found ${profileIdsWithMeetups.length} profiles with upcoming meetups to exclude',
+        );
+
+        // Filter out profiles with upcoming meetups
+        final List<Map<String, dynamic>> profilesWithoutMeetups =
+            filteredProfiles
+                .where(
+                  (profile) => !profileIdsWithMeetups.contains(profile['id']),
+                )
+                .toList();
+
+        print(
+          'Found ${profilesWithoutMeetups.length} profiles after excluding those with upcoming meetups',
+        );
+
         // Sort by distance (closest first)
-        filteredProfiles.sort((a, b) {
+        profilesWithoutMeetups.sort((a, b) {
           final distanceA = a['distance'] as int;
           final distanceB = b['distance'] as int;
           return distanceA.compareTo(distanceB);
@@ -696,13 +766,16 @@ class SupabaseService {
         // Apply pagination
         final int endIndex = offset + limit;
         final int safeEndIndex =
-            endIndex < filteredProfiles.length
+            endIndex < profilesWithoutMeetups.length
                 ? endIndex
-                : filteredProfiles.length;
+                : profilesWithoutMeetups.length;
 
         List<Map<String, dynamic>> paginatedProfiles = [];
-        if (offset < filteredProfiles.length) {
-          paginatedProfiles = filteredProfiles.sublist(offset, safeEndIndex);
+        if (offset < profilesWithoutMeetups.length) {
+          paginatedProfiles = profilesWithoutMeetups.sublist(
+            offset,
+            safeEndIndex,
+          );
         }
 
         print(
@@ -751,6 +824,15 @@ class SupabaseService {
     if (currentUser == null) return;
 
     try {
+      // Check if the swiped profile has an uncancelled upcoming meetup
+      final hasUpcomingMeetup = await hasProfileUpcomingMeetup(swipedProfileId);
+      if (hasUpcomingMeetup) {
+        print(
+          'Profile $swipedProfileId has an upcoming meetup, skipping swipe',
+        );
+        return;
+      }
+
       await _supabaseClient.from('swipes').insert({
         'user_id': currentUser!.id,
         'swiped_profile_id': swipedProfileId,
@@ -761,6 +843,43 @@ class SupabaseService {
       print('Error recording swipe: $e');
       throw e;
     }
+  }
+
+  // Check if a profile has an uncancelled upcoming meetup
+  static Future<bool> hasProfileUpcomingMeetup(String profileId) async {
+    return _safeApiCall(() async {
+      if (currentUser == null) return false;
+
+      try {
+        print('Checking if profile $profileId has an upcoming meetup');
+
+        // Get current time
+        final now = DateTime.now();
+
+        // Query matches where the profile is either user1 or user2
+        // and there's a scheduled meetup in the future
+        // and the meetup is not cancelled
+        final matches = await _supabaseClient
+            .from('matches')
+            .select()
+            .or('user_id1.eq.$profileId,user_id2.eq.$profileId')
+            .not('meetup_time', 'is', null)
+            .eq('is_cancelled', false)
+            .eq('is_meetup_passed', false)
+            .gt('meetup_time', now.toIso8601String())
+            .limit(1);
+
+        final hasUpcomingMeetup = matches.isNotEmpty;
+        print(
+          'Profile $profileId ${hasUpcomingMeetup ? "has" : "does not have"} an upcoming meetup',
+        );
+
+        return hasUpcomingMeetup;
+      } catch (e) {
+        print('Error checking if profile has upcoming meetup: $e');
+        return false;
+      }
+    });
   }
 
   // Check if there's a match (both users liked each other)
