@@ -135,26 +135,17 @@ class _MeetupViewState extends State<MeetupView> with TickerProviderStateMixin {
           // Header text with gradient username
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+            child: Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    RichText(
-                      text: TextSpan(
-                        style: AppTheme.headingStyle.copyWith(
-                          fontSize: 22,
-                          color: Colors.black87,
-                        ),
-                        text:
-                            meetupPassed ? l10n.recentlyMet : l10n.aboutToMeet,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
+                Text(
+                  meetupPassed ? l10n.recentlyMet : l10n.aboutToMeet,
+                  style: AppTheme.headingStyle.copyWith(
+                    fontSize: 22,
+                    color: Colors.black87,
+                  ),
                 ),
-                const SizedBox(height: 4),
                 ShaderMask(
                   shaderCallback:
                       (bounds) => LinearGradient(
@@ -164,7 +155,6 @@ class _MeetupViewState extends State<MeetupView> with TickerProviderStateMixin {
                       ).createShader(bounds),
                   child: Text(
                     otherUser['name'] ?? l10n.someone,
-                    textAlign: TextAlign.center,
                     style: AppTheme.headingStyle.copyWith(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
