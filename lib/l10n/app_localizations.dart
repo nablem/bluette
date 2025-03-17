@@ -190,6 +190,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Operation completed successfully'**
   String get successMessage;
+
+  /// No description provided for @welcomeBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Hey!'**
+  String get welcomeBack;
+
+  /// No description provided for @signInToContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to continue'**
+  String get signInToContinue;
+
+  /// No description provided for @findPerfectMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Que des étincelles'**
+  String get findPerfectMatch;
+
+  /// No description provided for @loginFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Login failed. Please check your credentials.'**
+  String get loginFailed;
+
+  /// No description provided for @enterEmailFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your email address first'**
+  String get enterEmailFirst;
+
+  /// No description provided for @passwordResetSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Password reset link sent to your email'**
+  String get passwordResetSent;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

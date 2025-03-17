@@ -14,5 +14,11 @@
     "errorInvalidEmail": "Please enter a valid email address",
     "errorInvalidPassword": "Password must be at least 6 characters",
     "errorGeneric": "Something went wrong. Please try again",
-    "successMessage": "Operation completed successfully"
+    "successMessage": "Operation completed successfully",
+    "welcomeBack": "Hey!",
+    "signInToContinue": "Sign in to continue",
+    "findPerfectMatch": "Que des étincelles",
+    "loginFailed": "Login failed. Please check your credentials.",
+    "enterEmailFirst": "Please enter your email address first",
+    "passwordResetSent": "Password reset link sent to your email"
 } 

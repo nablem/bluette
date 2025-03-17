@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../l10n/app_localizations.dart';
 import '../../constants/app_theme.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/custom_button.dart';
@@ -100,11 +101,10 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _resetPassword() {
-    // Implement password reset functionality
     if (_emailController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter your email address first'),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.enterEmailFirst),
           backgroundColor: AppTheme.errorColor,
         ),
       );
@@ -114,8 +114,8 @@ class _LoginScreenState extends State<LoginScreen> {
     SupabaseService.resetPassword(_emailController.text.trim());
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Password reset link sent to your email'),
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.passwordResetSent),
         backgroundColor: AppTheme.successColor,
       ),
     );
@@ -123,6 +123,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       body: SafeArea(
@@ -170,7 +172,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                         const SizedBox(height: 16),
                         Text(
-                          'Bluette',
+                          l10n.appTitle,
                           style: AppTheme.headingStyle.copyWith(
                             fontSize: 32,
                             color: AppTheme.primaryColor,
@@ -178,7 +180,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ).animate().fadeIn(delay: 200.ms, duration: 600.ms),
                         const SizedBox(height: 8),
                         Text(
-                          'Find your perfect match',
+                          l10n.findPerfectMatch,
                           style: AppTheme.smallTextStyle,
                         ).animate().fadeIn(delay: 400.ms, duration: 600.ms),
                       ],
@@ -188,12 +190,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   // Welcome Text
                   Text(
-                    'Welcome Back',
+                    l10n.welcomeBack,
                     style: AppTheme.headingStyle,
                   ).animate().fadeIn(delay: 600.ms, duration: 600.ms),
                   const SizedBox(height: 8),
                   Text(
-                    'Sign in to continue',
+                    l10n.signInToContinue,
                     style: AppTheme.smallTextStyle,
                   ).animate().fadeIn(delay: 800.ms, duration: 600.ms),
                   const SizedBox(height: 32),
@@ -216,19 +218,19 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   // Email Field
                   CustomTextField(
-                    label: 'Email',
-                    hint: 'Enter your email',
+                    label: l10n.emailLabel,
+                    hint: l10n.emailLabel,
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     prefixIcon: const Icon(Icons.email_outlined),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter your email';
+                        return l10n.errorInvalidEmail;
                       }
                       if (!RegExp(
                         r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
                       ).hasMatch(value)) {
-                        return 'Please enter a valid email';
+                        return l10n.errorInvalidEmail;
                       }
                       return null;
                     },
@@ -237,12 +239,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   // Password Field
                   PasswordTextField(
-                    label: 'Password',
-                    hint: 'Enter your password',
+                    label: l10n.passwordLabel,
+                    hint: l10n.passwordLabel,
                     controller: _passwordController,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter your password';
+                        return l10n.errorInvalidPassword;
                       }
                       return null;
                     },
@@ -256,7 +258,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: TextButton(
                       onPressed: _resetPassword,
                       child: Text(
-                        'Forgot Password?',
+                        l10n.forgotPassword,
                         style: AppTheme.smallTextStyle.copyWith(
                           color: AppTheme.primaryColor,
                           fontWeight: FontWeight.w500,
@@ -269,7 +271,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   // Login Button
                   CustomButton(
-                    text: 'Sign In',
+                    text: l10n.loginButton,
                     onPressed: _login,
                     isLoading: _isLoading,
                   ).animate().fadeIn(delay: 1600.ms, duration: 600.ms),
@@ -281,13 +283,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Don\'t have an account?',
+                        l10n.dontHaveAccount,
                         style: AppTheme.smallTextStyle,
                       ),
                       TextButton(
                         onPressed: _navigateToSignup,
                         child: Text(
-                          'Sign Up',
+                          l10n.signupButton,
                           style: AppTheme.smallTextStyle.copyWith(
                             color: AppTheme.primaryColor,
                             fontWeight: FontWeight.w600,

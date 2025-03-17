@@ -55,4 +55,22 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get successMessage => 'Opération réussie';
+
+  @override
+  String get welcomeBack => 'Hey !';
+
+  @override
+  String get signInToContinue => 'Connectez-vous pour continuer';
+
+  @override
+  String get findPerfectMatch => 'Que des étincelles';
+
+  @override
+  String get loginFailed => 'La connexion a échoué. Veuillez vérifier vos identifiants.';
+
+  @override
+  String get enterEmailFirst => 'Veuillez d\'abord entrer votre adresse email';
+
+  @override
+  String get passwordResetSent => 'Le lien de réinitialisation du mot de passe a été envoyé à votre email';
 }

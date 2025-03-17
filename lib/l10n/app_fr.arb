@@ -14,5 +14,11 @@
     "errorInvalidEmail": "Veuillez entrer une adresse email valide",
     "errorInvalidPassword": "Le mot de passe doit contenir au moins 6 caractères",
     "errorGeneric": "Une erreur est survenue. Veuillez réessayer",
-    "successMessage": "Opération réussie"
+    "successMessage": "Opération réussie",
+    "welcomeBack": "Hey !",
+    "signInToContinue": "Connectez-vous pour continuer",
+    "findPerfectMatch": "Que des étincelles",
+    "loginFailed": "La connexion a échoué. Veuillez vérifier vos identifiants.",
+    "enterEmailFirst": "Veuillez d'abord entrer votre adresse email",
+    "passwordResetSent": "Le lien de réinitialisation du mot de passe a été envoyé à votre email"
 } 

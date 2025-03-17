@@ -55,4 +55,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get successMessage => 'Operation completed successfully';
+
+  @override
+  String get welcomeBack => 'Hey!';
+
+  @override
+  String get signInToContinue => 'Sign in to continue';
+
+  @override
+  String get findPerfectMatch => 'Que des étincelles';
+
+  @override
+  String get loginFailed => 'Login failed. Please check your credentials.';
+
+  @override
+  String get enterEmailFirst => 'Please enter your email address first';
+
+  @override
+  String get passwordResetSent => 'Password reset link sent to your email';
 }
