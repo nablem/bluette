@@ -38,10 +38,12 @@ class _MainScreenState extends State<MainScreen> {
           backgroundColor: Colors.white,
           selectedItemColor: AppTheme.primaryColor,
           unselectedItemColor: Colors.grey,
+          showSelectedLabels: false,
+          showUnselectedLabels: false,
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.explore),
-              label: 'Explore',
+              label: 'Favorites',
             ),
             BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
           ],
