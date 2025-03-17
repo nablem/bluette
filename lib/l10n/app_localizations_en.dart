@@ -73,4 +73,43 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get passwordResetSent => 'Password reset link sent to your email';
+
+  @override
+  String get createAccount => 'Create Account';
+
+  @override
+  String get signupToFindMatch => 'Sign up to find your perfect match';
+
+  @override
+  String get fullNameLabel => 'First Name';
+
+  @override
+  String get enterFullName => 'Enter your full name';
+
+  @override
+  String get confirmPasswordLabel => 'Confirm Password';
+
+  @override
+  String get confirmPasswordHint => 'Confirm your password';
+
+  @override
+  String get termsAndConditions => 'By signing up, you agree to our Terms of Service and Privacy Policy';
+
+  @override
+  String get signIn => 'Sign In';
+
+  @override
+  String get errorNameRequired => 'Please enter your name';
+
+  @override
+  String get errorPasswordMatch => 'Passwords do not match';
+
+  @override
+  String get errorConfirmPasswordRequired => 'Please confirm your password';
+
+  @override
+  String get errorEmailInUse => 'Failed to sign up. Email may already be in use.';
+
+  @override
+  String get checkEmailConfirmation => 'Please check your email to confirm your account';
 }

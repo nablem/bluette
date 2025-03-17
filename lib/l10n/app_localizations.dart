@@ -226,6 +226,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Password reset link sent to your email'**
   String get passwordResetSent;
+
+  /// No description provided for @createAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Account'**
+  String get createAccount;
+
+  /// No description provided for @signupToFindMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign up to find your perfect match'**
+  String get signupToFindMatch;
+
+  /// No description provided for @fullNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'First Name'**
+  String get fullNameLabel;
+
+  /// No description provided for @enterFullName.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your full name'**
+  String get enterFullName;
+
+  /// No description provided for @confirmPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Password'**
+  String get confirmPasswordLabel;
+
+  /// No description provided for @confirmPasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm your password'**
+  String get confirmPasswordHint;
+
+  /// No description provided for @termsAndConditions.
+  ///
+  /// In en, this message translates to:
+  /// **'By signing up, you agree to our Terms of Service and Privacy Policy'**
+  String get termsAndConditions;
+
+  /// No description provided for @signIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign In'**
+  String get signIn;
+
+  /// No description provided for @errorNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your name'**
+  String get errorNameRequired;
+
+  /// No description provided for @errorPasswordMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords do not match'**
+  String get errorPasswordMatch;
+
+  /// No description provided for @errorConfirmPasswordRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please confirm your password'**
+  String get errorConfirmPasswordRequired;
+
+  /// No description provided for @errorEmailInUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to sign up. Email may already be in use.'**
+  String get errorEmailInUse;
+
+  /// No description provided for @checkEmailConfirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Please check your email to confirm your account'**
+  String get checkEmailConfirmation;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

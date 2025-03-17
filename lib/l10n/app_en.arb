@@ -20,5 +20,18 @@
     "findPerfectMatch": "Que des étincelles",
     "loginFailed": "Login failed. Please check your credentials.",
     "enterEmailFirst": "Please enter your email address first",
-    "passwordResetSent": "Password reset link sent to your email"
+    "passwordResetSent": "Password reset link sent to your email",
+    "createAccount": "Create Account",
+    "signupToFindMatch": "Sign up to find your perfect match",
+    "fullNameLabel": "First Name",
+    "enterFullName": "Enter your full name",
+    "confirmPasswordLabel": "Confirm Password",
+    "confirmPasswordHint": "Confirm your password",
+    "termsAndConditions": "By signing up, you agree to our Terms of Service and Privacy Policy",
+    "signIn": "Sign In",
+    "errorNameRequired": "Please enter your name",
+    "errorPasswordMatch": "Passwords do not match",
+    "errorConfirmPasswordRequired": "Please confirm your password",
+    "errorEmailInUse": "Failed to sign up. Email may already be in use.",
+    "checkEmailConfirmation": "Please check your email to confirm your account"
 } 

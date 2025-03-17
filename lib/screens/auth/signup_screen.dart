@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../l10n/app_localizations.dart';
 import '../../constants/app_theme.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/custom_button.dart';
@@ -64,12 +65,12 @@ class _SignupScreenState extends State<SignupScreen> {
         }
       } else {
         setState(() {
-          _errorMessage = 'Please check your email to confirm your account';
+          _errorMessage = AppLocalizations.of(context)!.checkEmailConfirmation;
         });
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Failed to sign up. Email may already be in use.';
+        _errorMessage = AppLocalizations.of(context)!.errorEmailInUse;
       });
     } finally {
       if (mounted) {
@@ -89,6 +90,8 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
@@ -113,12 +116,12 @@ class _SignupScreenState extends State<SignupScreen> {
                 children: [
                   // Create Account Text
                   Text(
-                    'Create Account',
+                    l10n.createAccount,
                     style: AppTheme.headingStyle,
                   ).animate().fadeIn(duration: 600.ms),
                   const SizedBox(height: 8),
                   Text(
-                    'Sign up to find your perfect match',
+                    l10n.signupToFindMatch,
                     style: AppTheme.smallTextStyle,
                   ).animate().fadeIn(delay: 200.ms, duration: 600.ms),
                   const SizedBox(height: 32),
@@ -154,13 +157,13 @@ class _SignupScreenState extends State<SignupScreen> {
 
                   // Name Field
                   CustomTextField(
-                    label: 'Full Name',
-                    hint: 'Enter your full name',
+                    label: l10n.fullNameLabel,
+                    hint: l10n.enterFullName,
                     controller: _nameController,
                     prefixIcon: const Icon(Icons.person_outline),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter your name';
+                        return l10n.errorNameRequired;
                       }
                       return null;
                     },
@@ -169,19 +172,19 @@ class _SignupScreenState extends State<SignupScreen> {
 
                   // Email Field
                   CustomTextField(
-                    label: 'Email',
-                    hint: 'Enter your email',
+                    label: l10n.emailLabel,
+                    hint: l10n.enterEmailFirst,
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     prefixIcon: const Icon(Icons.email_outlined),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter your email';
+                        return l10n.enterEmailFirst;
                       }
                       if (!RegExp(
                         r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
                       ).hasMatch(value)) {
-                        return 'Please enter a valid email';
+                        return l10n.errorInvalidEmail;
                       }
                       return null;
                     },
@@ -190,15 +193,15 @@ class _SignupScreenState extends State<SignupScreen> {
 
                   // Password Field
                   PasswordTextField(
-                    label: 'Password',
-                    hint: 'Create a password',
+                    label: l10n.passwordLabel,
+                    hint: l10n.passwordLabel,
                     controller: _passwordController,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter a password';
+                        return l10n.errorInvalidPassword;
                       }
                       if (value.length < 6) {
-                        return 'Password must be at least 6 characters';
+                        return l10n.errorInvalidPassword;
                       }
                       return null;
                     },
@@ -207,15 +210,15 @@ class _SignupScreenState extends State<SignupScreen> {
 
                   // Confirm Password Field
                   PasswordTextField(
-                    label: 'Confirm Password',
-                    hint: 'Confirm your password',
+                    label: l10n.confirmPasswordLabel,
+                    hint: l10n.confirmPasswordHint,
                     controller: _confirmPasswordController,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please confirm your password';
+                        return l10n.errorConfirmPasswordRequired;
                       }
                       if (value != _passwordController.text) {
-                        return 'Passwords do not match';
+                        return l10n.errorPasswordMatch;
                       }
                       return null;
                     },
@@ -236,7 +239,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'By signing up, you agree to our Terms of Service and Privacy Policy',
+                          l10n.termsAndConditions,
                           style: AppTheme.smallTextStyle.copyWith(fontSize: 12),
                         ),
                       ),
@@ -247,7 +250,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
                   // Signup Button
                   CustomButton(
-                    text: 'Sign Up',
+                    text: l10n.signupButton,
                     onPressed: _signup,
                     isLoading: _isLoading,
                   ).animate().fadeIn(delay: 1300.ms, duration: 600.ms),
@@ -259,13 +262,13 @@ class _SignupScreenState extends State<SignupScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Already have an account?',
+                        l10n.alreadyHaveAccount,
                         style: AppTheme.smallTextStyle,
                       ),
                       TextButton(
                         onPressed: _navigateToLogin,
                         child: Text(
-                          'Sign In',
+                          l10n.signIn,
                           style: AppTheme.smallTextStyle.copyWith(
                             color: AppTheme.primaryColor,
                             fontWeight: FontWeight.w600,

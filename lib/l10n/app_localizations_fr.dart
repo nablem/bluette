@@ -73,4 +73,43 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get passwordResetSent => 'Le lien de réinitialisation du mot de passe a été envoyé à votre email';
+
+  @override
+  String get createAccount => 'Créer un compte';
+
+  @override
+  String get signupToFindMatch => 'Inscrivez-vous pour trouver votre âme sœur';
+
+  @override
+  String get fullNameLabel => 'Prénom';
+
+  @override
+  String get enterFullName => 'Entrez votre nom complet';
+
+  @override
+  String get confirmPasswordLabel => 'Confirmer le mot de passe';
+
+  @override
+  String get confirmPasswordHint => 'Confirmez votre mot de passe';
+
+  @override
+  String get termsAndConditions => 'En vous inscrivant, vous acceptez nos Conditions d\'utilisation et notre Politique de confidentialité';
+
+  @override
+  String get signIn => 'Se connecter';
+
+  @override
+  String get errorNameRequired => 'Veuillez entrer votre nom';
+
+  @override
+  String get errorPasswordMatch => 'Les mots de passe ne correspondent pas';
+
+  @override
+  String get errorConfirmPasswordRequired => 'Veuillez confirmer votre mot de passe';
+
+  @override
+  String get errorEmailInUse => 'L\'inscription a échoué. L\'email est peut-être déjà utilisé.';
+
+  @override
+  String get checkEmailConfirmation => 'Veuillez vérifier votre email pour confirmer votre compte';
 }
