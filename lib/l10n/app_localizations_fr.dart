@@ -391,10 +391,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get locationAccessRequired => 'Accès à la localisation requis';
 
   @override
-  String get locationAccessDescription => 'Nous avons besoin de votre localisation pour vous montrer les profils à proximité. Veuillez activer les services de localisation et accorder l\'autorisation.';
+  String get locationAccessDescription => 'Nous avons besoin de votre localisation pour vous montrer les profils à proximité. Veuillez activer les services de localisation et donner l\'autorisation.';
 
   @override
-  String get grantPermission => 'Accorder l\'autorisation';
+  String get grantPermission => 'Donner l\'autorisation';
 
   @override
   String get openLocationSettings => 'Ouvrir les paramètres de localisation';
