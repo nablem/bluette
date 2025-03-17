@@ -386,4 +386,37 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get weRememberSeen => 'We\'ll remember you\'ve seen this match!';
+
+  @override
+  String get locationAccessRequired => 'Location Access Required';
+
+  @override
+  String get locationAccessDescription => 'We need your location to show you nearby profiles. Please enable location services and grant permission.';
+
+  @override
+  String get grantPermission => 'Grant Permission';
+
+  @override
+  String get openLocationSettings => 'Open Location Settings';
+
+  @override
+  String get openAppSettings => 'Open App Settings';
+
+  @override
+  String get noMoreProfiles => 'No more profiles to show';
+
+  @override
+  String get noProfilesDescription => 'You\'ve seen all profiles that match your current preferences. Try adjusting your filters or check back later for new users.';
+
+  @override
+  String get adjustFilters => 'Adjust Filters';
+
+  @override
+  String get refresh => 'Refresh';
+
+  @override
+  String get loadingMoreProfiles => 'Loading more profiles...';
+
+  @override
+  String get swipesNotSaved => 'Your swipes may not have been saved due to connection issues.';
 }

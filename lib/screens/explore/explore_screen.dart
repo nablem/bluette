@@ -1407,6 +1407,7 @@ class _ExploreScreenState extends State<ExploreScreen>
   }
 
   Widget _buildLocationPermissionRequired() {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -1414,7 +1415,7 @@ class _ExploreScreenState extends State<ExploreScreen>
           const Icon(Icons.location_off, size: 80, color: Colors.grey),
           const SizedBox(height: 20),
           Text(
-            'Location Access Required',
+            l10n.locationAccessRequired,
             style: AppTheme.headingStyle,
             textAlign: TextAlign.center,
           ),
@@ -1422,7 +1423,7 @@ class _ExploreScreenState extends State<ExploreScreen>
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 32.0),
             child: Text(
-              'We need your location to show you nearby profiles. Please enable location services and grant permission.',
+              l10n.locationAccessDescription,
               style: AppTheme.bodyStyle,
               textAlign: TextAlign.center,
             ),
@@ -1433,7 +1434,7 @@ class _ExploreScreenState extends State<ExploreScreen>
               _locationStatus == LocationStatus.permissionDeniedForever)
             TextButton(
               onPressed: _checkLocationStatusAndInitialize,
-              child: const Text('Grant Permission'),
+              child: Text(l10n.grantPermission),
             )
           // Otherwise show as ElevatedButton with the same style as the other buttons
           else
@@ -1445,7 +1446,7 @@ class _ExploreScreenState extends State<ExploreScreen>
                   vertical: 12,
                 ),
               ),
-              child: const Text('Grant Permission'),
+              child: Text(l10n.grantPermission),
             ),
           const SizedBox(height: 16),
           if (_locationStatus == LocationStatus.serviceDisabled)
@@ -1459,7 +1460,7 @@ class _ExploreScreenState extends State<ExploreScreen>
                   vertical: 12,
                 ),
               ),
-              child: const Text('Open Location Settings'),
+              child: Text(l10n.openLocationSettings),
             )
           else if (_locationStatus == LocationStatus.permissionDeniedForever)
             ElevatedButton(
@@ -1472,7 +1473,7 @@ class _ExploreScreenState extends State<ExploreScreen>
                   vertical: 12,
                 ),
               ),
-              child: const Text('Open App Settings'),
+              child: Text(l10n.openAppSettings),
             ),
         ],
       ),
@@ -1481,6 +1482,7 @@ class _ExploreScreenState extends State<ExploreScreen>
 
   // Widget to show when there are no profiles to display
   Widget _buildNoProfilesView() {
+    final l10n = AppLocalizations.of(context)!;
     // Check if there's a network error
     final bool isNetworkError =
         _errorMessage != null &&
@@ -1500,7 +1502,7 @@ class _ExploreScreenState extends State<ExploreScreen>
             ),
             const SizedBox(height: 20),
             Text(
-              'Your swipes may not have been saved due to connection issues.',
+              l10n.swipesNotSaved,
               style: AppTheme.smallTextStyle,
               textAlign: TextAlign.center,
             ),
@@ -1511,13 +1513,13 @@ class _ExploreScreenState extends State<ExploreScreen>
 
     // If we're fetching more profiles or we have more profiles available, show loading
     if (_isFetchingBatch || (_hasMoreProfiles && _profiles.isEmpty)) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 20),
-            Text('Loading more profiles...'),
+            const CircularProgressIndicator(),
+            const SizedBox(height: 20),
+            Text(l10n.loadingMoreProfiles),
           ],
         ),
       );
@@ -1530,12 +1532,12 @@ class _ExploreScreenState extends State<ExploreScreen>
         children: [
           const Icon(Icons.search_off, size: 80, color: Colors.grey),
           const SizedBox(height: 20),
-          Text('No more profiles to show', style: AppTheme.headingStyle),
+          Text(l10n.noMoreProfiles, style: AppTheme.headingStyle),
           const SizedBox(height: 10),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 32.0),
             child: Text(
-              'You\'ve seen all profiles that match your current preferences. Try adjusting your filters or check back later for new users.',
+              l10n.noProfilesDescription,
               style: AppTheme.bodyStyle,
               textAlign: TextAlign.center,
             ),
@@ -1547,9 +1549,12 @@ class _ExploreScreenState extends State<ExploreScreen>
               ElevatedButton.icon(
                 onPressed: _showFilterDialog,
                 icon: const Icon(Icons.tune),
-                label: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
-                  child: Text('Adjust Filters'),
+                label: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4.0,
+                    vertical: 2.0,
+                  ),
+                  child: Text(l10n.adjustFilters),
                 ),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
@@ -1571,9 +1576,12 @@ class _ExploreScreenState extends State<ExploreScreen>
                   _initializeExplore();
                 },
                 icon: const Icon(Icons.refresh),
-                label: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
-                  child: Text('Refresh'),
+                label: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4.0,
+                    vertical: 2.0,
+                  ),
+                  child: Text(l10n.refresh),
                 ),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(

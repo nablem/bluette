@@ -117,5 +117,16 @@
     "wantsToSeeYou": "{name} veut vous voir !",
     "weSetUpDate": "Nous avons organisé un rendez-vous pour vous,\nAmusez-vous bien !",
     "allRight": "D'accord !",
-    "weRememberSeen": "Nous nous souviendrons que vous avez vu ce match !"
+    "weRememberSeen": "Nous nous souviendrons que vous avez vu ce match !",
+    "locationAccessRequired": "Accès à la localisation requis",
+    "locationAccessDescription": "Nous avons besoin de votre localisation pour vous montrer les profils à proximité. Veuillez activer les services de localisation et donner l'autorisation.",
+    "grantPermission": "Donner l'autorisation",
+    "openLocationSettings": "Ouvrir les paramètres de localisation",
+    "openAppSettings": "Ouvrir les paramètres de l'application",
+    "noMoreProfiles": "Plus de profils à afficher",
+    "noProfilesDescription": "Vous avez vu tous les profils qui correspondent à vos préférences actuelles. Essayez d'ajuster vos filtres ou revenez plus tard pour voir de nouveaux utilisateurs.",
+    "adjustFilters": "Ajuster les filtres",
+    "refresh": "Actualiser",
+    "loadingMoreProfiles": "Chargement de plus de profils...",
+    "swipesNotSaved": "Vos swipes n'ont peut-être pas été enregistrés en raison de problèmes de connexion."
 } 

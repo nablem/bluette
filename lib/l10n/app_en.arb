@@ -117,5 +117,16 @@
     "wantsToSeeYou": "{name} wants to see you!",
     "weSetUpDate": "We set up a date for you,\nHave fun!",
     "allRight": "All right!",
-    "weRememberSeen": "We'll remember you've seen this match!"
+    "weRememberSeen": "We'll remember you've seen this match!",
+    "locationAccessRequired": "Location Access Required",
+    "locationAccessDescription": "We need your location to show you nearby profiles. Please enable location services and grant permission.",
+    "grantPermission": "Grant Permission",
+    "openLocationSettings": "Open Location Settings",
+    "openAppSettings": "Open App Settings",
+    "noMoreProfiles": "No more profiles to show",
+    "noProfilesDescription": "You've seen all profiles that match your current preferences. Try adjusting your filters or check back later for new users.",
+    "adjustFilters": "Adjust Filters",
+    "refresh": "Refresh",
+    "loadingMoreProfiles": "Loading more profiles...",
+    "swipesNotSaved": "Your swipes may not have been saved due to connection issues."
 } 

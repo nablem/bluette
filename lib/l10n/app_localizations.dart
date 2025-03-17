@@ -808,6 +808,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'We\'ll remember you\'ve seen this match!'**
   String get weRememberSeen;
+
+  /// No description provided for @locationAccessRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Location Access Required'**
+  String get locationAccessRequired;
+
+  /// No description provided for @locationAccessDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'We need your location to show you nearby profiles. Please enable location services and grant permission.'**
+  String get locationAccessDescription;
+
+  /// No description provided for @grantPermission.
+  ///
+  /// In en, this message translates to:
+  /// **'Grant Permission'**
+  String get grantPermission;
+
+  /// No description provided for @openLocationSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Location Settings'**
+  String get openLocationSettings;
+
+  /// No description provided for @openAppSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open App Settings'**
+  String get openAppSettings;
+
+  /// No description provided for @noMoreProfiles.
+  ///
+  /// In en, this message translates to:
+  /// **'No more profiles to show'**
+  String get noMoreProfiles;
+
+  /// No description provided for @noProfilesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve seen all profiles that match your current preferences. Try adjusting your filters or check back later for new users.'**
+  String get noProfilesDescription;
+
+  /// No description provided for @adjustFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust Filters'**
+  String get adjustFilters;
+
+  /// No description provided for @refresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get refresh;
+
+  /// No description provided for @loadingMoreProfiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading more profiles...'**
+  String get loadingMoreProfiles;
+
+  /// No description provided for @swipesNotSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Your swipes may not have been saved due to connection issues.'**
+  String get swipesNotSaved;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
