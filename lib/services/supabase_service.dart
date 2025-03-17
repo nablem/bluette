@@ -1759,9 +1759,6 @@ class SupabaseService {
         // Convert to UTC for database comparison
         final utcNow = localNow.toUtc();
 
-        print('Debug: Current UTC time: ${utcNow.toIso8601String()}');
-        print('Debug: Current user ID: ${currentUser!.id}');
-
         // Query matches where current user is either user1 or user2
         // and there's a scheduled meetup in the past (more than 1 hour ago)
         // and the meetup is not marked as passed
@@ -1772,23 +1769,6 @@ class SupabaseService {
             .not('meetup_time', 'is', null)
             .eq('is_cancelled', false)
             .eq('is_meetup_passed', false);
-
-        print('Debug: Number of matches found: ${matches.length}');
-        print('Debug: Matches data:');
-        for (var match in matches) {
-          print('Match ID: ${match['id']}');
-          print('Meetup time: ${match['meetup_time']}');
-          print('User1: ${match['user_id1']}');
-          print('User2: ${match['user_id2']}');
-          print('Is cancelled: ${match['is_cancelled']}');
-          print('Is meetup passed: ${match['is_meetup_passed']}');
-
-          // Add debug info for date comparison
-          final matchTime = DateTime.parse(match['meetup_time']);
-          print('Debug: Match time parsed: ${matchTime.toIso8601String()}');
-          print('Debug: Is match time in past? ${matchTime.isBefore(utcNow)}');
-          print('-------------------');
-        }
 
         if (matches.isEmpty) {
           return false;
