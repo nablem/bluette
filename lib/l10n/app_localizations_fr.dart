@@ -270,4 +270,53 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get interestedInEveryone => 'Tout le monde';
+
+  @override
+  String get completeProfile => 'Complétez votre profil';
+
+  @override
+  String get basicInfo => 'Informations de base';
+
+  @override
+  String get profilePicture => 'Photo de profil';
+
+  @override
+  String get next => 'Suivant';
+
+  @override
+  String get finish => 'Terminer';
+
+  @override
+  String get tellUsAboutYourself => 'Parlez-nous de vous';
+
+  @override
+  String get basicInfoDescription => 'Ces informations nous aident à trouver de meilleures correspondances pour vous';
+
+  @override
+  String get enterAge => 'Entrez votre âge';
+
+  @override
+  String get addProfilePicture => 'Ajouter une photo de profil';
+
+  @override
+  String get errorMicrophonePermission => 'Permission du microphone refusée';
+
+  @override
+  String errorStartRecording(Object error) {
+    return 'Échec du démarrage de l\'enregistrement : $error';
+  }
+
+  @override
+  String errorStopRecording(Object error) {
+    return 'Échec de l\'arrêt de l\'enregistrement : $error';
+  }
+
+  @override
+  String get errorRecordingTooLong => 'L\'enregistrement a été limité à 10 secondes';
+
+  @override
+  String get recordingSaved => 'Sauvegardé';
+
+  @override
+  String get errorCreateProfile => 'Échec de la création du profil. Veuillez réessayer.';
 }

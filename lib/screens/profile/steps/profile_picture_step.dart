@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../../constants/app_theme.dart';
 import '../../../services/profile_completion_service.dart';
 import '../../../widgets/custom_button.dart';
+import '../../../l10n/app_localizations.dart';
 
 class ProfilePictureStep extends StatefulWidget {
   const ProfilePictureStep({super.key});
@@ -58,7 +59,11 @@ class _ProfilePictureStepState extends State<ProfilePictureStep> {
       if (!mounted) return;
       scaffoldMessenger.showSnackBar(
         SnackBar(
-          content: Text('Error taking picture: ${e.toString()}'),
+          content: Text(
+            AppLocalizations.of(
+              context,
+            )!.errorUpdateProfilePicture(e.toString()),
+          ),
           backgroundColor: AppTheme.errorColor,
         ),
       );
@@ -74,8 +79,12 @@ class _ProfilePictureStepState extends State<ProfilePictureStep> {
   void _confirmPicture() {
     if (_imageFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please take a profile picture'),
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(
+              context,
+            )!.errorFieldRequired(AppLocalizations.of(context)!.profilePicture),
+          ),
           backgroundColor: AppTheme.errorColor,
         ),
       );
@@ -92,18 +101,19 @@ class _ProfilePictureStepState extends State<ProfilePictureStep> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Add a profile picture',
+            l10n.addProfilePicture,
             style: AppTheme.headingStyle,
           ).animate().fadeIn(duration: 600.ms),
           const SizedBox(height: 8),
           Text(
-            'Take a clear photo of your face to help others recognize you',
+            l10n.profilePictureDescription,
             style: AppTheme.smallTextStyle,
           ).animate().fadeIn(delay: 200.ms, duration: 600.ms),
           const SizedBox(height: 32),
@@ -142,7 +152,7 @@ class _ProfilePictureStepState extends State<ProfilePictureStep> {
 
           // Camera Button
           CustomButton(
-            text: _imageFile == null ? 'Take Picture' : 'Retake Picture',
+            text: _imageFile == null ? l10n.takePicture : l10n.retakePicture,
             onPressed: _takePicture,
             isLoading: _isLoading,
             icon: Icons.camera_alt,
@@ -153,7 +163,7 @@ class _ProfilePictureStepState extends State<ProfilePictureStep> {
           // Next Button
           if (_imageFile != null)
             CustomButton(
-              text: 'Next',
+              text: l10n.next,
               onPressed: _confirmPicture,
               icon: Icons.arrow_forward,
             ).animate().fadeIn(delay: 800.ms, duration: 600.ms),

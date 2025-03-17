@@ -81,5 +81,20 @@
     "genderOther": "Other",
     "interestedInMale": "Men",
     "interestedInFemale": "Women",
-    "interestedInEveryone": "Everyone"
+    "interestedInEveryone": "Everyone",
+    "completeProfile": "Complete Your Profile",
+    "basicInfo": "Basic Info",
+    "profilePicture": "Profile Picture",
+    "next": "Next",
+    "finish": "Finish",
+    "tellUsAboutYourself": "Tell us about yourself",
+    "basicInfoDescription": "This information helps us find better matches for you",
+    "enterAge": "Enter your age",
+    "addProfilePicture": "Add a profile picture",
+    "errorMicrophonePermission": "Microphone permission denied",
+    "errorStartRecording": "Failed to start recording: {error}",
+    "errorStopRecording": "Failed to stop recording: {error}",
+    "errorRecordingTooLong": "Recording was cut to 10 seconds",
+    "recordingSaved": "Recording saved",
+    "errorCreateProfile": "Failed to create profile. Please try again."
 } 

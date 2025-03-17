@@ -115,14 +115,18 @@ class SupabaseService {
     return _safeApiCall(() async {
       if (currentUser == null) return null;
 
-      final response =
-          await _supabaseClient
-              .from('profiles')
-              .select()
-              .eq('id', currentUser!.id)
-              .single();
+      try {
+        final response =
+            await _supabaseClient
+                .from('profiles')
+                .select()
+                .eq('id', currentUser!.id)
+                .maybeSingle();
 
-      return response;
+        return response;
+      } catch (e) {
+        return null;
+      }
     });
   }
 
@@ -1931,6 +1935,36 @@ class SupabaseService {
         return true;
       } catch (e) {
         return false;
+      }
+    });
+  }
+
+  // Create user profile
+  static Future<void> createUserProfile(Map<String, dynamic> userData) async {
+    return _safeApiCall(() async {
+      if (currentUser == null) return;
+
+      // Ensure we have the id field in the userData
+      userData['id'] = currentUser!.id;
+
+      // Check if profile exists
+      final existingProfile =
+          await _supabaseClient
+              .from('profiles')
+              .select()
+              .eq('id', currentUser!.id)
+              .maybeSingle();
+
+      if (existingProfile == null) {
+        // Insert new profile if it doesn't exist
+        await _supabaseClient.from('profiles').insert(userData).select();
+      } else {
+        // Update existing profile with new data
+        // This ensures any missing fields are filled in
+        await _supabaseClient
+            .from('profiles')
+            .update(userData)
+            .eq('id', currentUser!.id);
       }
     });
   }

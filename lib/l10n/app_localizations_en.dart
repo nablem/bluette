@@ -270,4 +270,53 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get interestedInEveryone => 'Everyone';
+
+  @override
+  String get completeProfile => 'Complete Your Profile';
+
+  @override
+  String get basicInfo => 'Basic Info';
+
+  @override
+  String get profilePicture => 'Profile Picture';
+
+  @override
+  String get next => 'Next';
+
+  @override
+  String get finish => 'Finish';
+
+  @override
+  String get tellUsAboutYourself => 'Tell us about yourself';
+
+  @override
+  String get basicInfoDescription => 'This information helps us find better matches for you';
+
+  @override
+  String get enterAge => 'Enter your age';
+
+  @override
+  String get addProfilePicture => 'Add a profile picture';
+
+  @override
+  String get errorMicrophonePermission => 'Microphone permission denied';
+
+  @override
+  String errorStartRecording(Object error) {
+    return 'Failed to start recording: $error';
+  }
+
+  @override
+  String errorStopRecording(Object error) {
+    return 'Failed to stop recording: $error';
+  }
+
+  @override
+  String get errorRecordingTooLong => 'Recording was cut to 10 seconds';
+
+  @override
+  String get recordingSaved => 'Recording saved';
+
+  @override
+  String get errorCreateProfile => 'Failed to create profile. Please try again.';
 }

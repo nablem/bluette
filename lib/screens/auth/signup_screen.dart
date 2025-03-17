@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../../l10n/app_localizations.dart';
 import '../../constants/app_theme.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
+import '../../l10n/app_localizations.dart';
+import '../profile/profile_completion_screen.dart';
 import 'login_screen.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -51,17 +52,33 @@ class _SignupScreenState extends State<SignupScreen> {
       );
 
       if (response.user != null) {
-        // Create user profile
-        await SupabaseService.updateUserData({
-          'id': response.user!.id,
-          'name': _nameController.text.trim(),
-          'email': _emailController.text.trim(),
-          'created_at': DateTime.now().toIso8601String(),
-        });
+        try {
+          // Create initial profile
+          await SupabaseService.createUserProfile({
+            'name': _nameController.text,
+            'email': _emailController.text,
+            'created_at': DateTime.now().toIso8601String(),
+          });
 
-        if (mounted) {
-          // Navigate to profile completion screen
-          Navigator.pushReplacementNamed(context, '/profile_completion');
+          // Verify profile was created
+          final profile = await SupabaseService.getUserProfile();
+          if (profile == null) {
+            throw Exception('Failed to create profile');
+          }
+
+          // Navigate to profile completion
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ProfileCompletionScreen(),
+              ),
+            );
+          }
+        } catch (e) {
+          setState(() {
+            _errorMessage = AppLocalizations.of(context)!.errorCreateProfile;
+          });
         }
       } else {
         setState(() {

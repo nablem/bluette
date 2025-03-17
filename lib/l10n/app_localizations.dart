@@ -592,6 +592,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Everyone'**
   String get interestedInEveryone;
+
+  /// No description provided for @completeProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete Your Profile'**
+  String get completeProfile;
+
+  /// No description provided for @basicInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Basic Info'**
+  String get basicInfo;
+
+  /// No description provided for @profilePicture.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile Picture'**
+  String get profilePicture;
+
+  /// No description provided for @next.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get next;
+
+  /// No description provided for @finish.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish'**
+  String get finish;
+
+  /// No description provided for @tellUsAboutYourself.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell us about yourself'**
+  String get tellUsAboutYourself;
+
+  /// No description provided for @basicInfoDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'This information helps us find better matches for you'**
+  String get basicInfoDescription;
+
+  /// No description provided for @enterAge.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your age'**
+  String get enterAge;
+
+  /// No description provided for @addProfilePicture.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a profile picture'**
+  String get addProfilePicture;
+
+  /// No description provided for @errorMicrophonePermission.
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone permission denied'**
+  String get errorMicrophonePermission;
+
+  /// No description provided for @errorStartRecording.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to start recording: {error}'**
+  String errorStartRecording(Object error);
+
+  /// No description provided for @errorStopRecording.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to stop recording: {error}'**
+  String errorStopRecording(Object error);
+
+  /// No description provided for @errorRecordingTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording was cut to 10 seconds'**
+  String get errorRecordingTooLong;
+
+  /// No description provided for @recordingSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording saved'**
+  String get recordingSaved;
+
+  /// No description provided for @errorCreateProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to create profile. Please try again.'**
+  String get errorCreateProfile;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

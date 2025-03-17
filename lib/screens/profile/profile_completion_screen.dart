@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../../constants/app_theme.dart';
 import '../../services/profile_completion_service.dart';
+import '../../l10n/app_localizations.dart';
 import 'steps/basic_info_step.dart';
 import 'steps/profile_picture_step.dart';
 import 'steps/voice_bio_step.dart';
@@ -54,7 +55,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
             backgroundColor: AppTheme.backgroundColor,
             appBar: AppBar(
               title: Text(
-                'Complete Your Profile',
+                AppLocalizations.of(context)!.completeProfile,
                 style: AppTheme.subheadingStyle,
               ),
               centerTitle: true,
@@ -78,7 +79,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                           _buildStepIndicator(
                             1,
                             profileService.currentStep.index >= 0,
-                            'Basic Info',
+                            AppLocalizations.of(context)!.basicInfo,
                           ),
                           _buildStepConnector(
                             profileService.currentStep.index >= 1,
@@ -86,7 +87,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                           _buildStepIndicator(
                             2,
                             profileService.currentStep.index >= 1,
-                            'Profile Picture',
+                            AppLocalizations.of(context)!.profilePicture,
                           ),
                           _buildStepConnector(
                             profileService.currentStep.index >= 2,
@@ -94,7 +95,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                           _buildStepIndicator(
                             3,
                             profileService.currentStep.index >= 2,
-                            'Voice Bio',
+                            AppLocalizations.of(context)!.voiceBioLabel,
                           ),
                         ],
                       ),

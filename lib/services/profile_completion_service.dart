@@ -107,9 +107,10 @@ class ProfileCompletionService extends ChangeNotifier {
         'max_age': maxAge,
       };
 
-      
+      // First ensure the profile exists
+      await SupabaseService.createUserProfile(userData);
 
-      // Update the profile with basic info first
+      // Then update the profile with basic info
       await SupabaseService.updateUserData(userData);
 
       // Upload profile picture
@@ -134,7 +135,6 @@ class ProfileCompletionService extends ChangeNotifier {
       _errorMessage = 'Failed to complete profile: ${e.toString()}';
       _isLoading = false;
       notifyListeners();
-      
       return false;
     }
   }

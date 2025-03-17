@@ -81,5 +81,20 @@
     "genderOther": "Autre",
     "interestedInMale": "Hommes",
     "interestedInFemale": "Femmes",
-    "interestedInEveryone": "Tout le monde"
+    "interestedInEveryone": "Tout le monde",
+    "completeProfile": "Complétez votre profil",
+    "basicInfo": "Informations de base",
+    "profilePicture": "Photo de profil",
+    "next": "Suivant",
+    "finish": "Terminer",
+    "tellUsAboutYourself": "Parlez-nous de vous",
+    "basicInfoDescription": "Ces informations nous aident à trouver de meilleures correspondances pour vous",
+    "enterAge": "Entrez votre âge",
+    "addProfilePicture": "Ajouter une photo de profil",
+    "errorMicrophonePermission": "Permission du microphone refusée",
+    "errorStartRecording": "Échec du démarrage de l'enregistrement : {error}",
+    "errorStopRecording": "Échec de l'arrêt de l'enregistrement : {error}",
+    "errorRecordingTooLong": "L'enregistrement a été limité à 10 secondes",
+    "recordingSaved": "Sauvegardé",
+    "errorCreateProfile": "Échec de la création du profil. Veuillez réessayer."
 } 

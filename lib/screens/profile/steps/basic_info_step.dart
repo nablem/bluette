@@ -6,6 +6,7 @@ import '../../../constants/app_theme.dart';
 import '../../../services/profile_completion_service.dart';
 import '../../../widgets/custom_button.dart';
 import '../../../widgets/custom_text_field.dart';
+import '../../../l10n/app_localizations.dart';
 
 class BasicInfoStep extends StatefulWidget {
   const BasicInfoStep({super.key});
@@ -49,8 +50,8 @@ class _BasicInfoStepState extends State<BasicInfoStep> {
 
     if (_selectedGender == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select your gender'),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.errorSelectValue),
           backgroundColor: AppTheme.errorColor,
         ),
       );
@@ -59,8 +60,8 @@ class _BasicInfoStepState extends State<BasicInfoStep> {
 
     if (_selectedInterestedIn == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select who you are interested in'),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.errorSelectValue),
           backgroundColor: AppTheme.errorColor,
         ),
       );
@@ -82,6 +83,7 @@ class _BasicInfoStepState extends State<BasicInfoStep> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Form(
@@ -90,20 +92,20 @@ class _BasicInfoStepState extends State<BasicInfoStep> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Tell us about yourself',
+              l10n.tellUsAboutYourself,
               style: AppTheme.headingStyle,
             ).animate().fadeIn(duration: 600.ms),
             const SizedBox(height: 8),
             Text(
-              'This information helps us find better matches for you',
+              l10n.basicInfoDescription,
               style: AppTheme.smallTextStyle,
             ).animate().fadeIn(delay: 200.ms, duration: 600.ms),
             const SizedBox(height: 32),
 
             // Age Field
             CustomTextField(
-              label: 'Age',
-              hint: 'Enter your age',
+              label: l10n.ageLabel,
+              hint: l10n.enterAge,
               controller: _ageController,
               keyboardType: TextInputType.number,
               prefixIcon: const Icon(Icons.cake_outlined),
@@ -113,11 +115,11 @@ class _BasicInfoStepState extends State<BasicInfoStep> {
               ],
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Please enter your age';
+                  return l10n.errorFieldRequired(l10n.ageLabel);
                 }
                 final age = int.tryParse(value);
                 if (age == null || age < 18) {
-                  return 'You must be at least 18 years old';
+                  return l10n.errorAgeRange;
                 }
                 return null;
               },
@@ -133,15 +135,26 @@ class _BasicInfoStepState extends State<BasicInfoStep> {
               ),
               child: DropdownButtonFormField<String>(
                 decoration: AppTheme.inputDecoration(
-                  'Gender',
-                  hint: 'Select your gender',
+                  l10n.genderLabel,
+                  hint: l10n.selectGender,
                 ).copyWith(prefixIcon: const Icon(Icons.person_outline)),
                 value: _selectedGender,
                 items:
                     _genderOptions.map((gender) {
+                      String translatedGender;
+                      switch (gender) {
+                        case 'Male':
+                          translatedGender = l10n.genderMale;
+                          break;
+                        case 'Female':
+                          translatedGender = l10n.genderFemale;
+                          break;
+                        default:
+                          translatedGender = l10n.genderOther;
+                      }
                       return DropdownMenuItem(
                         value: gender,
-                        child: Text(gender),
+                        child: Text(translatedGender),
                       );
                     }).toList(),
                 onChanged: (value) {
@@ -164,15 +177,26 @@ class _BasicInfoStepState extends State<BasicInfoStep> {
               ),
               child: DropdownButtonFormField<String>(
                 decoration: AppTheme.inputDecoration(
-                  'Interested In',
-                  hint: 'Select who you are interested in',
+                  l10n.interestedInLabel,
+                  hint: l10n.selectPreference,
                 ).copyWith(prefixIcon: const Icon(Icons.favorite_outline)),
                 value: _selectedInterestedIn,
                 items:
                     _interestedInOptions.map((option) {
+                      String translatedOption;
+                      switch (option) {
+                        case 'Male':
+                          translatedOption = l10n.interestedInMale;
+                          break;
+                        case 'Female':
+                          translatedOption = l10n.interestedInFemale;
+                          break;
+                        default:
+                          translatedOption = l10n.interestedInEveryone;
+                      }
                       return DropdownMenuItem(
                         value: option,
-                        child: Text(option),
+                        child: Text(translatedOption),
                       );
                     }).toList(),
                 onChanged: (value) {
@@ -189,11 +213,14 @@ class _BasicInfoStepState extends State<BasicInfoStep> {
             const Spacer(),
 
             // Next Button
-            CustomButton(
-              text: 'Next',
-              onPressed: _submitBasicInfo,
-              icon: Icons.arrow_forward,
-            ).animate().fadeIn(delay: 1000.ms, duration: 600.ms),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 32.0),
+              child: CustomButton(
+                text: l10n.next,
+                onPressed: _submitBasicInfo,
+                icon: Icons.arrow_forward,
+              ).animate().fadeIn(delay: 1000.ms, duration: 600.ms),
+            ),
           ],
         ),
       ),

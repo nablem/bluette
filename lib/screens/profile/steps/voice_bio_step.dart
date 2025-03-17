@@ -12,6 +12,7 @@ import '../../../widgets/custom_button.dart';
 import '../../../widgets/error_message_widget.dart';
 import '../../../utils/network_error_handler.dart';
 import '../../../services/connectivity_service.dart';
+import '../../../l10n/app_localizations.dart';
 
 class VoiceBioStep extends StatefulWidget {
   const VoiceBioStep({super.key});
@@ -58,21 +59,17 @@ class _VoiceBioStepState extends State<VoiceBioStep> {
     // Listen to player state changes
     _playerSubscription = _audioPlayer.playerStateStream.listen((state) {
       if (mounted) {
-        
-
         if (state.processingState == ProcessingState.completed) {
           // When playback completes, update UI
           setState(() {
             _isPlaying = false;
             _rebuildCounter++; // Force UI rebuild
-            
           });
         } else if (state.playing && !_isPlaying) {
           // Ensure UI reflects playing state if somehow out of sync
           setState(() {
             _isPlaying = true;
             _rebuildCounter++; // Force UI rebuild
-            
           });
         } else if (!state.playing &&
             _isPlaying &&
@@ -82,7 +79,6 @@ class _VoiceBioStepState extends State<VoiceBioStep> {
           setState(() {
             _isPlaying = false;
             _rebuildCounter++; // Force UI rebuild
-            
           });
         }
       }
@@ -92,14 +88,14 @@ class _VoiceBioStepState extends State<VoiceBioStep> {
     _audioPlayer.playbackEventStream.listen(
       (event) {
         // Handle playback events if needed
-        
       },
       onError: (Object e, StackTrace st) {
-        
         if (mounted) {
           setState(() {
             _isPlaying = false;
-            _errorMessage = 'Error playing audio: ${e.toString()}';
+            _errorMessage = AppLocalizations.of(
+              context,
+            )!.errorPlayVoiceBio(e.toString());
             _rebuildCounter++; // Force UI rebuild
           });
         }
@@ -126,7 +122,6 @@ class _VoiceBioStepState extends State<VoiceBioStep> {
     _audioRecorder.dispose();
     _audioPlayer.dispose();
 
-    
     super.dispose();
   }
 
@@ -177,12 +172,15 @@ class _VoiceBioStepState extends State<VoiceBioStep> {
         });
       } else {
         setState(() {
-          _errorMessage = 'Microphone permission denied';
+          _errorMessage =
+              AppLocalizations.of(context)!.errorMicrophonePermission;
         });
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Failed to start recording: ${e.toString()}';
+        _errorMessage = AppLocalizations.of(
+          context,
+        )!.errorStartRecording(e.toString());
       });
     }
   }
@@ -200,7 +198,8 @@ class _VoiceBioStepState extends State<VoiceBioStep> {
       if (path != null) {
         if (_recordingDuration < 5) {
           setState(() {
-            _errorMessage = 'Recording must be at least 5 seconds long';
+            _errorMessage =
+                AppLocalizations.of(context)!.errorRecordingDuration;
             _audioFile = null;
           });
           return;
@@ -209,7 +208,7 @@ class _VoiceBioStepState extends State<VoiceBioStep> {
         setState(() {
           _audioFile = File(path);
           if (_recordingDuration > 10) {
-            _errorMessage = 'Recording was cut to 10 seconds';
+            _errorMessage = AppLocalizations.of(context)!.errorRecordingTooLong;
           } else {
             _errorMessage = null;
           }
@@ -218,7 +217,9 @@ class _VoiceBioStepState extends State<VoiceBioStep> {
     } catch (e) {
       setState(() {
         _isRecording = false;
-        _errorMessage = 'Failed to stop recording: ${e.toString()}';
+        _errorMessage = AppLocalizations.of(
+          context,
+        )!.errorStopRecording(e.toString());
       });
     }
   }
@@ -229,19 +230,13 @@ class _VoiceBioStepState extends State<VoiceBioStep> {
     try {
       if (_isPlaying) {
         // Stop playback if already playing
-        
-
-        // First update UI to provide immediate feedback
         setState(() {
           _isPlaying = false;
           _rebuildCounter++; // Force UI rebuild
-          
         });
 
         // Then stop the player
         await _audioPlayer.stop();
-        
-
         return;
       }
 
@@ -255,7 +250,6 @@ class _VoiceBioStepState extends State<VoiceBioStep> {
       setState(() {
         _isPlaying = true;
         _rebuildCounter++; // Force UI rebuild
-        
       });
 
       // Set file and play
@@ -266,8 +260,9 @@ class _VoiceBioStepState extends State<VoiceBioStep> {
     } catch (e) {
       setState(() {
         _isPlaying = false;
-        _errorMessage = 'Failed to play recording: ${e.toString()}';
-        
+        _errorMessage = AppLocalizations.of(
+          context,
+        )!.errorPlayVoiceBio(e.toString());
       });
     }
   }
@@ -275,14 +270,14 @@ class _VoiceBioStepState extends State<VoiceBioStep> {
   void _confirmVoiceBio() {
     if (_audioFile == null) {
       setState(() {
-        _errorMessage = 'Please record a voice bio';
+        _errorMessage = AppLocalizations.of(context)!.errorNoVoiceBio;
       });
       return;
     }
 
     if (_recordingDuration < 5) {
       setState(() {
-        _errorMessage = 'Recording must be at least 5 seconds long';
+        _errorMessage = AppLocalizations.of(context)!.errorRecordingDuration;
       });
       return;
     }
@@ -342,6 +337,7 @@ class _VoiceBioStepState extends State<VoiceBioStep> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     // Check if the error is a network error
     final bool isNetworkError =
         _errorMessage != null &&
@@ -354,12 +350,12 @@ class _VoiceBioStepState extends State<VoiceBioStep> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Record your voice bio',
+            l10n.recordVoiceBio,
             style: AppTheme.headingStyle,
           ).animate().fadeIn(duration: 600.ms),
           const SizedBox(height: 8),
           Text(
-            'Tell others about yourself in 5-10 seconds',
+            l10n.voiceBioDescription,
             style: AppTheme.smallTextStyle,
           ).animate().fadeIn(delay: 200.ms, duration: 600.ms),
           const SizedBox(height: 32),
@@ -436,10 +432,10 @@ class _VoiceBioStepState extends State<VoiceBioStep> {
                       _isRecording
                           ? _formattedDuration
                           : (_isPlaying
-                              ? 'Playing...'
+                              ? l10n.playingVoiceBio
                               : (_audioFile != null
-                                  ? 'Recording saved'
-                                  : 'No recording')),
+                                  ? l10n.recordingSaved
+                                  : l10n.noVoiceBio)),
                       key: ValueKey('audio_status_$_rebuildCounter'),
                       style: AppTheme.bodyStyle.copyWith(
                         color:
@@ -455,57 +451,68 @@ class _VoiceBioStepState extends State<VoiceBioStep> {
             ),
           ),
 
+          const SizedBox(height: 32),
+
           // Recording controls
           if (_isRecording)
             // Only show stop button when recording
-            CustomButton(
-              text: 'Stop Recording',
-              onPressed: _stopRecording,
-              icon: Icons.stop,
-            ).animate().fadeIn(delay: 600.ms, duration: 600.ms)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 32.0),
+              child: CustomButton(
+                text: l10n.stopRecording,
+                onPressed: _stopRecording,
+                icon: Icons.stop,
+              ).animate().fadeIn(delay: 600.ms, duration: 600.ms),
+            )
           else if (_audioFile != null && _recordingDuration >= 5)
             // Show controls when recording is valid
-            Column(
-              key: ValueKey(
-                'audio_controls_${_rebuildCounter}_${_isPlaying ? 'playing' : 'stopped'}',
-              ),
-              children: [
-                // Play/Stop button
-                CustomButton(
-                  text: _isPlaying ? 'Stop Playing' : 'Play Recording',
-                  onPressed: _playRecording,
-                  icon: _isPlaying ? Icons.stop : Icons.play_arrow,
-                  isOutlined: true,
+            Padding(
+              padding: const EdgeInsets.only(bottom: 32.0),
+              child: Column(
+                key: ValueKey(
+                  'audio_controls_${_rebuildCounter}_${_isPlaying ? 'playing' : 'stopped'}',
                 ),
-                const SizedBox(height: 16),
+                children: [
+                  // Play/Stop button
+                  CustomButton(
+                    text: _isPlaying ? l10n.stopPlaying : l10n.playVoiceBio,
+                    onPressed: _playRecording,
+                    icon: _isPlaying ? Icons.stop : Icons.play_arrow,
+                    isOutlined: true,
+                  ),
+                  const SizedBox(height: 16),
 
-                // Record Again button
-                CustomButton(
-                  text: 'Record Again',
-                  onPressed: _isPlaying ? () {} : _startRecording,
-                  icon: Icons.mic,
-                  isOutlined: true,
-                  isDisabled: _isPlaying,
-                ),
-                const SizedBox(height: 16),
+                  // Record Again button
+                  CustomButton(
+                    text: l10n.recordAgain,
+                    onPressed: _isPlaying ? () {} : _startRecording,
+                    icon: Icons.mic,
+                    isOutlined: true,
+                    isDisabled: _isPlaying,
+                  ),
+                  const SizedBox(height: 16),
 
-                // Finish button
-                CustomButton(
-                  text: 'Finish',
-                  onPressed: _isPlaying ? () {} : _confirmVoiceBio,
-                  isLoading: _isLoading,
-                  icon: Icons.check,
-                  isDisabled: _isPlaying,
-                ),
-              ],
-            ).animate().fadeIn(delay: 600.ms, duration: 600.ms)
+                  // Finish button
+                  CustomButton(
+                    text: l10n.finish,
+                    onPressed: _isPlaying ? () {} : _confirmVoiceBio,
+                    isLoading: _isLoading,
+                    icon: Icons.check,
+                    isDisabled: _isPlaying,
+                  ),
+                ],
+              ).animate().fadeIn(delay: 600.ms, duration: 600.ms),
+            )
           else
             // Show record button when no recording or invalid recording
-            CustomButton(
-              text: 'Record Voice Bio',
-              onPressed: _startRecording,
-              icon: Icons.mic,
-            ).animate().fadeIn(delay: 600.ms, duration: 600.ms),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 32.0),
+              child: CustomButton(
+                text: l10n.recordVoiceBio,
+                onPressed: _startRecording,
+                icon: Icons.mic,
+              ).animate().fadeIn(delay: 600.ms, duration: 600.ms),
+            ),
         ],
       ),
     );
