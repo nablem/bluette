@@ -113,6 +113,7 @@ class _EditFieldDialogState extends State<EditFieldDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      backgroundColor: Colors.white,
       title: Text('Edit ${widget.label}'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -168,6 +169,7 @@ class _EditFieldDialogState extends State<EditFieldDialog> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
+        color: Colors.white,
         border: Border.all(color: Colors.grey.shade400),
         borderRadius: BorderRadius.circular(12),
       ),
@@ -176,6 +178,7 @@ class _EditFieldDialogState extends State<EditFieldDialog> {
           value: _selectedDropdownValue,
           hint: Text(hint),
           isExpanded: true,
+          dropdownColor: Colors.white,
           items:
               options.map((String value) {
                 return DropdownMenuItem<String>(
