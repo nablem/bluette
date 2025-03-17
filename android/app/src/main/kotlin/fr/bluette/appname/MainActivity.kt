@@ -1,4 +1,4 @@
-package com.example.bluette
+package fr.bluette.appname
 
 import io.flutter.embedding.android.FlutterActivity
 
