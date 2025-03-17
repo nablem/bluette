@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../constants/app_theme.dart';
+import '../../l10n/app_localizations.dart';
 
 class EditFieldDialog extends StatefulWidget {
   final String initialValue;
@@ -52,11 +53,13 @@ class _EditFieldDialogState extends State<EditFieldDialog> {
   }
 
   bool _validateInput() {
+    final l10n = AppLocalizations.of(context)!;
+
     // For dropdown fields, check if a value is selected
     if ((widget.field == 'gender' || widget.field == 'interested_in') &&
         _selectedDropdownValue == null) {
       setState(() {
-        _errorMessage = 'Please select a value';
+        _errorMessage = l10n.errorSelectValue;
       });
       return false;
     }
@@ -66,7 +69,7 @@ class _EditFieldDialogState extends State<EditFieldDialog> {
         widget.field != 'interested_in' &&
         _controller.text.isEmpty) {
       setState(() {
-        _errorMessage = '${widget.label} cannot be empty';
+        _errorMessage = l10n.errorFieldRequired(widget.label);
       });
       return false;
     }
@@ -77,13 +80,13 @@ class _EditFieldDialogState extends State<EditFieldDialog> {
         final age = int.parse(_controller.text);
         if (age < 18 || age > 120) {
           setState(() {
-            _errorMessage = 'Age must be between 18 and 120';
+            _errorMessage = l10n.errorAgeRange;
           });
           return false;
         }
       } catch (e) {
         setState(() {
-          _errorMessage = 'Please enter a valid number';
+          _errorMessage = l10n.errorInvalidNumber;
         });
         return false;
       }
@@ -112,16 +115,18 @@ class _EditFieldDialogState extends State<EditFieldDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return AlertDialog(
       backgroundColor: Colors.white,
-      title: Text('Edit ${widget.label}'),
+      title: Text(l10n.editProfile),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (widget.field == 'gender')
-            _buildDropdown(_genderOptions, 'Select Gender')
+            _buildDropdown(_genderOptions, l10n.selectGender)
           else if (widget.field == 'interested_in')
-            _buildDropdown(_interestedInOptions, 'Select Preference')
+            _buildDropdown(_interestedInOptions, l10n.selectPreference)
           else
             TextField(
               controller: _controller,
@@ -154,12 +159,12 @@ class _EditFieldDialogState extends State<EditFieldDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         TextButton(
           onPressed: _save,
           style: TextButton.styleFrom(foregroundColor: AppTheme.primaryColor),
-          child: const Text('Save'),
+          child: Text(l10n.save),
         ),
       ],
     );

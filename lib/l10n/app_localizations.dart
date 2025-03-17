@@ -304,6 +304,204 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please check your email to confirm your account'**
   String get checkEmailConfirmation;
+
+  /// No description provided for @profileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get profileTitle;
+
+  /// No description provided for @editProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Profile'**
+  String get editProfile;
+
+  /// No description provided for @nameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get nameLabel;
+
+  /// No description provided for @ageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Age'**
+  String get ageLabel;
+
+  /// No description provided for @genderLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Gender'**
+  String get genderLabel;
+
+  /// No description provided for @interestedInLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Interested In'**
+  String get interestedInLabel;
+
+  /// No description provided for @voiceBioLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice Bio'**
+  String get voiceBioLabel;
+
+  /// No description provided for @moreOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'More Options'**
+  String get moreOptions;
+
+  /// No description provided for @logoutButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Log Out'**
+  String get logoutButton;
+
+  /// No description provided for @deleteAccountButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Account'**
+  String get deleteAccountButton;
+
+  /// No description provided for @notSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get notSet;
+
+  /// No description provided for @edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get edit;
+
+  /// No description provided for @save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// No description provided for @selectGender.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Gender'**
+  String get selectGender;
+
+  /// No description provided for @selectPreference.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Preference'**
+  String get selectPreference;
+
+  /// No description provided for @playVoiceBio.
+  ///
+  /// In en, this message translates to:
+  /// **'Play Voice Bio'**
+  String get playVoiceBio;
+
+  /// No description provided for @playingVoiceBio.
+  ///
+  /// In en, this message translates to:
+  /// **'Playing...'**
+  String get playingVoiceBio;
+
+  /// No description provided for @noVoiceBio.
+  ///
+  /// In en, this message translates to:
+  /// **'No Voice Bio'**
+  String get noVoiceBio;
+
+  /// No description provided for @deleteAccountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Account'**
+  String get deleteAccountTitle;
+
+  /// No description provided for @deleteAccountConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete your account? This action cannot be undone.'**
+  String get deleteAccountConfirm;
+
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// No description provided for @errorAgeRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Age must be between 18 and 120'**
+  String get errorAgeRange;
+
+  /// No description provided for @errorInvalidNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid number'**
+  String get errorInvalidNumber;
+
+  /// No description provided for @errorFieldRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'{field} cannot be empty'**
+  String errorFieldRequired(Object field);
+
+  /// No description provided for @errorSelectValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a value'**
+  String get errorSelectValue;
+
+  /// No description provided for @errorUpdateField.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update {field}: {error}'**
+  String errorUpdateField(Object error, Object field);
+
+  /// No description provided for @errorUpdateProfilePicture.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update profile picture: {error}'**
+  String errorUpdateProfilePicture(Object error);
+
+  /// No description provided for @errorUpdateVoiceBio.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update voice bio: {error}'**
+  String errorUpdateVoiceBio(Object error);
+
+  /// No description provided for @errorPlayVoiceBio.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to play voice bio: {error}'**
+  String errorPlayVoiceBio(Object error);
+
+  /// No description provided for @errorNoVoiceBio.
+  ///
+  /// In en, this message translates to:
+  /// **'No voice bio available'**
+  String get errorNoVoiceBio;
+
+  /// No description provided for @errorLogout.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to log out: {error}'**
+  String errorLogout(Object error);
+
+  /// No description provided for @errorDeleteAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete account: {error}'**
+  String errorDeleteAccount(Object error);
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

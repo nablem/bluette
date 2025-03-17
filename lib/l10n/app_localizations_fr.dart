@@ -112,4 +112,117 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get checkEmailConfirmation => 'Veuillez vérifier votre email pour confirmer votre compte';
+
+  @override
+  String get profileTitle => 'Profil';
+
+  @override
+  String get editProfile => 'Modifier le profil';
+
+  @override
+  String get nameLabel => 'Nom';
+
+  @override
+  String get ageLabel => 'Âge';
+
+  @override
+  String get genderLabel => 'Genre';
+
+  @override
+  String get interestedInLabel => 'Intéressé par';
+
+  @override
+  String get voiceBioLabel => 'Bio vocale';
+
+  @override
+  String get moreOptions => 'Plus d\'options';
+
+  @override
+  String get logoutButton => 'Se déconnecter';
+
+  @override
+  String get deleteAccountButton => 'Supprimer le compte';
+
+  @override
+  String get notSet => 'Non défini';
+
+  @override
+  String get edit => 'Modifier';
+
+  @override
+  String get save => 'Enregistrer';
+
+  @override
+  String get cancel => 'Annuler';
+
+  @override
+  String get selectGender => 'Sélectionner le genre';
+
+  @override
+  String get selectPreference => 'Sélectionner la préférence';
+
+  @override
+  String get playVoiceBio => 'Écouter la bio vocale';
+
+  @override
+  String get playingVoiceBio => 'Lecture en cours...';
+
+  @override
+  String get noVoiceBio => 'Pas de bio vocale';
+
+  @override
+  String get deleteAccountTitle => 'Supprimer le compte';
+
+  @override
+  String get deleteAccountConfirm => 'Êtes-vous sûr de vouloir supprimer votre compte ? Cette action ne peut pas être annulée.';
+
+  @override
+  String get delete => 'Supprimer';
+
+  @override
+  String get errorAgeRange => 'L\'âge doit être compris entre 18 et 120 ans';
+
+  @override
+  String get errorInvalidNumber => 'Veuillez entrer un nombre valide';
+
+  @override
+  String errorFieldRequired(Object field) {
+    return '$field ne peut pas être vide';
+  }
+
+  @override
+  String get errorSelectValue => 'Veuillez sélectionner une valeur';
+
+  @override
+  String errorUpdateField(Object error, Object field) {
+    return 'Échec de la mise à jour de $field: $error';
+  }
+
+  @override
+  String errorUpdateProfilePicture(Object error) {
+    return 'Échec de la mise à jour de la photo de profil: $error';
+  }
+
+  @override
+  String errorUpdateVoiceBio(Object error) {
+    return 'Échec de la mise à jour de la bio vocale: $error';
+  }
+
+  @override
+  String errorPlayVoiceBio(Object error) {
+    return 'Échec de la lecture de la bio vocale: $error';
+  }
+
+  @override
+  String get errorNoVoiceBio => 'Pas de bio vocale disponible';
+
+  @override
+  String errorLogout(Object error) {
+    return 'Échec de la déconnexion: $error';
+  }
+
+  @override
+  String errorDeleteAccount(Object error) {
+    return 'Échec de la suppression du compte: $error';
+  }
 }

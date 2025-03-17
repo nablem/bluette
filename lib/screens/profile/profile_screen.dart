@@ -13,6 +13,7 @@ import 'edit_voice_bio.dart';
 import '../../utils/network_error_handler.dart';
 import '../../widgets/error_message_widget.dart';
 import '../../services/connectivity_service.dart';
+import '../../l10n/app_localizations.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -237,8 +238,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _isLoading = false;
       });
     } catch (e) {
+      final l10n = AppLocalizations.of(context)!;
       setState(() {
-        _errorMessage = 'Failed to update $field: ${e.toString()}';
+        _errorMessage = l10n.errorUpdateField(field, e.toString());
         _isLoading = false;
       });
     }
@@ -328,8 +330,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           }
         }
       } catch (e) {
+        final l10n = AppLocalizations.of(context)!;
         setState(() {
-          _errorMessage = 'Failed to update profile picture: ${e.toString()}';
+          _errorMessage = l10n.errorUpdateProfilePicture(e.toString());
           _isLoading = false;
         });
       }
@@ -373,8 +376,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           }
         }
       } catch (e) {
+        final l10n = AppLocalizations.of(context)!;
         setState(() {
-          _errorMessage = 'Failed to update voice bio: ${e.toString()}';
+          _errorMessage = l10n.errorUpdateVoiceBio(e.toString());
           _isLoading = false;
         });
       }
@@ -383,8 +387,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _playVoiceBio() async {
     if (_userProfile == null || _userProfile!['voice_bio_url'] == null) {
+      final l10n = AppLocalizations.of(context)!;
       setState(() {
-        _errorMessage = 'No voice bio available';
+        _errorMessage = l10n.errorNoVoiceBio;
       });
       return;
     }
@@ -409,7 +414,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       if (_isPlayingAudio) {
         // Stop playback if already playing
-
         await _audioPlayer.stop();
         setState(() {
           _isPlayingAudio = false;
@@ -427,7 +431,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // Try a more direct approach for Android
       try {
         await _audioPlayer.setAudioSource(AudioSource.uri(Uri.parse(audioUrl)));
-
         await _audioPlayer.play();
       } catch (audioError) {
         // Fallback to simpler approach
@@ -436,9 +439,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         await _audioPlayer.play();
       }
     } catch (e) {
+      final l10n = AppLocalizations.of(context)!;
       setState(() {
         _isPlayingAudio = false;
-        _errorMessage = 'Failed to play voice bio: ${e.toString()}';
+        _errorMessage = l10n.errorPlayVoiceBio(e.toString());
       });
     }
   }
@@ -457,33 +461,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       }
     } catch (e) {
+      final l10n = AppLocalizations.of(context)!;
       setState(() {
-        _errorMessage = 'Failed to log out: ${e.toString()}';
+        _errorMessage = l10n.errorLogout(e.toString());
         _isLoading = false;
       });
     }
   }
 
   Future<void> _deleteAccount() async {
+    final l10n = AppLocalizations.of(context)!;
     final confirm = await showDialog<bool>(
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Delete Account'),
-            content: const Text(
-              'Are you sure you want to delete your account? This action cannot be undone.',
-            ),
+            title: Text(l10n.deleteAccountTitle),
+            content: Text(l10n.deleteAccountConfirm),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Cancel'),
+                child: Text(l10n.cancel),
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
                 style: TextButton.styleFrom(
                   foregroundColor: AppTheme.errorColor,
                 ),
-                child: const Text('Delete'),
+                child: Text(l10n.delete),
               ),
             ],
           ),
@@ -508,7 +512,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
       } catch (e) {
         setState(() {
-          _errorMessage = 'Failed to delete account: ${e.toString()}';
+          _errorMessage = l10n.errorDeleteAccount(e.toString());
           _isLoading = false;
         });
       }
@@ -604,6 +608,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     // Single build method that works for both first load and returning to screen
     return Scaffold(
       body: SafeArea(
@@ -643,49 +649,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                           // Name
                           _buildEditableField(
-                            'Name',
-                            _userProfile!['name'] ?? 'Not set',
+                            l10n.nameLabel,
+                            _userProfile!['name'] ?? l10n.notSet,
                             Icons.person,
                             () => _editField(
                               'name',
                               _userProfile!['name'] ?? '',
-                              'Name',
+                              l10n.nameLabel,
                             ),
                           ).animate().fadeIn(delay: 100.ms, duration: 600.ms),
 
                           // Age
                           _buildEditableField(
-                            'Age',
-                            _userProfile!['age']?.toString() ?? 'Not set',
+                            l10n.ageLabel,
+                            _userProfile!['age']?.toString() ?? l10n.notSet,
                             Icons.cake,
                             () => _editField(
                               'age',
                               _userProfile!['age']?.toString() ?? '',
-                              'Age',
+                              l10n.ageLabel,
                             ),
                           ).animate().fadeIn(delay: 200.ms, duration: 600.ms),
 
                           // Gender
                           _buildEditableField(
-                            'Gender',
-                            _userProfile!['gender'] ?? 'Not set',
+                            l10n.genderLabel,
+                            _userProfile!['gender'] ?? l10n.notSet,
                             Icons.wc,
                             () => _editField(
                               'gender',
                               _userProfile!['gender'] ?? '',
-                              'Gender',
+                              l10n.genderLabel,
                             ),
                           ).animate().fadeIn(delay: 300.ms, duration: 600.ms),
 
                           // Interested In
                           _buildEditableField(
-                            'Interested In',
-                            _userProfile!['interested_in'] ?? 'Not set',
+                            l10n.interestedInLabel,
+                            _userProfile!['interested_in'] ?? l10n.notSet,
                             Icons.favorite,
                             () => _editField(
                               'interested_in',
                               _userProfile!['interested_in'] ?? '',
-                              'Interested In',
+                              l10n.interestedInLabel,
                             ),
                           ).animate().fadeIn(delay: 400.ms, duration: 600.ms),
 
@@ -723,6 +729,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // Helper method to build the voice bio section
   Widget _buildVoiceBioSection() {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -734,7 +741,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Voice Bio', style: AppTheme.subtitleStyle),
+          Text(l10n.voiceBioLabel, style: AppTheme.subtitleStyle),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -763,10 +770,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(width: 8),
                         Text(
                           _isPlayingAudio
-                              ? 'Playing...'
+                              ? l10n.playingVoiceBio
                               : (_userProfile!['voice_bio_url'] != null
-                                  ? 'Play Voice Bio'
-                                  : 'No Voice Bio'),
+                                  ? l10n.playVoiceBio
+                                  : l10n.noVoiceBio),
                           style: AppTheme.bodyStyle.copyWith(
                             color: AppTheme.primaryColor,
                             fontWeight: FontWeight.bold,
@@ -798,6 +805,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // Helper method to build the more options button
   Widget _buildMoreOptionsButton() {
+    final l10n = AppLocalizations.of(context)!;
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -808,7 +816,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            'More Options',
+            l10n.moreOptions,
             style: AppTheme.bodyStyle.copyWith(color: Colors.grey.shade700),
           ),
           const SizedBox(width: 4),
@@ -825,18 +833,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // Helper method to build the more options content
   Widget _buildMoreOptionsContent() {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
         const SizedBox(height: 24),
         CustomButton(
-          text: 'Log Out',
+          text: l10n.logoutButton,
           onPressed: _logout,
           icon: Icons.logout,
           isOutlined: true,
         ),
         const SizedBox(height: 16),
         CustomButton(
-          text: 'Delete Account',
+          text: l10n.deleteAccountButton,
           onPressed: _deleteAccount,
           icon: Icons.delete_forever,
           backgroundColor: AppTheme.errorColor,
@@ -851,6 +860,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     IconData icon,
     VoidCallback onEdit,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -904,11 +914,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 color: Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(
-                Icons.edit,
-                color: AppTheme.primaryColor,
-                size: 20,
-              ),
+              child: Icon(Icons.edit, color: AppTheme.primaryColor, size: 20),
             ),
           ),
         ],
