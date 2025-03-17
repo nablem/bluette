@@ -730,6 +730,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reset to Default'**
   String get resetToDefault;
+
+  /// No description provided for @recentlyMet.
+  ///
+  /// In en, this message translates to:
+  /// **'You recently met'**
+  String get recentlyMet;
+
+  /// No description provided for @aboutToMeet.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re about to meet'**
+  String get aboutToMeet;
+
+  /// No description provided for @someone.
+  ///
+  /// In en, this message translates to:
+  /// **'someone'**
+  String get someone;
+
+  /// No description provided for @showOnMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Show on the map'**
+  String get showOnMap;
+
+  /// No description provided for @cancelMeetup.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel Meetup?'**
+  String get cancelMeetup;
+
+  /// No description provided for @cancelMeetupConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure? You may lose visibility.'**
+  String get cancelMeetupConfirm;
+
+  /// No description provided for @no.
+  ///
+  /// In en, this message translates to:
+  /// **'No'**
+  String get no;
+
+  /// No description provided for @yes.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes'**
+  String get yes;
+
+  /// No description provided for @returnToSwiping.
+  ///
+  /// In en, this message translates to:
+  /// **'Return to Swiping'**
+  String get returnToSwiping;
+
+  /// No description provided for @wantsToSeeYou.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} wants to see you!'**
+  String wantsToSeeYou(Object name);
+
+  /// No description provided for @weSetUpDate.
+  ///
+  /// In en, this message translates to:
+  /// **'We set up a date for you,\nHave fun!'**
+  String get weSetUpDate;
+
+  /// No description provided for @allRight.
+  ///
+  /// In en, this message translates to:
+  /// **'All right!'**
+  String get allRight;
+
+  /// No description provided for @weRememberSeen.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll remember you\'ve seen this match!'**
+  String get weRememberSeen;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

@@ -104,5 +104,18 @@
     "ageRange": "Tranche d'âge",
     "maximumDistance": "Distance maximale ({distance} km)",
     "applyFilters": "Appliquer les filtres",
-    "resetToDefault": "Réinitialiser"
+    "resetToDefault": "Réinitialiser",
+    "recentlyMet": "Vous avez récemment rencontré",
+    "aboutToMeet": "Vous allez rencontrer",
+    "someone": "quelqu'un",
+    "showOnMap": "Voir sur la carte",
+    "cancelMeetup": "Annuler le rendez-vous ?",
+    "cancelMeetupConfirm": "Êtes-vous sûr ? Vous risquez de perdre de la visibilité.",
+    "no": "Non",
+    "yes": "Oui",
+    "returnToSwiping": "Retourner au swipe",
+    "wantsToSeeYou": "{name} veut vous voir !",
+    "weSetUpDate": "Nous avons organisé un rendez-vous pour vous,\nAmusez-vous bien !",
+    "allRight": "D'accord !",
+    "weRememberSeen": "Nous nous souviendrons que vous avez vu ce match !"
 } 

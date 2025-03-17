@@ -104,5 +104,18 @@
     "ageRange": "Age Range",
     "maximumDistance": "Maximum Distance ({distance} km)",
     "applyFilters": "Apply Filters",
-    "resetToDefault": "Reset to Default"
+    "resetToDefault": "Reset to Default",
+    "recentlyMet": "You recently met",
+    "aboutToMeet": "You're about to meet",
+    "someone": "someone",
+    "showOnMap": "Show on the map",
+    "cancelMeetup": "Cancel Meetup?",
+    "cancelMeetupConfirm": "Are you sure? You may lose visibility.",
+    "no": "No",
+    "yes": "Yes",
+    "returnToSwiping": "Return to Swiping",
+    "wantsToSeeYou": "{name} wants to see you!",
+    "weSetUpDate": "We set up a date for you,\nHave fun!",
+    "allRight": "All right!",
+    "weRememberSeen": "We'll remember you've seen this match!"
 } 

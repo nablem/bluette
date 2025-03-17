@@ -15,6 +15,7 @@ import '../../services/connectivity_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:confetti/confetti.dart';
 import 'meetup_view.dart';
+import '../../l10n/app_localizations.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -909,6 +910,8 @@ class _ExploreScreenState extends State<ExploreScreen>
     // Start confetti animation
     _confettiController.play();
 
+    final l10n = AppLocalizations.of(context)!;
+
     showDialog(
       context: context,
       barrierDismissible: false, // User must tap button to close dialog
@@ -943,7 +946,7 @@ class _ExploreScreenState extends State<ExploreScreen>
                   shaderCallback:
                       (bounds) => AppTheme.primaryGradient.createShader(bounds),
                   child: Text(
-                    '${matchedProfile['name']} wants to see you!',
+                    l10n.wantsToSeeYou(matchedProfile['name']),
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -1009,9 +1012,9 @@ class _ExploreScreenState extends State<ExploreScreen>
                         ),
                       ),
                     const SizedBox(height: 20),
-                    const Text(
-                      'We set up a date for you,\nHave fun!',
-                      style: TextStyle(
+                    Text(
+                      l10n.weSetUpDate,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w500,
                       ),
@@ -1079,9 +1082,7 @@ class _ExploreScreenState extends State<ExploreScreen>
                               if (mounted) {
                                 scaffoldMessenger.showSnackBar(
                                   SnackBar(
-                                    content: const Text(
-                                      'We\'ll remember you\'ve seen this match!',
-                                    ),
+                                    content: Text(l10n.weRememberSeen),
                                     duration: const Duration(seconds: 2),
                                     backgroundColor: Colors.orange,
                                   ),
@@ -1100,9 +1101,9 @@ class _ExploreScreenState extends State<ExploreScreen>
                           vertical: 10,
                         ),
                       ),
-                      child: const Text(
-                        'All right!',
-                        style: TextStyle(
+                      child: Text(
+                        l10n.allRight,
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),

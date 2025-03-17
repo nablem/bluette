@@ -345,4 +345,45 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get resetToDefault => 'Reset to Default';
+
+  @override
+  String get recentlyMet => 'You recently met';
+
+  @override
+  String get aboutToMeet => 'You\'re about to meet';
+
+  @override
+  String get someone => 'someone';
+
+  @override
+  String get showOnMap => 'Show on the map';
+
+  @override
+  String get cancelMeetup => 'Cancel Meetup?';
+
+  @override
+  String get cancelMeetupConfirm => 'Are you sure? You may lose visibility.';
+
+  @override
+  String get no => 'No';
+
+  @override
+  String get yes => 'Yes';
+
+  @override
+  String get returnToSwiping => 'Return to Swiping';
+
+  @override
+  String wantsToSeeYou(Object name) {
+    return '$name wants to see you!';
+  }
+
+  @override
+  String get weSetUpDate => 'We set up a date for you,\nHave fun!';
+
+  @override
+  String get allRight => 'All right!';
+
+  @override
+  String get weRememberSeen => 'We\'ll remember you\'ve seen this match!';
 }

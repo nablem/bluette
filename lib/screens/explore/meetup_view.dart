@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import '../../constants/app_theme.dart';
+import '../../l10n/app_localizations.dart';
 
 class MeetupView extends StatefulWidget {
   final Map<String, dynamic> meetup;
@@ -94,6 +95,7 @@ class _MeetupViewState extends State<MeetupView> with TickerProviderStateMixin {
     final place = widget.meetup['place'];
     final otherUser = widget.meetup['other_user'];
     final currentUser = widget.meetup['current_user'];
+    final l10n = AppLocalizations.of(context)!;
 
     // Parse the meetup time from UTC
     final DateTime utcMeetupTime = DateTime.parse(match['meetup_time']);
@@ -133,21 +135,26 @@ class _MeetupViewState extends State<MeetupView> with TickerProviderStateMixin {
           // Header text with gradient username
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
+            child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                RichText(
-                  text: TextSpan(
-                    style: AppTheme.headingStyle.copyWith(
-                      fontSize: 22,
-                      color: Colors.black87,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    RichText(
+                      text: TextSpan(
+                        style: AppTheme.headingStyle.copyWith(
+                          fontSize: 22,
+                          color: Colors.black87,
+                        ),
+                        text:
+                            meetupPassed ? l10n.recentlyMet : l10n.aboutToMeet,
+                      ),
                     ),
-                    text:
-                        meetupPassed
-                            ? "You recently met "
-                            : "You're about to meet ",
-                  ),
+                    const SizedBox(width: 8),
+                  ],
                 ),
+                const SizedBox(height: 4),
                 ShaderMask(
                   shaderCallback:
                       (bounds) => LinearGradient(
@@ -156,7 +163,8 @@ class _MeetupViewState extends State<MeetupView> with TickerProviderStateMixin {
                         end: Alignment.centerRight,
                       ).createShader(bounds),
                   child: Text(
-                    otherUser['name'] ?? 'someone',
+                    otherUser['name'] ?? l10n.someone,
+                    textAlign: TextAlign.center,
                     style: AppTheme.headingStyle.copyWith(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -279,6 +287,7 @@ class _MeetupViewState extends State<MeetupView> with TickerProviderStateMixin {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
+            color: Colors.white, // Set the card's background color to white
             child: Stack(
               children: [
                 Padding(
@@ -373,7 +382,7 @@ class _MeetupViewState extends State<MeetupView> with TickerProviderStateMixin {
                               } else {}
                             },
                             icon: const Icon(Icons.map),
-                            label: const Text('Show on the map'),
+                            label: Text(l10n.showOnMap),
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 16.0,
@@ -401,22 +410,20 @@ class _MeetupViewState extends State<MeetupView> with TickerProviderStateMixin {
                           context: context,
                           builder:
                               (context) => AlertDialog(
-                                title: const Text('Cancel Meetup?'),
-                                content: const Text(
-                                  'Are you sure? You may lose visibility.',
-                                ),
+                                title: Text(l10n.cancelMeetup),
+                                content: Text(l10n.cancelMeetupConfirm),
                                 actions: [
                                   TextButton(
                                     onPressed:
                                         () => Navigator.of(context).pop(),
-                                    child: const Text('No'),
+                                    child: Text(l10n.no),
                                   ),
                                   TextButton(
                                     onPressed: () {
                                       Navigator.of(context).pop();
                                       widget.onCancelMeetup(match['id']);
                                     },
-                                    child: const Text('Yes'),
+                                    child: Text(l10n.yes),
                                   ),
                                 ],
                               ),
@@ -435,7 +442,7 @@ class _MeetupViewState extends State<MeetupView> with TickerProviderStateMixin {
               child: ElevatedButton.icon(
                 onPressed: widget.onReturnToSwiping,
                 icon: const Icon(Icons.refresh),
-                label: const Text('Return to Swiping'),
+                label: Text(l10n.returnToSwiping),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16.0,

@@ -345,4 +345,45 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get resetToDefault => 'Réinitialiser';
+
+  @override
+  String get recentlyMet => 'Vous avez récemment rencontré';
+
+  @override
+  String get aboutToMeet => 'Vous allez rencontrer';
+
+  @override
+  String get someone => 'quelqu\'un';
+
+  @override
+  String get showOnMap => 'Voir sur la carte';
+
+  @override
+  String get cancelMeetup => 'Annuler le rendez-vous ?';
+
+  @override
+  String get cancelMeetupConfirm => 'Êtes-vous sûr ? Vous risquez de perdre de la visibilité.';
+
+  @override
+  String get no => 'Non';
+
+  @override
+  String get yes => 'Oui';
+
+  @override
+  String get returnToSwiping => 'Retourner au swipe';
+
+  @override
+  String wantsToSeeYou(Object name) {
+    return '$name veut vous voir !';
+  }
+
+  @override
+  String get weSetUpDate => 'Nous avons organisé un rendez-vous pour vous,\nAmusez-vous bien !';
+
+  @override
+  String get allRight => 'D\'accord !';
+
+  @override
+  String get weRememberSeen => 'Nous nous souviendrons que vous avez vu ce match !';
 }
