@@ -79,89 +79,31 @@ class SupabaseService {
   // Update user data
   static Future<void> updateUserData(Map<String, dynamic> userData) async {
     return _safeApiCall(() async {
-      // Ensure required fields are never null
-      final user = currentUser;
-      if (user != null) {
-        // Ensure email is never null
-        if (!userData.containsKey('email') ||
-            userData['email'] == null ||
-            userData['email'].toString().isEmpty) {
-          if (user.email != null && user.email!.isNotEmpty) {
-            userData['email'] = user.email;
-          } else {
-            // Generate a placeholder email if somehow the user has no email
-            userData['email'] =
-                'user_${DateTime.now().millisecondsSinceEpoch}@example.com';
-          }
-        }
+      if (currentUser == null) return;
 
-        // Ensure name is never null
-        if (!userData.containsKey('name') ||
-            userData['name'] == null ||
-            userData['name'].toString().isEmpty) {
-          // Try to get name from user metadata first
-          if (user.userMetadata != null &&
-              user.userMetadata!.containsKey('name') &&
-              user.userMetadata!['name'] != null &&
-              user.userMetadata!['name'].toString().isNotEmpty) {
-            userData['name'] = user.userMetadata!['name'];
-          }
-          // Use email as fallback (without the domain part)
-          else if (user.email != null && user.email!.isNotEmpty) {
-            userData['name'] = user.email!.split('@')[0];
-          }
-          // Last resort fallback
-          else {
-            userData['name'] = 'User_${DateTime.now().millisecondsSinceEpoch}';
-          }
-        }
-      }
+      // Ensure we have the id field in the userData
+      userData['id'] = currentUser!.id;
 
-      // First, try to get the current profile to see what's already there
-      Map<String, dynamic>? existingProfile;
-      if (currentUser != null) {
-        try {
-          existingProfile =
-              await _supabaseClient
-                  .from('profiles')
-                  .select()
-                  .eq('id', currentUser!.id)
-                  .single();
+      // Perform a direct update instead of merging
+      await _supabaseClient
+          .from('profiles')
+          .update(userData)
+          .eq('id', currentUser!.id);
 
-          // Ensure we have the id field in the userData
-          userData['id'] = currentUser!.id;
-
-          // Merge existing profile with new data to ensure we don't lose any fields
-          final mergedData = {...existingProfile, ...userData};
-          userData = mergedData;
-        } catch (e) {
-          // Ensure we have the id field in the userData
-          userData['id'] = currentUser!.id;
-        }
-      }
-
-      // Verify the update by fetching the profile again
-      if (currentUser != null) {
-        final updatedProfile =
-            await _supabaseClient
-                .from('profiles')
-                .select()
-                .eq('id', currentUser!.id)
-                .single();
-
-        // Check if filter values were updated correctly
-        if (userData.containsKey('min_age')) {}
-        if (userData.containsKey('max_age')) {}
-        if (userData.containsKey('max_distance')) {}
-
-        // If the name in the database doesn't match what we tried to set,
-        // try one more time with a more direct approach
-        if (userData.containsKey('name') &&
-            updatedProfile['name'] != userData['name']) {
-          // Try a direct update instead of upsert
+      // Verify the update
+      final updatedProfile =
           await _supabaseClient
               .from('profiles')
-              .update({'name': userData['name']})
+              .select()
+              .eq('id', currentUser!.id)
+              .single();
+
+      // If any field didn't update correctly, try one more time with a direct update
+      for (final entry in userData.entries) {
+        if (entry.key != 'id' && updatedProfile[entry.key] != entry.value) {
+          await _supabaseClient
+              .from('profiles')
+              .update({entry.key: entry.value})
               .eq('id', currentUser!.id);
         }
       }

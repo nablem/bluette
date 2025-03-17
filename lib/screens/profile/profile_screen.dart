@@ -223,11 +223,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _userProfile = updatedProfile;
         });
 
-        // Also update the cache
-        if (_cachedProfile != null) {
-          _cachedProfile![field] = value;
-          _lastLoadTime = DateTime.now();
-        }
+        // Invalidate the cache
+        _cachedProfile = null;
+        _lastLoadTime = null;
+        _hasBeenInitialized = false;
       }
 
       // Update the database
