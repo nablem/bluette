@@ -21,23 +21,28 @@ class _SplashScreenState extends State<SplashScreen> {
     // Add a small delay for the splash screen to be visible
     await Future.delayed(const Duration(seconds: 2));
 
-    if (mounted) {
-      if (SupabaseService.isLoggedIn) {
-        // Check if user has completed their profile
-        final userProfile = await SupabaseService.getUserProfile();
+    if (!mounted) return;
 
-        if (userProfile == null ||
-            userProfile['profile_picture_url'] == null ||
-            userProfile['voice_bio_url'] == null) {
-          // Profile is incomplete, navigate to profile completion
-          Navigator.pushReplacementNamed(context, '/profile_completion');
-        } else {
-          // Profile is complete, navigate to home
-          Navigator.pushReplacementNamed(context, '/home');
-        }
+    // Capture Navigator before async operation
+    final navigator = Navigator.of(context);
+
+    if (SupabaseService.isLoggedIn) {
+      // Check if user has completed their profile
+      final userProfile = await SupabaseService.getUserProfile();
+
+      if (!mounted) return;
+
+      if (userProfile == null ||
+          userProfile['profile_picture_url'] == null ||
+          userProfile['voice_bio_url'] == null) {
+        // Profile is incomplete, navigate to profile completion
+        navigator.pushReplacementNamed('/profile_completion');
       } else {
-        Navigator.pushReplacementNamed(context, '/login');
+        // Profile is complete, navigate to home
+        navigator.pushReplacementNamed('/home');
       }
+    } else {
+      navigator.pushReplacementNamed('/login');
     }
   }
 

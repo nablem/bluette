@@ -133,7 +133,7 @@ class AppTheme {
       primary: primaryColor,
       secondary: secondaryColor,
       error: errorColor,
-      background: backgroundColor,
+      surface: backgroundColor,
     ),
     textTheme: TextTheme(
       displayLarge: headingStyle,

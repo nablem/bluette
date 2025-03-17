@@ -66,10 +66,14 @@ class _LoginScreenState extends State<LoginScreen> {
               profile['profile_picture_url'] == null ||
               profile['voice_bio_url'] == null) {
             // Profile is incomplete, go to profile completion
-            Navigator.of(context).pushReplacementNamed('/profile_completion');
+            if (mounted) {
+              Navigator.of(context).pushReplacementNamed('/profile_completion');
+            }
           } else {
             // Profile is complete, go to home
-            Navigator.of(context).pushReplacementNamed('/home');
+            if (mounted) {
+              Navigator.of(context).pushReplacementNamed('/home');
+            }
           }
         } else {
           setState(() {

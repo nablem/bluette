@@ -36,6 +36,9 @@ class _ProfilePictureStepState extends State<ProfilePictureStep> {
       _isLoading = true;
     });
 
+    // Capture ScaffoldMessenger before async operation
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
     try {
       final ImagePicker picker = ImagePicker();
       final XFile? photo = await picker.pickImage(
@@ -52,16 +55,19 @@ class _ProfilePictureStepState extends State<ProfilePictureStep> {
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (!mounted) return;
+      scaffoldMessenger.showSnackBar(
         SnackBar(
           content: Text('Error taking picture: ${e.toString()}'),
           backgroundColor: AppTheme.errorColor,
         ),
       );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 

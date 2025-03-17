@@ -10,11 +10,11 @@ class MeetupView extends StatefulWidget {
   final VoidCallback onReturnToSwiping;
 
   const MeetupView({
-    Key? key,
+    super.key,
     required this.meetup,
     required this.onCancelMeetup,
     required this.onReturnToSwiping,
-  }) : super(key: key);
+  });
 
   @override
   State<MeetupView> createState() => _MeetupViewState();
@@ -370,9 +370,7 @@ class _MeetupViewState extends State<MeetupView> with TickerProviderStateMixin {
                               );
                               if (await canLaunchUrl(url)) {
                                 await launchUrl(url);
-                              } else {
-                                
-                              }
+                              } else {}
                             },
                             icon: const Icon(Icons.map),
                             label: const Text('Show on the map'),

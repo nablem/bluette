@@ -68,7 +68,7 @@ class _ExploreScreenState extends State<ExploreScreen>
   static const String _shownMatchIdsKey = 'shown_match_ids';
 
   // Add a flag to track if we're returning to the screen
-  bool _isReturningToScreen = false;
+  final bool _isReturningToScreen = false;
 
   // Add a confetti controller for match animation
   late ConfettiController _confettiController;
@@ -1038,37 +1038,27 @@ class _ExploreScreenState extends State<ExploreScreen>
 
                         // Mark the match as seen if we have a match ID (do this after dialog is closed)
                         if (matchId != null) {
+                          final scaffoldMessenger = ScaffoldMessenger.of(
+                            context,
+                          );
                           // Use a microtask to ensure this runs after the dialog is closed
                           Future.microtask(() async {
+                            if (!mounted) return;
                             try {
                               await SupabaseService.markMatchAsSeen(matchId);
-
-                              // Verify the match was marked as seen
                               await _verifyMatchSeenStatus(matchId);
-
-                              // Schedule a meetup for this match
-
                               final success =
                                   await SupabaseService.scheduleMeetup(matchId);
 
                               if (success) {
-                                // Check for upcoming meetups to display the meetup view
-
                                 await _checkForUpcomingMeetup();
-
-                                // Force a UI refresh to ensure the meetup view is shown
                                 if (mounted) {
-                                  setState(() {
-                                    // This empty setState will trigger a rebuild
-                                  });
-
-                                  // Add a delayed second check to ensure the meetup is loaded
+                                  setState(() {});
                                   Future.delayed(
                                     const Duration(milliseconds: 1000),
                                     () {
                                       if (mounted) {
                                         _checkForUpcomingMeetup().then((_) {
-                                          // Force another UI refresh
                                           if (mounted) {
                                             setState(() {});
                                           }
@@ -1078,26 +1068,16 @@ class _ExploreScreenState extends State<ExploreScreen>
                                   );
                                 }
                               } else {
-                                // Meetup scheduling failed
-
                                 if (mounted) {
-                                  // Message to user removed
-
-                                  // Refresh the UI to show the swipe stack
-                                  setState(() {
-                                    // This empty setState will trigger a rebuild
-                                  });
-
-                                  // Reload profiles if needed
+                                  setState(() {});
                                   if (_profiles.isEmpty) {
                                     _initializeExplore();
                                   }
                                 }
                               }
                             } catch (error) {
-                              // Show a toast to inform the user
                               if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
+                                scaffoldMessenger.showSnackBar(
                                   SnackBar(
                                     content: const Text(
                                       'We\'ll remember you\'ve seen this match!',
@@ -1109,7 +1089,7 @@ class _ExploreScreenState extends State<ExploreScreen>
                               }
                             }
                           });
-                        } else {}
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
