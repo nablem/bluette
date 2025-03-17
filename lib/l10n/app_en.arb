@@ -66,5 +66,11 @@
     "errorPlayVoiceBio": "Failed to play voice bio: {error}",
     "errorNoVoiceBio": "No voice bio available",
     "errorLogout": "Failed to log out: {error}",
-    "errorDeleteAccount": "Failed to delete account: {error}"
+    "errorDeleteAccount": "Failed to delete account: {error}",
+    "genderMale": "Male",
+    "genderFemale": "Female",
+    "genderOther": "Other",
+    "interestedInMale": "Men",
+    "interestedInFemale": "Women",
+    "interestedInEveryone": "Everyone"
 } 

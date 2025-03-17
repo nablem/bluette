@@ -66,5 +66,11 @@
     "errorPlayVoiceBio": "Échec de la lecture de la bio vocale: {error}",
     "errorNoVoiceBio": "Pas de bio vocale disponible",
     "errorLogout": "Échec de la déconnexion: {error}",
-    "errorDeleteAccount": "Échec de la suppression du compte: {error}"
+    "errorDeleteAccount": "Échec de la suppression du compte: {error}",
+    "genderMale": "Homme",
+    "genderFemale": "Femme",
+    "genderOther": "Autre",
+    "interestedInMale": "Hommes",
+    "interestedInFemale": "Femmes",
+    "interestedInEveryone": "Tout le monde"
 } 

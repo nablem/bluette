@@ -171,6 +171,7 @@ class _EditFieldDialogState extends State<EditFieldDialog> {
   }
 
   Widget _buildDropdown(List<String> options, String hint) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
@@ -186,9 +187,41 @@ class _EditFieldDialogState extends State<EditFieldDialog> {
           dropdownColor: Colors.white,
           items:
               options.map((String value) {
+                String displayValue;
+                if (widget.field == 'gender') {
+                  switch (value) {
+                    case 'Male':
+                      displayValue = l10n.genderMale;
+                      break;
+                    case 'Female':
+                      displayValue = l10n.genderFemale;
+                      break;
+                    case 'Other':
+                      displayValue = l10n.genderOther;
+                      break;
+                    default:
+                      displayValue = value;
+                  }
+                } else if (widget.field == 'interested_in') {
+                  switch (value) {
+                    case 'Male':
+                      displayValue = l10n.interestedInMale;
+                      break;
+                    case 'Female':
+                      displayValue = l10n.interestedInFemale;
+                      break;
+                    case 'Everyone':
+                      displayValue = l10n.interestedInEveryone;
+                      break;
+                    default:
+                      displayValue = value;
+                  }
+                } else {
+                  displayValue = value;
+                }
                 return DropdownMenuItem<String>(
                   value: value,
-                  child: Text(value),
+                  child: Text(displayValue),
                 );
               }).toList(),
           onChanged: (newValue) {

@@ -861,6 +861,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
     VoidCallback onEdit,
   ) {
     final l10n = AppLocalizations.of(context)!;
+    String displayValue = value;
+
+    // Translate gender and interested_in values
+    if (label == l10n.genderLabel) {
+      switch (value) {
+        case 'Male':
+          displayValue = l10n.genderMale;
+          break;
+        case 'Female':
+          displayValue = l10n.genderFemale;
+          break;
+        case 'Other':
+          displayValue = l10n.genderOther;
+          break;
+      }
+    } else if (label == l10n.interestedInLabel) {
+      switch (value) {
+        case 'Male':
+          displayValue = l10n.interestedInMale;
+          break;
+        case 'Female':
+          displayValue = l10n.interestedInFemale;
+          break;
+        case 'Everyone':
+          displayValue = l10n.interestedInEveryone;
+          break;
+      }
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -898,7 +927,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  value,
+                  displayValue,
                   style: AppTheme.bodyStyle.copyWith(
                     fontWeight: FontWeight.bold,
                   ),

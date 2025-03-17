@@ -225,4 +225,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String errorDeleteAccount(Object error) {
     return 'Failed to delete account: $error';
   }
+
+  @override
+  String get genderMale => 'Male';
+
+  @override
+  String get genderFemale => 'Female';
+
+  @override
+  String get genderOther => 'Other';
+
+  @override
+  String get interestedInMale => 'Men';
+
+  @override
+  String get interestedInFemale => 'Women';
+
+  @override
+  String get interestedInEveryone => 'Everyone';
 }

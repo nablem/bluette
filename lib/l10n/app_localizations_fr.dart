@@ -225,4 +225,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String errorDeleteAccount(Object error) {
     return 'Échec de la suppression du compte: $error';
   }
+
+  @override
+  String get genderMale => 'Homme';
+
+  @override
+  String get genderFemale => 'Femme';
+
+  @override
+  String get genderOther => 'Autre';
+
+  @override
+  String get interestedInMale => 'Hommes';
+
+  @override
+  String get interestedInFemale => 'Femmes';
+
+  @override
+  String get interestedInEveryone => 'Tout le monde';
 }

@@ -502,6 +502,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to delete account: {error}'**
   String errorDeleteAccount(Object error);
+
+  /// No description provided for @genderMale.
+  ///
+  /// In en, this message translates to:
+  /// **'Male'**
+  String get genderMale;
+
+  /// No description provided for @genderFemale.
+  ///
+  /// In en, this message translates to:
+  /// **'Female'**
+  String get genderFemale;
+
+  /// No description provided for @genderOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get genderOther;
+
+  /// No description provided for @interestedInMale.
+  ///
+  /// In en, this message translates to:
+  /// **'Men'**
+  String get interestedInMale;
+
+  /// No description provided for @interestedInFemale.
+  ///
+  /// In en, this message translates to:
+  /// **'Women'**
+  String get interestedInFemale;
+
+  /// No description provided for @interestedInEveryone.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyone'**
+  String get interestedInEveryone;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
