@@ -682,6 +682,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to create profile. Please try again.'**
   String get errorCreateProfile;
+
+  /// No description provided for @tryAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Try Again'**
+  String get tryAgain;
+
+  /// No description provided for @noInternetConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'No internet connection'**
+  String get noInternetConnection;
+
+  /// No description provided for @noInternetConnectionMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'No internet connection. Please check your network and try again'**
+  String get noInternetConnectionMessage;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

@@ -96,5 +96,8 @@
     "errorStopRecording": "Failed to stop recording: {error}",
     "errorRecordingTooLong": "Recording was cut to 10 seconds",
     "recordingSaved": "Recording saved",
-    "errorCreateProfile": "Failed to create profile. Please try again."
+    "errorCreateProfile": "Failed to create profile. Please try again.",
+    "tryAgain": "Try Again",
+    "noInternetConnection": "No internet connection",
+    "noInternetConnectionMessage": "No internet connection. Please check your network and try again"
 } 

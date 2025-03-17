@@ -9,7 +9,6 @@ import 'screens/auth/signup_screen.dart';
 import 'screens/main/main_screen.dart';
 import 'screens/profile/profile_completion_screen.dart';
 import 'screens/splash_screen.dart';
-import 'widgets/network_status_overlay.dart';
 
 void main() async {
   await dotenv.load(fileName: ".env");
@@ -61,8 +60,7 @@ class MyApp extends StatelessWidget {
       ],
 
       builder: (context, child) {
-        // Wrap the entire app with the network status overlay
-        return NetworkStatusOverlay(child: child!);
+        return child!;
       },
       initialRoute: '/',
       routes: {

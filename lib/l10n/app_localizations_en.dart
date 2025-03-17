@@ -319,4 +319,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorCreateProfile => 'Failed to create profile. Please try again.';
+
+  @override
+  String get tryAgain => 'Try Again';
+
+  @override
+  String get noInternetConnection => 'No internet connection';
+
+  @override
+  String get noInternetConnectionMessage => 'No internet connection. Please check your network and try again';
 }

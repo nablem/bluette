@@ -96,5 +96,8 @@
     "errorStopRecording": "Échec de l'arrêt de l'enregistrement : {error}",
     "errorRecordingTooLong": "L'enregistrement a été limité à 10 secondes",
     "recordingSaved": "Sauvegardé",
-    "errorCreateProfile": "Échec de la création du profil. Veuillez réessayer."
+    "errorCreateProfile": "Échec de la création du profil. Veuillez réessayer.",
+    "tryAgain": "Réessayer",
+    "noInternetConnection": "Pas de connexion Internet",
+    "noInternetConnectionMessage": "Pas de connexion Internet. Veuillez vérifier votre réseau et réessayer"
 } 

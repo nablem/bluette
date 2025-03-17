@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../constants/app_theme.dart';
 import '../utils/network_error_handler.dart';
+import '../l10n/app_localizations.dart';
 import 'custom_button.dart';
 
 class ErrorMessageWidget extends StatelessWidget {
@@ -50,6 +51,7 @@ class ErrorMessageWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final Widget errorWidget = Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -69,7 +71,7 @@ class ErrorMessageWidget extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  message,
+                  isNetworkError ? l10n.noInternetConnectionMessage : message,
                   style: AppTheme.smallTextStyle.copyWith(
                     color: AppTheme.errorColor,
                   ),
@@ -80,7 +82,7 @@ class ErrorMessageWidget extends StatelessWidget {
           if (showRetryButton && onRetry != null) ...[
             const SizedBox(height: 16),
             CustomButton(
-              text: 'Try Again',
+              text: l10n.tryAgain,
               onPressed: onRetry!,
               icon: Icons.refresh,
               backgroundColor: AppTheme.errorColor,
