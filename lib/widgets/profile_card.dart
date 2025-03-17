@@ -163,7 +163,7 @@ class _ProfileCardState extends State<ProfileCard> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withAlpha(26),
             blurRadius: 8,
             spreadRadius: 2,
           ),
@@ -218,7 +218,7 @@ class _ProfileCardState extends State<ProfileCard> {
                       begin: Alignment.bottomCenter,
                       end: Alignment.topCenter,
                       colors: [
-                        Colors.black.withOpacity(0.8),
+                        Colors.black.withAlpha(204),
                         Colors.transparent,
                       ],
                     ),
@@ -255,7 +255,7 @@ class _ProfileCardState extends State<ProfileCard> {
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withAlpha(51),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(
@@ -314,10 +314,10 @@ class _ProfileCardState extends State<ProfileCard> {
                                             ),
                                         activeTrackColor: AppTheme.primaryColor,
                                         inactiveTrackColor: Colors.white
-                                            .withOpacity(0.3),
+                                            .withAlpha(76),
                                         thumbColor: Colors.white,
                                         overlayColor: AppTheme.primaryColor
-                                            .withOpacity(0.3),
+                                            .withAlpha(76),
                                       ),
                                       child: Slider(
                                         value:

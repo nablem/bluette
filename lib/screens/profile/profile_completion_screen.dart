@@ -108,7 +108,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                     margin: const EdgeInsets.all(16),
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppTheme.errorColor.withOpacity(0.1),
+                      color: AppTheme.errorColor.withAlpha(26),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(

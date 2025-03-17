@@ -375,7 +375,7 @@ class _VoiceBioStepState extends State<VoiceBioStep> {
                 : Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppTheme.errorColor.withOpacity(0.1),
+                    color: AppTheme.errorColor.withAlpha(26),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -408,9 +408,9 @@ class _VoiceBioStepState extends State<VoiceBioStep> {
                 decoration: BoxDecoration(
                   color:
                       _isRecording
-                          ? AppTheme.primaryColor.withOpacity(0.1)
+                          ? AppTheme.primaryColor.withAlpha(26)
                           : (_isPlaying
-                              ? AppTheme.primaryColor.withOpacity(0.05)
+                              ? AppTheme.primaryColor.withAlpha(13)
                               : Colors.grey.shade200),
                   shape: BoxShape.circle,
                 ),

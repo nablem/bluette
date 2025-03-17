@@ -699,7 +699,7 @@ class SupabaseService {
 
         return paginatedProfiles;
       } catch (e) {
-        throw e;
+        rethrow;
       }
     });
   }
@@ -750,7 +750,7 @@ class SupabaseService {
         'liked': liked,
       });
     } catch (e) {
-      throw e;
+      rethrow;
     }
   }
 
@@ -831,7 +831,9 @@ class SupabaseService {
 
       // Add a small delay to ensure the real-time event is processed
       await Future.delayed(const Duration(milliseconds: 100));
-    } catch (e) {}
+    } catch (e) {
+      // Ignore errors
+    }
   }
 
   // Subscribe to new matches for the current user
@@ -1008,10 +1010,10 @@ class SupabaseService {
 
           return;
         } catch (e) {
-          throw e;
+          rethrow;
         }
       } catch (e) {
-        throw e;
+        rethrow;
       }
     });
   }
@@ -1066,7 +1068,7 @@ class SupabaseService {
           .delete()
           .eq('user_id', currentUser!.id);
     } catch (e) {
-      throw e;
+      rethrow;
     }
   }
 

@@ -77,7 +77,7 @@ class _EditProfilePictureState extends State<EditProfilePicture> {
                 padding: const EdgeInsets.all(16),
                 margin: const EdgeInsets.only(bottom: 24),
                 decoration: BoxDecoration(
-                  color: AppTheme.errorColor.withOpacity(0.1),
+                  color: AppTheme.errorColor.withAlpha(26),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
