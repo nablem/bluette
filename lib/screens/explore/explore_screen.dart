@@ -100,6 +100,9 @@ class _ExploreScreenState extends State<ExploreScreen>
     // Check for upcoming meetups
     _checkForUpcomingMeetup();
 
+    // Check and update meetup status
+    SupabaseService.checkAndUpdateMeetupStatus().then((_) {});
+
     // Always check location status first before proceeding with any other initialization
     _checkLocationStatusAndInitialize();
 
