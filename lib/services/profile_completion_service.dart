@@ -107,7 +107,7 @@ class ProfileCompletionService extends ChangeNotifier {
         'max_age': maxAge,
       };
 
-      print('Completing profile with data: $userData');
+      
 
       // Update the profile with basic info first
       await SupabaseService.updateUserData(userData);
@@ -134,7 +134,7 @@ class ProfileCompletionService extends ChangeNotifier {
       _errorMessage = 'Failed to complete profile: ${e.toString()}';
       _isLoading = false;
       notifyListeners();
-      print('Profile completion error: ${e.toString()}');
+      
       return false;
     }
   }

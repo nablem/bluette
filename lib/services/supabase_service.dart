@@ -26,7 +26,7 @@ class SupabaseService {
       return await apiCall();
     } catch (e) {
       // Log the error for debugging
-      print('API call error: ${e.toString()}');
+      
 
       // Rethrow with the original error to preserve stack trace
       throw e;
@@ -128,7 +128,7 @@ class SupabaseService {
                   .select()
                   .eq('id', currentUser!.id)
                   .single();
-          print('Existing profile before update: $existingProfile');
+          
 
           // Ensure we have the id field in the userData
           userData['id'] = currentUser!.id;
@@ -137,21 +137,21 @@ class SupabaseService {
           final mergedData = {...existingProfile, ...userData};
           userData = mergedData;
         } catch (e) {
-          print('Error fetching existing profile: $e');
+          
           // Ensure we have the id field in the userData
           userData['id'] = currentUser!.id;
         }
       }
 
-      print('Updating profile with data: $userData');
+      
 
       // Perform the upsert operation
       final response = await _supabaseClient
           .from('profiles')
           .upsert(userData, onConflict: 'id');
 
-      print('Upsert response: $response');
-      print('Profile updated successfully');
+      
+      
 
       // Verify the update by fetching the profile again
       if (currentUser != null) {
@@ -162,26 +162,24 @@ class SupabaseService {
                 .eq('id', currentUser!.id)
                 .single();
 
-        print('Verified profile after update: $updatedProfile');
+        
 
         // Check if filter values were updated correctly
         if (userData.containsKey('min_age')) {
-          print('Verified min_age after update: ${updatedProfile['min_age']}');
+          
         }
         if (userData.containsKey('max_age')) {
-          print('Verified max_age after update: ${updatedProfile['max_age']}');
+          
         }
         if (userData.containsKey('max_distance')) {
-          print(
-            'Verified max_distance after update: ${updatedProfile['max_distance']}',
-          );
+          
         }
 
         // If the name in the database doesn't match what we tried to set,
         // try one more time with a more direct approach
         if (userData.containsKey('name') &&
             updatedProfile['name'] != userData['name']) {
-          print('Name mismatch detected! Trying direct update...');
+          
 
           // Try a direct update instead of upsert
           await _supabaseClient
@@ -197,7 +195,7 @@ class SupabaseService {
                   .eq('id', currentUser!.id)
                   .single();
 
-          print('Final name check: ${finalCheck['name']}');
+          
         }
       }
     });
@@ -228,7 +226,7 @@ class SupabaseService {
       final fileName = '${currentUser!.id}$fileExt';
 
       try {
-        print('Uploading profile picture: $fileName');
+        
         final response = await _supabaseClient.storage
             .from('profile_pictures')
             .upload(
@@ -246,7 +244,7 @@ class SupabaseService {
               .from('profile_pictures')
               .createSignedUrl(fileName, 63072000);
 
-          print('Profile picture uploaded successfully, getting signed URL');
+          
 
           // Update profile with the signed URL
           await updateUserData({
@@ -257,7 +255,7 @@ class SupabaseService {
           return await imageUrl;
         }
       } catch (e) {
-        print('Error uploading profile picture: $e');
+        
         throw e;
       }
 
@@ -273,7 +271,7 @@ class SupabaseService {
     final fileName = '${currentUser!.id}$fileExt';
 
     try {
-      print('Uploading voice bio: $fileName');
+      
       final response = await _supabaseClient.storage
           .from('voice_bios')
           .upload(
@@ -288,11 +286,11 @@ class SupabaseService {
             .from('voice_bios')
             .createSignedUrl(fileName, 63072000);
 
-        print('Voice bio uploaded successfully, getting signed URL');
+        
 
         // Get the actual URL after the Future completes
         final signedUrl = await audioUrl;
-        print('Voice bio signed URL: $signedUrl');
+        
 
         // Update profile with the signed URL
         await updateUserData({
@@ -303,7 +301,7 @@ class SupabaseService {
         return signedUrl;
       }
     } catch (e) {
-      print('Error uploading voice bio: $e');
+      
       throw e;
     }
 
@@ -335,7 +333,7 @@ class SupabaseService {
           currentUser!.id,
         ]);
       } catch (e) {
-        print('Error deleting profile picture: $e');
+        
       }
 
       try {
@@ -343,12 +341,12 @@ class SupabaseService {
           currentUser!.id,
         ]);
       } catch (e) {
-        print('Error deleting voice bio: $e');
+        
       }
 
-      print('User data deleted successfully');
+      
     } catch (e) {
-      print('Error deleting user data: $e');
+      
       throw e;
     }
   }
@@ -370,7 +368,7 @@ class SupabaseService {
 
       // Extract the file name from the existing URL
       final String existingUrl = profile['profile_picture_url'];
-      print('Refreshing profile picture URL: $existingUrl');
+      
 
       // Get the file extension from the existing URL
       final fileExt = path.extension(existingUrl.split('?').first);
@@ -381,7 +379,7 @@ class SupabaseService {
           .from('profile_pictures')
           .createSignedUrl(fileName, 63072000); // 2 years
 
-      print('New signed URL for profile picture: $newSignedUrl');
+      
 
       // Update the profile with the new URL
       await updateUserData({
@@ -391,7 +389,7 @@ class SupabaseService {
 
       return newSignedUrl;
     } catch (e) {
-      print('Error refreshing profile picture URL: $e');
+      
       return null;
     }
   }
@@ -409,7 +407,7 @@ class SupabaseService {
 
       // Extract the file name from the existing URL
       final String existingUrl = profile['voice_bio_url'];
-      print('Refreshing voice bio URL: $existingUrl');
+      
 
       // Get the file extension from the existing URL
       final fileExt = path.extension(existingUrl.split('?').first);
@@ -420,7 +418,7 @@ class SupabaseService {
           .from('voice_bios')
           .createSignedUrl(fileName, 63072000); // 2 years
 
-      print('New signed URL for voice bio: $newSignedUrl');
+      
 
       // Update the profile with the new URL
       await updateUserData({
@@ -430,7 +428,7 @@ class SupabaseService {
 
       return newSignedUrl;
     } catch (e) {
-      print('Error refreshing voice bio URL: $e');
+      
       return null;
     }
   }
@@ -464,7 +462,7 @@ class SupabaseService {
 
         // If user has no location, return empty list
         if (userLat == null || userLng == null) {
-          print('User has no location data');
+          
           return [];
         }
 
@@ -482,7 +480,7 @@ class SupabaseService {
                 )
                 : [];
 
-        print('User has already swiped on ${swipedProfileIds.length} profiles');
+        
 
         // Get profiles that match gender preference
         List<dynamic> matchingProfiles;
@@ -514,9 +512,7 @@ class SupabaseService {
         // Execute the query
         matchingProfiles = await query;
 
-        print(
-          'Found ${matchingProfiles.length} matching profiles before distance filtering',
-        );
+        
 
         // Convert to list of maps
         final List<Map<String, dynamic>> profiles =
@@ -552,8 +548,8 @@ class SupabaseService {
         final localNow = DateTime.now();
         // Convert to UTC for database comparison
         final utcNow = localNow.toUtc();
-        print('Current time (local): ${localNow.toIso8601String()}');
-        print('Current time (UTC): ${utcNow.toIso8601String()}');
+        
+        
 
         // Get all profiles with upcoming meetups to exclude them
         final profilesWithMeetups = await _supabaseClient
@@ -571,9 +567,7 @@ class SupabaseService {
           profileIdsWithMeetups.add(match['user_id2']);
         }
 
-        print(
-          'Found ${profileIdsWithMeetups.length} profiles with upcoming meetups to exclude',
-        );
+        
 
         // Filter out profiles with upcoming meetups
         final List<Map<String, dynamic>> profilesWithoutMeetups =
@@ -583,9 +577,7 @@ class SupabaseService {
                 )
                 .toList();
 
-        print(
-          'Found ${profilesWithoutMeetups.length} profiles after excluding those with upcoming meetups',
-        );
+        
 
         // Sort by distance (closest first)
         profilesWithoutMeetups.sort((a, b) {
@@ -594,13 +586,11 @@ class SupabaseService {
           return distanceA.compareTo(distanceB);
         });
 
-        print(
-          'Returning ${profilesWithoutMeetups.length} profiles after distance filtering',
-        );
+        
 
         return profilesWithoutMeetups;
       } catch (e) {
-        print('Error getting profiles to swipe: $e');
+        
         throw e;
       }
     });
@@ -637,7 +627,7 @@ class SupabaseService {
 
         // If user has no location, return empty list
         if (userLat == null || userLng == null) {
-          print('User has no location data');
+          
           return [];
         }
 
@@ -655,7 +645,7 @@ class SupabaseService {
                 )
                 : [];
 
-        print('User has already swiped on ${swipedProfileIds.length} profiles');
+        
 
         // Get ALL profiles that match gender preference and age criteria
         // We'll handle distance filtering client-side
@@ -691,9 +681,7 @@ class SupabaseService {
         // Execute the query to get all matching profiles
         final matchingProfiles = await query;
 
-        print(
-          'Found ${matchingProfiles.length} matching profiles before distance filtering',
-        );
+        
 
         // Convert to list of maps and filter by distance
         final List<Map<String, dynamic>> filteredProfiles = [];
@@ -721,16 +709,14 @@ class SupabaseService {
           }
         }
 
-        print(
-          'Found ${filteredProfiles.length} profiles after distance filtering',
-        );
+        
 
         // Get current time for upcoming meetup check
         final localNow = DateTime.now();
         // Convert to UTC for database comparison
         final utcNow = localNow.toUtc();
-        print('Current time (local): ${localNow.toIso8601String()}');
-        print('Current time (UTC): ${utcNow.toIso8601String()}');
+        
+        
 
         // Get all profiles with upcoming meetups to exclude them
         final profilesWithMeetups = await _supabaseClient
@@ -748,9 +734,7 @@ class SupabaseService {
           profileIdsWithMeetups.add(match['user_id2']);
         }
 
-        print(
-          'Found ${profileIdsWithMeetups.length} profiles with upcoming meetups to exclude',
-        );
+        
 
         // Filter out profiles with upcoming meetups
         final List<Map<String, dynamic>> profilesWithoutMeetups =
@@ -760,9 +744,7 @@ class SupabaseService {
                 )
                 .toList();
 
-        print(
-          'Found ${profilesWithoutMeetups.length} profiles after excluding those with upcoming meetups',
-        );
+        
 
         // Sort by score (descending) first, then by distance (ascending)
         profilesWithoutMeetups.sort((a, b) {
@@ -780,7 +762,7 @@ class SupabaseService {
           return distanceA.compareTo(distanceB);
         });
 
-        print('Profiles sorted by score (DESC) and then by distance');
+        
 
         // Apply pagination
         final int endIndex = offset + limit;
@@ -797,13 +779,11 @@ class SupabaseService {
           );
         }
 
-        print(
-          'Returning ${paginatedProfiles.length} profiles after pagination (offset: $offset, limit: $limit)',
-        );
+        
 
         return paginatedProfiles;
       } catch (e) {
-        print('Error getting profiles to swipe in batch: $e');
+        
         throw e;
       }
     });
@@ -846,9 +826,7 @@ class SupabaseService {
       // Check if the swiped profile has an uncancelled upcoming meetup
       final hasUpcomingMeetup = await hasProfileUpcomingMeetup(swipedProfileId);
       if (hasUpcomingMeetup) {
-        print(
-          'Profile $swipedProfileId has an upcoming meetup, skipping swipe',
-        );
+        
         return;
       }
 
@@ -857,9 +835,9 @@ class SupabaseService {
         'swiped_profile_id': swipedProfileId,
         'liked': liked,
       });
-      print('Swipe recorded: ${liked ? 'liked' : 'disliked'} $swipedProfileId');
+      
     } catch (e) {
-      print('Error recording swipe: $e');
+      
       throw e;
     }
   }
@@ -870,14 +848,14 @@ class SupabaseService {
       if (currentUser == null) return false;
 
       try {
-        print('Checking if profile $profileId has an upcoming meetup');
+        
 
         // Get current time in local timezone
         final localNow = DateTime.now();
         // Convert to UTC for database comparison
         final utcNow = localNow.toUtc();
-        print('Current time (local): ${localNow.toIso8601String()}');
-        print('Current time (UTC): ${utcNow.toIso8601String()}');
+        
+        
 
         // Query matches where the profile is either user1 or user2
         // and there's a scheduled meetup in the future
@@ -893,13 +871,11 @@ class SupabaseService {
             .limit(1);
 
         final hasUpcomingMeetup = matches.isNotEmpty;
-        print(
-          'Profile $profileId ${hasUpcomingMeetup ? "has" : "does not have"} an upcoming meetup',
-        );
+        
 
         return hasUpcomingMeetup;
       } catch (e) {
-        print('Error checking if profile has upcoming meetup: $e');
+        
         return false;
       }
     });
@@ -910,7 +886,7 @@ class SupabaseService {
     if (currentUser == null) return false;
 
     try {
-      print('Checking for match with profile ID: $swipedProfileId');
+      
 
       // Check if the other user has already liked the current user
       final result = await _supabaseClient
@@ -921,9 +897,7 @@ class SupabaseService {
           .eq('liked', true)
           .limit(1);
 
-      print(
-        'Match check result: ${result.isNotEmpty ? "MATCH FOUND!" : "No match found"}',
-      );
+      
 
       // If there's a match, create a match record
       if (result.isNotEmpty) {
@@ -932,7 +906,7 @@ class SupabaseService {
 
       return result.isNotEmpty;
     } catch (e) {
-      print('Error checking for match: $e');
+      
       return false;
     }
   }
@@ -942,9 +916,7 @@ class SupabaseService {
     if (currentUser == null) return;
 
     try {
-      print(
-        'Creating match record between ${currentUser!.id} and $matchedProfileId',
-      );
+      
 
       // Check if match already exists to avoid duplicates
       final existingMatch = await _supabaseClient
@@ -955,9 +927,7 @@ class SupabaseService {
           .limit(1);
 
       if (existingMatch.isNotEmpty) {
-        print(
-          'Match already exists between ${currentUser!.id} and $matchedProfileId',
-        );
+        
         return;
       }
 
@@ -973,12 +943,12 @@ class SupabaseService {
             'seen_by_user2': false, // Other user hasn't seen it yet
           }).select();
 
-      print('Match created with response: $response');
+      
 
       // Add a small delay to ensure the real-time event is processed
       await Future.delayed(const Duration(milliseconds: 100));
     } catch (e) {
-      print('Error creating match record: $e');
+      
     }
   }
 
@@ -990,9 +960,7 @@ class SupabaseService {
       throw Exception('User must be logged in to subscribe to matches');
     }
 
-    print(
-      'Setting up real-time subscription for matches for user: ${currentUser!.id}',
-    );
+    
 
     // Create a channel for matches
     final channel = _supabaseClient.channel('matches_channel');
@@ -1003,8 +971,8 @@ class SupabaseService {
       schema: 'public',
       table: 'matches',
       callback: (payload) async {
-        print('New match event received: ${payload.toString()}');
-        print('New match record: ${payload.newRecord}');
+        
+        
 
         // Check if this match involves the current user
         final Map<String, dynamic> newRecord = payload.newRecord;
@@ -1013,43 +981,37 @@ class SupabaseService {
         if (newRecord['user_id1'] == currentUser!.id) {
           // Current user is user1
           matchedProfileId = newRecord['user_id2'];
-          print('Current user is user1, matched with user2: $matchedProfileId');
+          
         } else if (newRecord['user_id2'] == currentUser!.id) {
           // Current user is user2
           matchedProfileId = newRecord['user_id1'];
-          print('Current user is user2, matched with user1: $matchedProfileId');
+          
         } else {
-          print('Match does not involve current user: ${currentUser!.id}');
+          
           return;
         }
 
         if (matchedProfileId != null) {
-          print('Fetching profile details for matched user: $matchedProfileId');
+          
           final matchedProfile = await getProfileById(matchedProfileId);
 
           if (matchedProfile != null) {
-            print(
-              'Calling onMatchCreated callback with profile: ${matchedProfile['name']}',
-            );
+            
             onMatchCreated({'match': newRecord, 'profile': matchedProfile});
           } else {
-            print(
-              'Failed to fetch profile for matched user: $matchedProfileId',
-            );
+            
           }
         }
       },
     );
 
     // Subscribe to the channel
-    print('Subscribing to matches channel');
+    
     channel.subscribe((status, error) {
       if (error != null) {
-        print('Error subscribing to matches channel: $error');
+        
       } else {
-        print(
-          'Successfully subscribed to matches channel with status: $status',
-        );
+        
       }
     });
 
@@ -1070,7 +1032,7 @@ class SupabaseService {
 
         return result;
       } catch (e) {
-        print('Error getting profile by ID: $e');
+        
         return null;
       }
     });
@@ -1082,7 +1044,7 @@ class SupabaseService {
       if (currentUser == null) return [];
 
       try {
-        print('Checking for unseen matches for user: ${currentUser!.id}');
+        
 
         // Get matches where current user is user1 and hasn't seen the match
         final matchesAsUser1 = await _supabaseClient
@@ -1091,7 +1053,7 @@ class SupabaseService {
             .eq('user_id1', currentUser!.id)
             .eq('seen_by_user1', false);
 
-        print('Unseen matches as user1: ${matchesAsUser1.length}');
+        
 
         // Get matches where current user is user2 and hasn't seen the match
         final matchesAsUser2 = await _supabaseClient
@@ -1100,7 +1062,7 @@ class SupabaseService {
             .eq('user_id2', currentUser!.id)
             .eq('seen_by_user2', false);
 
-        print('Unseen matches as user2: ${matchesAsUser2.length}');
+        
 
         // Combine the results
         final List<Map<String, dynamic>> unseenMatches = [];
@@ -1125,10 +1087,10 @@ class SupabaseService {
           }
         }
 
-        print('Total unseen matches found: ${unseenMatches.length}');
+        
         return unseenMatches;
       } catch (e) {
-        print('Error getting unseen matches: $e');
+        
         return [];
       }
     });
@@ -1140,7 +1102,7 @@ class SupabaseService {
       if (currentUser == null) return;
 
       try {
-        print('Marking match as seen: $matchId for user: ${currentUser!.id}');
+        
 
         // Check if the current user is user1 or user2 in this match
         final match =
@@ -1151,32 +1113,32 @@ class SupabaseService {
                 .limit(1)
                 .single();
 
-        print('Found match to mark as seen: $match');
+        
 
         // Determine which field to update based on the user's role
         String fieldToUpdate;
         if (match['user_id1'] == currentUser!.id) {
           // Current user is user1
           fieldToUpdate = 'seen_by_user1';
-          print('Current user is user1, updating $fieldToUpdate to true');
+          
         } else if (match['user_id2'] == currentUser!.id) {
           // Current user is user2
           fieldToUpdate = 'seen_by_user2';
-          print('Current user is user2, updating $fieldToUpdate to true');
+          
         } else {
-          print('Current user is neither user1 nor user2 in this match');
+          
           return;
         }
 
         // Check if it's already marked as seen
         if (match[fieldToUpdate] == true) {
-          print('Match is already marked as seen for this user');
+          
           return;
         }
 
         // WORKAROUND: Since direct updates are blocked by RLS, we'll try a different approach
         try {
-          print('Using alternative approach to mark match as seen');
+          
 
           // Try to insert a record in the match_seen table using upsert to handle duplicates
           await _supabaseClient.from('match_seen').upsert({
@@ -1185,7 +1147,7 @@ class SupabaseService {
             'seen_at': DateTime.now().toIso8601String(),
           }, onConflict: 'match_id,user_id');
 
-          print('Successfully recorded match as seen in match_seen table');
+          
 
           // For backward compatibility, still try to update the match
           // but don't throw an error if it fails
@@ -1194,21 +1156,19 @@ class SupabaseService {
                 .from('matches')
                 .update({fieldToUpdate: true})
                 .eq('id', matchId);
-            print('Successfully updated match record directly');
+            
           } catch (e) {
-            print(
-              'Could not update match directly due to RLS, but match_seen record was created: $e',
-            );
+            
             // This is expected to fail with RLS, so we don't rethrow
           }
 
           return;
         } catch (e) {
-          print('Error with alternative approach: $e');
+          
           throw e;
         }
       } catch (e) {
-        print('Error marking match as seen: $e');
+        
         throw e;
       }
     });
@@ -1249,7 +1209,7 @@ class SupabaseService {
 
         return false;
       } catch (e) {
-        print('Error checking if match has been seen: $e');
+        
         return false;
       }
     });
@@ -1265,9 +1225,9 @@ class SupabaseService {
           .delete()
           .eq('user_id', currentUser!.id);
 
-      print('All swipes cleared for current user');
+      
     } catch (e) {
-      print('Error clearing swipes: $e');
+      
       throw e;
     }
   }
@@ -1278,7 +1238,7 @@ class SupabaseService {
       if (currentUser == null) return [];
 
       try {
-        print('Manually checking for matches for user: ${currentUser!.id}');
+        
 
         // Get profiles that the current user has liked
         final likedProfiles = await _supabaseClient
@@ -1287,7 +1247,7 @@ class SupabaseService {
             .eq('user_id', currentUser!.id)
             .eq('liked', true);
 
-        print('User has liked ${likedProfiles.length} profiles');
+        
 
         if (likedProfiles.isEmpty) return [];
 
@@ -1312,7 +1272,7 @@ class SupabaseService {
           mutualLikes.addAll(likes);
         }
 
-        print('Found ${mutualLikes.length} mutual likes');
+        
 
         // Create match records for any mutual likes that don't already have a match
         final List<Map<String, dynamic>> newMatches = [];
@@ -1331,7 +1291,7 @@ class SupabaseService {
               .limit(1);
 
           if (existingMatch.isEmpty) {
-            print('Creating new match for mutual like with user: $otherUserId');
+            
 
             // Create a new match record - use .select() to return the inserted record
             // This ensures the real-time subscription is triggered
@@ -1357,16 +1317,14 @@ class SupabaseService {
               }
             }
           } else {
-            print(
-              'Match already exists for mutual like with user: $otherUserId',
-            );
+            
           }
         }
 
-        print('Created ${newMatches.length} new match records');
+        
         return newMatches;
       } catch (e) {
-        print('Error in manual match check: $e');
+        
         return [];
       }
     });
@@ -1380,9 +1338,7 @@ class SupabaseService {
       if (currentUser == null) return [];
 
       try {
-        print(
-          'Getting match record between ${currentUser!.id} and $otherUserId',
-        );
+        
 
         // Get the match record
         final matchRecords = await _supabaseClient
@@ -1393,18 +1349,16 @@ class SupabaseService {
             .limit(1);
 
         if (matchRecords.isEmpty) {
-          print(
-            'No match record found between ${currentUser!.id} and $otherUserId',
-          );
+          
           return [];
         }
 
-        print('Found match record: ${matchRecords.first}');
+        
 
         // Get the profile of the other user
         final otherProfile = await getProfileById(otherUserId);
         if (otherProfile == null) {
-          print('Could not find profile for user: $otherUserId');
+          
           return [];
         }
 
@@ -1413,7 +1367,7 @@ class SupabaseService {
           {'match': matchRecords.first, 'profile': otherProfile},
         ];
       } catch (e) {
-        print('Error getting match with profile: $e');
+        
         return [];
       }
     });
@@ -1425,7 +1379,7 @@ class SupabaseService {
       if (currentUser == null) return null;
 
       try {
-        print('Creating a test match for debugging real-time events');
+        
 
         // First, find a random profile to match with
         final profiles = await _supabaseClient
@@ -1435,13 +1389,13 @@ class SupabaseService {
             .limit(5);
 
         if (profiles.isEmpty) {
-          print('No profiles found to create a test match');
+          
           return null;
         }
 
         // Pick the first profile
         final testMatchUserId = profiles[0]['id'];
-        print('Creating test match with user: $testMatchUserId');
+        
 
         // Create a match record - use .select() to return the inserted record
         final response =
@@ -1453,7 +1407,7 @@ class SupabaseService {
               'seen_by_user2': false,
             }).select();
 
-        print('Test match created with response: $response');
+        
 
         if (response.isNotEmpty) {
           return response[0];
@@ -1461,7 +1415,7 @@ class SupabaseService {
 
         return null;
       } catch (e) {
-        print('Error creating test match: $e');
+        
         return null;
       }
     });
@@ -1473,7 +1427,7 @@ class SupabaseService {
       if (currentUser == null) return false;
 
       try {
-        print('Checking if current user has liked profile: $profileId');
+        
 
         // Query the swipes table to see if the current user has liked this profile
         final result = await _supabaseClient
@@ -1485,13 +1439,11 @@ class SupabaseService {
             .limit(1);
 
         final hasLiked = result.isNotEmpty;
-        print(
-          'Current user ${hasLiked ? "has" : "has not"} liked profile: $profileId',
-        );
+        
 
         return hasLiked;
       } catch (e) {
-        print('Error checking if user has liked profile: $e');
+        
         return false;
       }
     });
@@ -1505,14 +1457,14 @@ class SupabaseService {
       if (currentUser == null) return null;
 
       try {
-        print('Finding suitable place for meetup with user: $otherUserId');
+        
 
         // Get both user profiles to access their locations and availability
         final currentUserProfile = await getUserProfile();
         final otherUserProfile = await getProfileById(otherUserId);
 
         if (currentUserProfile == null || otherUserProfile == null) {
-          print('Could not retrieve user profiles');
+          
           return null;
         }
 
@@ -1526,7 +1478,7 @@ class SupabaseService {
             currentUserLng == null ||
             otherUserLat == null ||
             otherUserLng == null) {
-          print('One or both users do not have location data');
+          
           return null;
         }
 
@@ -1534,7 +1486,7 @@ class SupabaseService {
         final midpointLat = (currentUserLat + otherUserLat) / 2;
         final midpointLng = (currentUserLng + otherUserLng) / 2;
 
-        print('Midpoint location: $midpointLat, $midpointLng');
+        
 
         // Get user availabilities
         final Map<String, dynamic>? currentUserAvailability =
@@ -1543,9 +1495,7 @@ class SupabaseService {
             otherUserProfile['availability'];
 
         if (currentUserAvailability == null || otherUserAvailability == null) {
-          print(
-            'One or both users do not have availability data, using defaults',
-          );
+          
           // Continue anyway, as we'll use default availability
         }
 
@@ -1555,7 +1505,7 @@ class SupabaseService {
 
         // Try with increasingly larger search radius until we find at least one place
         while (places.isEmpty && searchRadius <= 100) {
-          print('Searching for places within $searchRadius km of midpoint');
+          
 
           // Query places table to find places near the midpoint
           places = await _supabaseClient.rpc(
@@ -1574,12 +1524,10 @@ class SupabaseService {
         }
 
         if (places.isEmpty) {
-          print(
-            'No places found near midpoint even with expanded search radius',
-          );
+          
 
           // As a fallback, try to find places near the current user
-          print('Trying to find places near the current user as fallback');
+          
           places = await _supabaseClient.rpc(
             'find_places_near_point',
             params: {
@@ -1591,15 +1539,13 @@ class SupabaseService {
           );
 
           if (places.isEmpty) {
-            print('No places found near current user either');
+            
             return null;
           }
 
-          print('Found ${places.length} places near current user as fallback');
+          
         } else {
-          print(
-            'Found ${places.length} places near midpoint with radius $searchRadius km',
-          );
+          
         }
 
         // Get current date and time in local timezone
@@ -1609,9 +1555,7 @@ class SupabaseService {
         final earliestMeetupTime = now.add(const Duration(hours: 20));
         final latestMeetupTime = now.add(const Duration(hours: 72));
 
-        print(
-          'Valid meetup time range (local): ${earliestMeetupTime.toIso8601String()} to ${latestMeetupTime.toIso8601String()}',
-        );
+        
 
         // Find a suitable place and time based on availability
         List<Map<String, dynamic>> placesWithAvailability = [];
@@ -1620,7 +1564,7 @@ class SupabaseService {
           final Map<String, dynamic>? placeAvailability = place['availability'];
 
           if (placeAvailability == null) {
-            print('Place has no availability data: ${place['name']}, skipping');
+            
             continue;
           }
 
@@ -1635,9 +1579,7 @@ class SupabaseService {
 
           if (meetupTime != null) {
             // meetupTime is already in UTC format from _findSuitableTimeSlotWithinRange
-            print(
-              'Found suitable place and time: ${place['name']} at ${meetupTime.toIso8601String()} (UTC)',
-            );
+            
             placesWithAvailability.add({
               'place': place,
               'meetup_time': meetupTime.toIso8601String(),
@@ -1675,10 +1617,10 @@ class SupabaseService {
           };
         }
 
-        print('No places with suitable availability found');
+        
         return null;
       } catch (e) {
-        print('Error finding suitable place for meetup: $e');
+        
         return null;
       }
     });
@@ -1718,17 +1660,13 @@ class SupabaseService {
         // If a day is missing in availability, consider the user unavailable that day
         if (user1Availability != null &&
             !user1Availability.containsKey(dayOfWeek)) {
-          print(
-            'User 1 has no availability defined for $dayOfWeek, skipping this day',
-          );
+          
           continue;
         }
 
         if (user2Availability != null &&
             !user2Availability.containsKey(dayOfWeek)) {
-          print(
-            'User 2 has no availability defined for $dayOfWeek, skipping this day',
-          );
+          
           continue;
         }
 
@@ -1822,18 +1760,14 @@ class SupabaseService {
             minute,
           );
 
-          print(
-            'Created proposed meetup time (local): ${localProposedTime.toIso8601String()}',
-          );
+          
 
           // Check if the proposed time is within our valid range
           if (localProposedTime.isAfter(earliestTime) &&
               localProposedTime.isBefore(latestTime)) {
             // Convert to UTC for persistence
             final utcProposedTime = localProposedTime.toUtc();
-            print(
-              'Converted to UTC for persistence: ${utcProposedTime.toIso8601String()}',
-            );
+            
 
             return utcProposedTime;
           }
@@ -1842,7 +1776,7 @@ class SupabaseService {
 
       return null;
     } catch (e) {
-      print('Error finding suitable time slot within range: $e');
+      
       return null;
     }
   }
@@ -1906,15 +1840,15 @@ class SupabaseService {
   static Future<bool> scheduleMeetup(String matchId) async {
     return _safeApiCall(() async {
       if (currentUser == null) {
-        print('SCHEDULE MEETUP: No current user, returning false');
+        
         return false;
       }
 
       try {
-        print('SCHEDULE MEETUP: Scheduling meetup for match: $matchId');
+        
 
         // Get the match record
-        print('SCHEDULE MEETUP: Fetching match record');
+        
         final match =
             await _supabaseClient
                 .from('matches')
@@ -1923,35 +1857,27 @@ class SupabaseService {
                 .limit(1)
                 .single();
 
-        print('SCHEDULE MEETUP: Match record fetched: ${match.toString()}');
+        
 
         // Determine the other user ID
         String otherUserId;
         if (match['user_id1'] == currentUser!.id) {
           otherUserId = match['user_id2'];
-          print(
-            'SCHEDULE MEETUP: Current user is user1, other user is user2: $otherUserId',
-          );
+          
         } else if (match['user_id2'] == currentUser!.id) {
           otherUserId = match['user_id1'];
-          print(
-            'SCHEDULE MEETUP: Current user is user2, other user is user1: $otherUserId',
-          );
+          
         } else {
-          print('SCHEDULE MEETUP: Current user is not part of this match');
+          
           return false;
         }
 
         // Find a suitable place and time
-        print(
-          'SCHEDULE MEETUP: Finding suitable place and time for meetup with user: $otherUserId',
-        );
+        
         final meetupDetails = await findSuitablePlaceForMeetup(otherUserId);
 
         if (meetupDetails == null) {
-          print(
-            'SCHEDULE MEETUP: Could not find suitable place and time for meetup, marking match as cancelled',
-          );
+          
 
           // Mark the match as cancelled due to no suitable place found
           // Set cancelled_by to null to indicate system cancellation
@@ -1963,21 +1889,15 @@ class SupabaseService {
               })
               .eq('id', matchId);
 
-          print(
-            'SCHEDULE MEETUP: Match marked as cancelled due to no suitable place',
-          );
+          
           return false;
         }
 
-        print(
-          'SCHEDULE MEETUP: Found suitable place: ${meetupDetails['place']['name']}',
-        );
-        print(
-          'SCHEDULE MEETUP: Scheduled time: ${meetupDetails['meetup_time']}',
-        );
+        
+        
 
         // Update the match record with place and time
-        print('SCHEDULE MEETUP: Updating match record with place and time');
+        
         final updateData = {
           'place_id': meetupDetails['place']['id'],
           'meetup_time': meetupDetails['meetup_time'],
@@ -1985,17 +1905,17 @@ class SupabaseService {
           'cancelled_by': null,
           'is_meetup_passed': false,
         };
-        print('SCHEDULE MEETUP: Update data: $updateData');
+        
 
         await _supabaseClient
             .from('matches')
             .update(updateData)
             .eq('id', matchId);
 
-        print('SCHEDULE MEETUP: Meetup scheduled successfully');
+        
 
         // Verify the update was successful
-        print('SCHEDULE MEETUP: Verifying update');
+        
         final updatedMatch =
             await _supabaseClient
                 .from('matches')
@@ -2004,21 +1924,15 @@ class SupabaseService {
                 .limit(1)
                 .single();
 
-        print('SCHEDULE MEETUP: Updated match: ${updatedMatch.toString()}');
-        print(
-          'SCHEDULE MEETUP: Verification - place_id: ${updatedMatch['place_id']}',
-        );
-        print(
-          'SCHEDULE MEETUP: Verification - meetup_time: ${updatedMatch['meetup_time']}',
-        );
+        
+        
+        
 
         // Check if both place_id and meetup_time were properly updated
         if (updatedMatch['place_id'] == null ||
             updatedMatch['meetup_time'] == null) {
-          print(
-            'SCHEDULE MEETUP: ERROR - Database update failed. place_id or meetup_time is null',
-          );
-          print('SCHEDULE MEETUP: Attempting to update the match record again');
+          
+          
 
           // Try one more time with a direct update
           try {
@@ -2041,23 +1955,21 @@ class SupabaseService {
 
             if (secondCheck['place_id'] == null ||
                 secondCheck['meetup_time'] == null) {
-              print('SCHEDULE MEETUP: ERROR - Second update attempt failed');
+              
               return false;
             }
 
-            print('SCHEDULE MEETUP: Second update attempt successful');
+            
             return true;
           } catch (e) {
-            print(
-              'SCHEDULE MEETUP: ERROR - Second update attempt threw exception: $e',
-            );
+            
             return false;
           }
         }
 
         return true;
       } catch (e) {
-        print('SCHEDULE MEETUP: Error scheduling meetup: $e');
+        
         return false;
       }
     });
@@ -2067,39 +1979,29 @@ class SupabaseService {
   static Future<Map<String, dynamic>?> getUpcomingMeetup() async {
     return _safeApiCall(() async {
       if (currentUser == null) {
-        print(
-          'MEETUP SERVICE: getUpcomingMeetup: No current user, returning null',
-        );
+        
         return null;
       }
 
       try {
-        print(
-          'MEETUP SERVICE: Checking for upcoming meetups for user: ${currentUser!.id}',
-        );
+        
 
         // Get current time in local timezone
         final localNow = DateTime.now();
         // Convert to UTC for database comparison
         final utcNow = localNow.toUtc();
-        print(
-          'MEETUP SERVICE: Current time (local): ${localNow.toIso8601String()}',
-        );
-        print(
-          'MEETUP SERVICE: Current time (UTC): ${utcNow.toIso8601String()}',
-        );
+        
+        
 
         // Query matches where current user is either user1 or user2
         // and there's a scheduled meetup in the future
         // and the meetup is not cancelled
-        print(
-          'MEETUP SERVICE: Querying database for upcoming meetups with SQL conditions:',
-        );
-        print('  - user_id1 or user_id2 = ${currentUser!.id}');
-        print('  - meetup_time is not null');
-        print('  - is_cancelled = false');
-        print('  - is_meetup_passed = false');
-        print('  - meetup_time > ${utcNow.toIso8601String()} (UTC)');
+        
+        
+        
+        
+        
+        
 
         final matches = await _supabaseClient
             .from('matches')
@@ -2112,69 +2014,59 @@ class SupabaseService {
             .order('meetup_time', ascending: true)
             .limit(1);
 
-        print(
-          'MEETUP SERVICE: Query completed, found ${matches.length} matches',
-        );
+        
 
         if (matches.isEmpty) {
-          print('MEETUP SERVICE: No upcoming meetups found');
+          
           return null;
         }
 
         final match = matches[0];
-        print('MEETUP SERVICE: Found upcoming meetup: ${match['id']}');
-        print(
-          'MEETUP SERVICE: Meetup details: place_id=${match['place_id']}, time=${match['meetup_time']}',
-        );
-        print(
-          'MEETUP SERVICE: Place details: ${match['places'] != null ? 'found' : 'not found'}',
-        );
+        
+        
+        
 
         // Print more details about the match
-        print('MEETUP SERVICE: Full match record:');
-        print('  id: ${match['id']}');
-        print('  user_id1: ${match['user_id1']}');
-        print('  user_id2: ${match['user_id2']}');
-        print('  created_at: ${match['created_at']}');
-        print('  place_id: ${match['place_id']}');
-        print('  meetup_time: ${match['meetup_time']}');
-        print('  is_cancelled: ${match['is_cancelled']}');
-        print('  is_meetup_passed: ${match['is_meetup_passed']}');
+        
+        
+        
+        
+        
+        
+        
+        
+        
 
         // Determine the other user ID
         String otherUserId;
         if (match['user_id1'] == currentUser!.id) {
           otherUserId = match['user_id2'];
-          print(
-            'MEETUP SERVICE: Current user is user1, other user is user2: $otherUserId',
-          );
+          
         } else {
           otherUserId = match['user_id1'];
-          print(
-            'MEETUP SERVICE: Current user is user2, other user is user1: $otherUserId',
-          );
+          
         }
 
         // Get the other user's profile
-        print('MEETUP SERVICE: Fetching other user profile: $otherUserId');
+        
         final otherUserProfile = await getProfileById(otherUserId);
         if (otherUserProfile == null) {
-          print('MEETUP SERVICE: Could not retrieve other user profile');
+          
           return null;
         }
-        print('MEETUP SERVICE: Other user profile retrieved successfully');
+        
 
         // Get current user's profile
-        print('MEETUP SERVICE: Fetching current user profile');
+        
         final currentUserProfile = await getUserProfile();
         if (currentUserProfile == null) {
-          print('MEETUP SERVICE: Could not retrieve current user profile');
+          
           return null;
         }
-        print('MEETUP SERVICE: Current user profile retrieved successfully');
+        
 
         // Return meetup details
-        print('MEETUP SERVICE: Returning complete meetup details');
+        
         return {
           'match': match,
           'place': match['places'],
@@ -2182,7 +2074,7 @@ class SupabaseService {
           'current_user': currentUserProfile,
         };
       } catch (e) {
-        print('MEETUP SERVICE: Error getting upcoming meetup: $e');
+        
         return null;
       }
     });
@@ -2194,16 +2086,14 @@ class SupabaseService {
       if (currentUser == null) return false;
 
       try {
-        print(
-          'Checking and updating meetup status for user: ${currentUser!.id}',
-        );
+        
 
         // Get current time in local timezone
         final localNow = DateTime.now();
         // Convert to UTC for database comparison
         final utcNow = localNow.toUtc();
-        print('Current time (local): ${localNow.toIso8601String()}');
-        print('Current time (UTC): ${utcNow.toIso8601String()}');
+        
+        
 
         // Query matches where current user is either user1 or user2
         // and there's a scheduled meetup in the past (more than 1 hour ago)
@@ -2221,11 +2111,11 @@ class SupabaseService {
             );
 
         if (matches.isEmpty) {
-          print('No passed meetups found that need updating');
+          
           return false;
         }
 
-        print('Found ${matches.length} passed meetups to update');
+        
 
         // Update all passed meetups
         for (final match in matches) {
@@ -2234,12 +2124,12 @@ class SupabaseService {
               .update({'is_meetup_passed': true})
               .eq('id', match['id']);
 
-          print('Updated meetup status to passed: ${match['id']}');
+          
         }
 
         return true;
       } catch (e) {
-        print('Error checking and updating meetup status: $e');
+        
         return false;
       }
     });
@@ -2251,7 +2141,7 @@ class SupabaseService {
       if (currentUser == null) return false;
 
       try {
-        print('Cancelling meetup for match: $matchId');
+        
 
         // Update the match record
         await _supabaseClient
@@ -2279,16 +2169,16 @@ class SupabaseService {
               .update({'score': newScore})
               .eq('id', currentUser!.id);
 
-          print('User score decreased to $newScore');
+          
         } catch (e) {
-          print('Error updating user score: $e');
+          
           // Continue with cancellation even if score update fails
         }
 
-        print('Meetup cancelled successfully');
+        
         return true;
       } catch (e) {
-        print('Error cancelling meetup: $e');
+        
         return false;
       }
     });
@@ -2301,7 +2191,7 @@ class SupabaseService {
       if (currentUser == null) return [];
 
       try {
-        print('DEBUG: Directly querying matches with meetups');
+        
 
         // Query all matches for the current user that have a place_id (indicating a meetup)
         final matches = await _supabaseClient
@@ -2310,23 +2200,21 @@ class SupabaseService {
             .or('user_id1.eq.${currentUser!.id},user_id2.eq.${currentUser!.id}')
             .not('place_id', 'is', null);
 
-        print('DEBUG: Found ${matches.length} matches with place_id');
+        
 
         // Print details of each match
         for (final match in matches) {
-          print('DEBUG: Match ${match['id']}:');
-          print('  place_id: ${match['place_id']}');
-          print('  meetup_time: ${match['meetup_time']}');
-          print('  is_cancelled: ${match['is_cancelled']}');
-          print('  is_meetup_passed: ${match['is_meetup_passed']}');
-          print(
-            '  place: ${match['places'] != null ? match['places']['name'] : 'null'}',
-          );
+          
+          
+          
+          
+          
+          
         }
 
         return matches;
       } catch (e) {
-        print('DEBUG: Error querying matches with meetups: $e');
+        
         return [];
       }
     });
@@ -2338,36 +2226,34 @@ class SupabaseService {
       if (currentUser == null) return false;
 
       try {
-        print('DEBUG: Creating a test meetup directly');
+        
 
         // First, create a test match
         final testMatch = await createTestMatch();
         if (testMatch == null) {
-          print('DEBUG: Could not create test match');
+          
           return false;
         }
 
-        print('DEBUG: Created test match: ${testMatch['id']}');
+        
 
         // Get all places
         final places = await _supabaseClient.from('places').select().limit(1);
         if (places.isEmpty) {
-          print('DEBUG: No places found in the database');
+          
           return false;
         }
 
         final place = places[0];
-        print('DEBUG: Using place: ${place['name']}');
+        
 
         // Create a meetup time (1 day from now) in local timezone
         final localMeetupTime = DateTime.now().add(const Duration(days: 1));
         // Convert to UTC for persistence
         final utcMeetupTime = localMeetupTime.toUtc();
         final meetupTimeString = utcMeetupTime.toIso8601String();
-        print(
-          'DEBUG: Using meetup time (local): ${localMeetupTime.toIso8601String()}',
-        );
-        print('DEBUG: Converted to UTC for persistence: $meetupTimeString');
+        
+        
 
         // Update the match with place and time
         await _supabaseClient
@@ -2381,10 +2267,10 @@ class SupabaseService {
             })
             .eq('id', testMatch['id']);
 
-        print('DEBUG: Test meetup created successfully');
+        
         return true;
       } catch (e) {
-        print('DEBUG: Error creating test meetup: $e');
+        
         return false;
       }
     });
@@ -2396,7 +2282,7 @@ class SupabaseService {
       if (currentUser == null) return false;
 
       try {
-        print('DEBUG: Testing direct update of match: $matchId');
+        
 
         // First, get the current match data
         final match =
@@ -2407,30 +2293,28 @@ class SupabaseService {
                 .limit(1)
                 .single();
 
-        print('DEBUG: Current match data: $match');
+        
 
         // Get a place to use
         final places = await _supabaseClient.from('places').select().limit(1);
         if (places.isEmpty) {
-          print('DEBUG: No places found in the database');
+          
           return false;
         }
 
         final place = places[0];
-        print('DEBUG: Using place: ${place['name']} (${place['id']})');
+        
 
         // Create a meetup time (1 day from now) in local timezone
         final localMeetupTime = DateTime.now().add(const Duration(days: 1));
         // Convert to UTC for persistence
         final utcMeetupTime = localMeetupTime.toUtc();
         final meetupTimeString = utcMeetupTime.toIso8601String();
-        print(
-          'DEBUG: Using meetup time (local): ${localMeetupTime.toIso8601String()}',
-        );
-        print('DEBUG: Converted to UTC for persistence: $meetupTimeString');
+        
+        
 
         // Try updating just the meetup_time first
-        print('DEBUG: Attempting to update only meetup_time');
+        
         await _supabaseClient
             .from('matches')
             .update({'meetup_time': meetupTimeString})
@@ -2445,10 +2329,10 @@ class SupabaseService {
                 .limit(1)
                 .single();
 
-        print('DEBUG: After meetup_time update: ${checkTime['meetup_time']}');
+        
 
         // Now try updating just the place_id
-        print('DEBUG: Attempting to update only place_id');
+        
         await _supabaseClient
             .from('matches')
             .update({'place_id': place['id']})
@@ -2463,11 +2347,11 @@ class SupabaseService {
                 .limit(1)
                 .single();
 
-        print('DEBUG: After place_id update: ${checkPlace['place_id']}');
+        
 
         return true;
       } catch (e) {
-        print('DEBUG: Error testing direct match update: $e');
+        
         return false;
       }
     });

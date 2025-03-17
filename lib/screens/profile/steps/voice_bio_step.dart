@@ -58,23 +58,21 @@ class _VoiceBioStepState extends State<VoiceBioStep> {
     // Listen to player state changes
     _playerSubscription = _audioPlayer.playerStateStream.listen((state) {
       if (mounted) {
-        print(
-          'Audio player state changed: ${state.processingState}, playing: ${state.playing}',
-        );
+        
 
         if (state.processingState == ProcessingState.completed) {
           // When playback completes, update UI
           setState(() {
             _isPlaying = false;
             _rebuildCounter++; // Force UI rebuild
-            print("Audio playback completed, isPlaying set to false");
+            
           });
         } else if (state.playing && !_isPlaying) {
           // Ensure UI reflects playing state if somehow out of sync
           setState(() {
             _isPlaying = true;
             _rebuildCounter++; // Force UI rebuild
-            print("Audio is playing, isPlaying set to true");
+            
           });
         } else if (!state.playing &&
             _isPlaying &&
@@ -84,7 +82,7 @@ class _VoiceBioStepState extends State<VoiceBioStep> {
           setState(() {
             _isPlaying = false;
             _rebuildCounter++; // Force UI rebuild
-            print("Audio stopped playing, isPlaying set to false");
+            
           });
         }
       }
@@ -94,10 +92,10 @@ class _VoiceBioStepState extends State<VoiceBioStep> {
     _audioPlayer.playbackEventStream.listen(
       (event) {
         // Handle playback events if needed
-        print('Audio playback event: $event');
+        
       },
       onError: (Object e, StackTrace st) {
-        print('Audio player error: $e');
+        
         if (mounted) {
           setState(() {
             _isPlaying = false;
@@ -128,7 +126,7 @@ class _VoiceBioStepState extends State<VoiceBioStep> {
     _audioRecorder.dispose();
     _audioPlayer.dispose();
 
-    print("Voice bio step disposed, all audio resources cleaned up");
+    
     super.dispose();
   }
 
@@ -231,18 +229,18 @@ class _VoiceBioStepState extends State<VoiceBioStep> {
     try {
       if (_isPlaying) {
         // Stop playback if already playing
-        print("Attempting to stop audio playback");
+        
 
         // First update UI to provide immediate feedback
         setState(() {
           _isPlaying = false;
           _rebuildCounter++; // Force UI rebuild
-          print("UI updated to show stopped state");
+          
         });
 
         // Then stop the player
         await _audioPlayer.stop();
-        print("Audio player stopped");
+        
 
         return;
       }
@@ -257,7 +255,7 @@ class _VoiceBioStepState extends State<VoiceBioStep> {
       setState(() {
         _isPlaying = true;
         _rebuildCounter++; // Force UI rebuild
-        print("Starting audio playback, isPlaying set to true");
+        
       });
 
       // Set file and play
@@ -269,7 +267,7 @@ class _VoiceBioStepState extends State<VoiceBioStep> {
       setState(() {
         _isPlaying = false;
         _errorMessage = 'Failed to play recording: ${e.toString()}';
-        print("Error playing audio: ${e.toString()}");
+        
       });
     }
   }

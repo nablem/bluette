@@ -96,9 +96,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Listen to player state changes
     _playerSubscription = _audioPlayer.playerStateStream.listen((state) {
       if (mounted) {
-        print(
-          'Audio player state changed: ${state.processingState}, playing: ${state.playing}',
-        );
+        
 
         if (state.processingState == ProcessingState.completed) {
           // When playback completes, update UI
@@ -109,7 +107,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             state.playing == false &&
             _isPlayingAudio) {
           // Handle error or unexpected state
-          print('Audio player in idle state but UI shows playing');
+          
           setState(() {
             _isPlayingAudio = false;
             _errorMessage = 'Audio playback stopped unexpectedly';
@@ -124,7 +122,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // Handle playback events if needed
       },
       onError: (Object e, StackTrace st) {
-        print('Audio player error: $e');
+        
         if (mounted) {
           setState(() {
             _isPlayingAudio = false;
@@ -161,13 +159,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final profile = await SupabaseService.getUserProfile();
 
       // Debug print to check profile data
-      print('Loaded profile: $profile');
+      
 
       // Check if we need to refresh the URLs
       if (profile != null) {
         // Refresh profile picture URL if it exists but might be expired
         if (profile['profile_picture_url'] != null) {
-          print('Refreshing profile picture URL');
+          
           final newImageUrl = await SupabaseService.refreshProfilePictureUrl();
           if (newImageUrl != null &&
               newImageUrl != profile['profile_picture_url']) {
@@ -185,7 +183,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
         // Refresh voice bio URL if it exists but might be expired
         if (profile['voice_bio_url'] != null) {
-          print('Refreshing voice bio URL');
+          
           final newAudioUrl = await SupabaseService.refreshVoiceBioUrl();
           if (newAudioUrl != null && newAudioUrl != profile['voice_bio_url']) {
             profile['voice_bio_url'] = newAudioUrl;
@@ -193,11 +191,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
 
         if (profile['profile_picture_url'] != null) {
-          print('Profile picture URL: ${profile['profile_picture_url']}');
+          
         }
 
         if (profile['voice_bio_url'] != null) {
-          print('Voice bio URL: ${profile['voice_bio_url']}');
+          
         }
       }
 
@@ -398,7 +396,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _playVoiceBio() async {
     if (_userProfile == null || _userProfile!['voice_bio_url'] == null) {
-      print('No voice bio URL available');
+      
       setState(() {
         _errorMessage = 'No voice bio available';
       });
@@ -419,16 +417,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
       }
     } catch (e) {
-      print('Error refreshing voice bio URL: $e');
+      
       // Continue with the existing URL
     }
 
-    print('Attempting to play voice bio: $audioUrl');
+    
 
     try {
       if (_isPlayingAudio) {
         // Stop playback if already playing
-        print('Stopping current playback');
+        
         await _audioPlayer.stop();
         setState(() {
           _isPlayingAudio = false;
@@ -445,14 +443,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       // Try a more direct approach for Android
       try {
-        print('Setting audio URL: $audioUrl');
+        
         await _audioPlayer.setAudioSource(AudioSource.uri(Uri.parse(audioUrl)));
 
-        print('Starting audio playback');
+        
         await _audioPlayer.play();
-        print('Playback started successfully');
+        
       } catch (audioError) {
-        print('Error with AudioSource approach: $audioError');
+        
 
         // Fallback to simpler approach
         await _audioPlayer.stop();
@@ -460,7 +458,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         await _audioPlayer.play();
       }
     } catch (e) {
-      print('Error playing voice bio: $e');
+      
       setState(() {
         _isPlayingAudio = false;
         _errorMessage = 'Failed to play voice bio: ${e.toString()}';
@@ -545,7 +543,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     bool hasValidUrl =
         profilePictureUrl != null && profilePictureUrl.isNotEmpty;
 
-    print('Building profile picture with URL: $profilePictureUrl');
+    
 
     return GestureDetector(
       onTap: _editProfilePicture,
@@ -573,7 +571,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           fit: BoxFit.cover,
                           key: ValueKey('profile-$profilePictureUrl'),
                           errorBuilder: (context, error, stackTrace) {
-                            print('Error loading profile image: $error');
+                            
                             _refreshProfilePictureUrlOnError();
                             return const Icon(
                               Icons.person,
@@ -626,7 +624,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
       }
     } catch (e) {
-      print('Error refreshing profile picture URL on error: $e');
+      
     }
   }
 

@@ -94,9 +94,7 @@ class _ExploreScreenState extends State<ExploreScreen>
     );
 
     // Load shown match IDs from storage
-    _loadShownMatchIds().then((_) {
-      print('Shown match IDs loaded, count: ${_shownMatchIds.length}');
-    });
+    _loadShownMatchIds().then((_) {});
 
     // Check for upcoming meetups
     _checkForUpcomingMeetup();
@@ -169,7 +167,6 @@ class _ExploreScreenState extends State<ExploreScreen>
 
     // Unsubscribe from real-time match events
     if (_matchSubscription != null) {
-      print('Disposing match subscription');
       Supabase.instance.client.removeChannel(_matchSubscription!);
       _matchSubscription = null;
     }
@@ -184,8 +181,6 @@ class _ExploreScreenState extends State<ExploreScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // When app resumes from background, check if location permission was granted
     if (state == AppLifecycleState.resumed) {
-      print('App resumed from background, checking location and subscriptions');
-
       // Always check location status when app resumes
       _checkLocationStatusChange();
 
@@ -199,11 +194,10 @@ class _ExploreScreenState extends State<ExploreScreen>
 
       // Ensure we have an active match subscription
       if (_matchSubscription == null) {
-        print('Match subscription is null on resume, resubscribing');
         _subscribeToMatches();
       } else {
         // For safety, resubscribe to ensure we have a fresh connection
-        print('Refreshing match subscription on app resume');
+
         _subscribeToMatches();
       }
 
@@ -214,9 +208,7 @@ class _ExploreScreenState extends State<ExploreScreen>
           _checkForUnseenMatches();
         }
       });
-    } else if (state == AppLifecycleState.paused) {
-      print('App paused, current subscription will be maintained');
-    }
+    } else if (state == AppLifecycleState.paused) {}
   }
 
   // Subscribe to real-time match events
@@ -224,21 +216,15 @@ class _ExploreScreenState extends State<ExploreScreen>
     try {
       // Clean up any existing subscription first
       if (_matchSubscription != null) {
-        print('Removing existing match subscription before creating a new one');
         Supabase.instance.client.removeChannel(_matchSubscription!);
         _matchSubscription = null;
       }
 
-      print('Setting up real-time subscription for matches');
-
       // Enable real-time for the client
       try {
-        print('Ensuring realtime is connected');
         // ignore: invalid_use_of_internal_member
         Supabase.instance.client.realtime.connect();
-      } catch (e) {
-        print('Error connecting realtime: $e');
-      }
+      } catch (e) {}
 
       final channel = Supabase.instance.client.channel('matches_channel');
 
@@ -248,7 +234,6 @@ class _ExploreScreenState extends State<ExploreScreen>
         schema: 'public',
         table: 'matches',
         callback: (payload) async {
-          print('New match INSERT event received: ${payload.toString()}');
           _handleMatchEvent(payload.newRecord);
         },
       );
@@ -259,7 +244,6 @@ class _ExploreScreenState extends State<ExploreScreen>
         schema: 'public',
         table: 'matches',
         callback: (payload) async {
-          print('Match UPDATE event received: ${payload.toString()}');
           _handleMatchEvent(payload.newRecord);
         },
       );
@@ -267,22 +251,12 @@ class _ExploreScreenState extends State<ExploreScreen>
       // Subscribe to the channel
       _matchSubscription = channel.subscribe((status, error) {
         if (error != null) {
-          print('Error subscribing to matches channel: $error');
-        } else {
-          print(
-            'Successfully subscribed to matches channel with status: $status',
-          );
-        }
+        } else {}
       });
-
-      print('Real-time subscription set up successfully');
     } catch (e) {
-      print('Error subscribing to matches: $e');
-
       // Try to resubscribe after a delay if there was an error
       Future.delayed(const Duration(seconds: 5), () {
         if (mounted && _matchSubscription == null) {
-          print('Attempting to resubscribe to matches after error');
           _subscribeToMatches();
         }
       });
@@ -296,7 +270,6 @@ class _ExploreScreenState extends State<ExploreScreen>
     // Check if this match involves the current user
     final currentUserId = SupabaseService.currentUser?.id;
     if (currentUserId == null) {
-      print('Current user ID is null, cannot process match event');
       return;
     }
 
@@ -304,13 +277,10 @@ class _ExploreScreenState extends State<ExploreScreen>
     if (matchRecord['user_id1'] == currentUserId) {
       // Current user is user1
       matchedProfileId = matchRecord['user_id2'];
-      print('Current user is user1, matched with user2: $matchedProfileId');
     } else if (matchRecord['user_id2'] == currentUserId) {
       // Current user is user2
       matchedProfileId = matchRecord['user_id1'];
-      print('Current user is user2, matched with user1: $matchedProfileId');
     } else {
-      print('Match does not involve current user: $currentUserId');
       return;
     }
 
@@ -319,16 +289,12 @@ class _ExploreScreenState extends State<ExploreScreen>
 
     // First check if it's in our local shown matches set
     if (_shownMatchIds.contains(matchId)) {
-      print('Match $matchId is in local shown matches set, skipping dialog');
       return;
     }
 
     // Then double-check with the server to be sure
     final hasBeenSeen = await SupabaseService.hasMatchBeenSeen(matchId);
     if (hasBeenSeen) {
-      print(
-        'Match $matchId has been seen according to server, adding to local set',
-      );
       await _addToShownMatchIds(matchId);
       return;
     }
@@ -338,14 +304,11 @@ class _ExploreScreenState extends State<ExploreScreen>
 
     // Get the profile of the matched user
     if (matchedProfileId != null) {
-      print('Fetching profile details for matched user: $matchedProfileId');
       final matchedProfile = await SupabaseService.getProfileById(
         matchedProfileId,
       );
 
       if (matchedProfile != null && mounted) {
-        print('Showing match dialog for: ${matchedProfile['name']}');
-
         // Add match_id to the profile data for the dialog
         final profileWithMatchId = Map<String, dynamic>.from(matchedProfile);
         profileWithMatchId['match_id'] = matchId;
@@ -354,29 +317,21 @@ class _ExploreScreenState extends State<ExploreScreen>
         _showEnhancedMatchDialog(profileWithMatchId);
 
         // Mark the match as seen
-        SupabaseService.markMatchAsSeen(matchId).then((_) {
-          print('Marked match as seen: $matchId');
-        });
-      } else {
-        print('Failed to fetch profile for matched user: $matchedProfileId');
-      }
+        SupabaseService.markMatchAsSeen(matchId).then((_) {});
+      } else {}
     }
   }
 
   // Check for unseen matches when returning to the screen
   Future<void> _checkForUnseenMatches() async {
     try {
-      print('Checking for unseen matches on app return/startup');
-
       // Set flag to false to avoid checking multiple times
       _needToCheckUnseenMatches = false;
 
       // First, manually check for matches that might have been missed
-      print('Running manual match check first');
+
       final manualMatches = await SupabaseService.checkForManualMatches();
       if (manualMatches.isNotEmpty) {
-        print('Found ${manualMatches.length} new matches from manual check');
-
         // Find the first match that hasn't been shown yet
         Map<String, dynamic>? matchToShow;
         for (final match in manualMatches) {
@@ -384,16 +339,12 @@ class _ExploreScreenState extends State<ExploreScreen>
 
           // First check if it's in our local shown matches set
           if (_shownMatchIds.contains(matchId)) {
-            print('Match $matchId is in local shown matches set, skipping');
             continue;
           }
 
           // Then double-check with the server to be sure
           final hasBeenSeen = await SupabaseService.hasMatchBeenSeen(matchId);
           if (hasBeenSeen) {
-            print(
-              'Match $matchId has been seen according to server, adding to local set',
-            );
             await _addToShownMatchIds(matchId);
             continue;
           }
@@ -405,8 +356,6 @@ class _ExploreScreenState extends State<ExploreScreen>
         }
 
         if (matchToShow != null) {
-          print('Showing match dialog for: ${matchToShow['profile']['name']}');
-
           // Add match_id to the profile data for the dialog
           final matchProfile = Map<String, dynamic>.from(
             matchToShow['profile'],
@@ -417,26 +366,17 @@ class _ExploreScreenState extends State<ExploreScreen>
 
           // Mark the match as seen
           await SupabaseService.markMatchAsSeen(matchToShow['match']['id']);
-          print('Marked match as seen: ${matchToShow['match']['id']}');
 
           // If there are more manual matches, set the flag to check again later
           if (manualMatches.length > 1) {
-            print(
-              'There are more manual matches (${manualMatches.length - 1}), will check again later',
-            );
             _needToCheckUnseenMatches = true;
             return;
           }
-        } else {
-          print('All manual matches have already been shown');
-        }
-      } else {
-        print('No new matches found from manual check');
-      }
+        } else {}
+      } else {}
 
       // Then check for any unseen matches
       final unseenMatches = await SupabaseService.getUnseenMatches();
-      print('Found ${unseenMatches.length} unseen matches');
 
       if (unseenMatches.isNotEmpty && mounted) {
         // Find the first unseen match that hasn't been shown yet
@@ -446,16 +386,12 @@ class _ExploreScreenState extends State<ExploreScreen>
 
           // First check if it's in our local shown matches set
           if (_shownMatchIds.contains(matchId)) {
-            print('Match $matchId is in local shown matches set, skipping');
             continue;
           }
 
           // Then double-check with the server to be sure
           final hasBeenSeen = await SupabaseService.hasMatchBeenSeen(matchId);
           if (hasBeenSeen) {
-            print(
-              'Match $matchId has been seen according to server, adding to local set',
-            );
             await _addToShownMatchIds(matchId);
             continue;
           }
@@ -467,8 +403,6 @@ class _ExploreScreenState extends State<ExploreScreen>
         }
 
         if (matchToShow != null) {
-          print('Showing match dialog for: ${matchToShow['profile']['name']}');
-
           // Add match_id to the profile data for the dialog
           final matchProfile = Map<String, dynamic>.from(
             matchToShow['profile'],
@@ -479,30 +413,18 @@ class _ExploreScreenState extends State<ExploreScreen>
 
           // Mark the match as seen
           await SupabaseService.markMatchAsSeen(matchToShow['match']['id']);
-          print('Marked match as seen: ${matchToShow['match']['id']}');
 
           // If there are more unseen matches, set the flag to check again later
           if (unseenMatches.length > 1) {
-            print(
-              'There are more unseen matches (${unseenMatches.length - 1}), will check again later',
-            );
             _needToCheckUnseenMatches = true;
           }
-        } else {
-          print('All unseen matches have already been shown');
-        }
-      } else {
-        print('No unseen matches found');
-      }
-    } catch (e) {
-      print('Error checking for unseen matches: $e');
-    }
+        } else {}
+      } else {}
+    } catch (e) {}
   }
 
   // Check if location permission status has changed
   Future<void> _checkLocationStatusChange() async {
-    print('Checking if location status has changed...');
-
     final locationStatus = await LocationService.checkLocationStatus();
     final isPermissionGranted =
         locationStatus == LocationStatus.permissionGranted;
@@ -592,14 +514,12 @@ class _ExploreScreenState extends State<ExploreScreen>
       });
 
       // Log the error for debugging
-      print('Error in _checkLocationPermissionAndInitialize: ${e.toString()}');
     }
   }
 
   Future<void> _initializeExplore() async {
     // Ensure location permission is granted before initializing
     if (!_isLocationPermissionGranted) {
-      print('Cannot initialize explore: location permission not granted');
       await _checkLocationStatusAndInitialize();
       return;
     }
@@ -618,9 +538,7 @@ class _ExploreScreenState extends State<ExploreScreen>
 
       // Update user location
       final locationUpdated = await LocationService.updateUserLocation();
-      if (!locationUpdated) {
-        print('Could not update location, but continuing to fetch profiles');
-      }
+      if (!locationUpdated) {}
 
       // Get user profile to initialize filter
       _userProfile = await SupabaseService.getUserProfile();
@@ -665,10 +583,6 @@ class _ExploreScreenState extends State<ExploreScreen>
 
       // Log if no profiles were found
       if (profiles.isEmpty) {
-        print(
-          'No profiles found in first batch. Will attempt to fetch more if available.',
-        );
-
         // If we didn't get any profiles but there might be more, try to fetch more
         if (_hasMoreProfiles) {
           // Use a short delay to avoid state conflicts
@@ -678,7 +592,6 @@ class _ExploreScreenState extends State<ExploreScreen>
             }
           });
         } else {
-          print('No more profiles available to fetch.');
           _hasMoreProfiles = false;
         }
       }
@@ -690,7 +603,6 @@ class _ExploreScreenState extends State<ExploreScreen>
         });
 
         // Log the error for debugging
-        print('Error in _initializeExplore: ${e.toString()}');
       }
     }
   }
@@ -712,10 +624,6 @@ class _ExploreScreenState extends State<ExploreScreen>
 
       // Save filter preferences to user profile
       if (_userProfile != null) {
-        print(
-          'Saving filter preferences: min_age=${filter.minAge}, max_age=${filter.maxAge}, max_distance=${filter.maxDistance}',
-        );
-
         await SupabaseService.updateUserData({
           'min_age': filter.minAge,
           'max_age': filter.maxAge,
@@ -760,7 +668,6 @@ class _ExploreScreenState extends State<ExploreScreen>
         });
 
         // Log the error for debugging
-        print('Error in _applyFilter: ${e.toString()}');
       }
     }
   }
@@ -797,20 +704,13 @@ class _ExploreScreenState extends State<ExploreScreen>
 
         // If liked, check for a match
         if (liked) {
-          print(
-            'Checking for match after liking profile: ${swipedProfile['name']}',
-          );
-
           // Add a small delay to allow the database to process the swipe
           // This helps ensure the real-time subscription has time to detect the match
           await Future.delayed(const Duration(milliseconds: 300));
 
           final isMatch = await SupabaseService.checkForMatch(swipedProfileId);
-          print('Match check result: ${isMatch ? "MATCH!" : "No match"}');
 
           if (isMatch && mounted) {
-            print('Showing match dialog for: ${swipedProfile['name']}');
-
             // Get the match record to get the match ID
             final matchRecords = await SupabaseService.getMatchWithProfile(
               swipedProfileId,
@@ -820,16 +720,12 @@ class _ExploreScreenState extends State<ExploreScreen>
 
               // Check if this match has already been shown
               if (_shownMatchIds.contains(matchId)) {
-                print('Match $matchId has already been shown, skipping dialog');
               } else {
                 // Double-check with the server to be sure
                 final hasBeenSeen = await SupabaseService.hasMatchBeenSeen(
                   matchId,
                 );
                 if (hasBeenSeen) {
-                  print(
-                    'Match $matchId has been seen according to server, adding to local set',
-                  );
                   await _addToShownMatchIds(matchId);
                 } else {
                   // Add match_id to the profile data for the dialog
@@ -853,7 +749,7 @@ class _ExploreScreenState extends State<ExploreScreen>
           } else {
             // Even if no immediate match was found, check for any unseen matches
             // This ensures we catch matches from previous sessions or offline periods
-            print('No immediate match found, checking for any unseen matches');
+
             _needToCheckUnseenMatches = true;
             _checkForUnseenMatches();
           }
@@ -872,9 +768,6 @@ class _ExploreScreenState extends State<ExploreScreen>
             );
             if (index >= 0) {
               _profiles.removeAt(index);
-              print(
-                'Removed profile at index $index, ${_profiles.length} profiles remaining',
-              );
             }
           });
         }
@@ -885,8 +778,6 @@ class _ExploreScreenState extends State<ExploreScreen>
           await _fetchMoreProfiles();
         }
       } catch (e) {
-        print('Error handling swipe: ${e.toString()}');
-
         // Set error message for network errors
         if (e is SocketException && mounted) {
           setState(() {
@@ -927,7 +818,6 @@ class _ExploreScreenState extends State<ExploreScreen>
 
     // Ensure location permission is granted before fetching profiles
     if (!_isLocationPermissionGranted) {
-      print('Cannot fetch profiles: location permission not granted');
       return;
     }
 
@@ -948,9 +838,6 @@ class _ExploreScreenState extends State<ExploreScreen>
         throw SocketException('No internet connection');
       }
 
-      print(
-        'Fetching more profiles (batch offset: $_currentBatchOffset, limit: $_batchSize)...',
-      );
       final newProfiles = await SupabaseService.getProfilesToSwipeBatch(
         minAge: _currentFilter.minAge,
         maxAge: _currentFilter.maxAge,
@@ -975,7 +862,7 @@ class _ExploreScreenState extends State<ExploreScreen>
             _isLoading = false;
 
             // Add new profiles directly since there are never duplicates
-            print('Adding ${newProfiles.length} new profiles to the stack');
+
             _profiles.addAll(newProfiles);
 
             // Update batch parameters
@@ -984,7 +871,6 @@ class _ExploreScreenState extends State<ExploreScreen>
             _hasMoreProfiles = newProfiles.length == _batchSize;
           });
         } else {
-          print('No more profiles available to fetch');
           // No profiles returned means we've reached the end
           setState(() {
             _hasMoreProfiles = false;
@@ -993,8 +879,6 @@ class _ExploreScreenState extends State<ExploreScreen>
         }
       }
     } catch (e) {
-      print('Error fetching more profiles: ${e.toString()}');
-
       // Only set the error message when there's a network error AND there are no profiles
       // This ensures we don't show error messages when we have profiles to display
       if (mounted) {
@@ -1144,64 +1028,32 @@ class _ExploreScreenState extends State<ExploreScreen>
 
                         // Get the match ID before closing the dialog
                         final matchId = matchedProfile['match_id'];
-                        print(
-                          'MATCH DEBUG: All right button clicked, matchId: $matchId',
-                        );
 
                         // Close the dialog immediately
                         Navigator.of(context).pop();
 
                         // Mark the match as seen if we have a match ID (do this after dialog is closed)
                         if (matchId != null) {
-                          print(
-                            'MATCH DEBUG: Marking match as seen from dialog button: $matchId',
-                          );
-
                           // Use a microtask to ensure this runs after the dialog is closed
                           Future.microtask(() async {
                             try {
-                              print(
-                                'MATCH DEBUG: Starting microtask for match: $matchId',
-                              );
                               await SupabaseService.markMatchAsSeen(matchId);
-                              print(
-                                'MATCH DEBUG: Successfully marked match as seen: $matchId',
-                              );
 
                               // Verify the match was marked as seen
                               await _verifyMatchSeenStatus(matchId);
 
                               // Schedule a meetup for this match
-                              print(
-                                'MATCH DEBUG: Scheduling meetup for match: $matchId',
-                              );
+
                               final success =
                                   await SupabaseService.scheduleMeetup(matchId);
 
-                              print(
-                                'MATCH DEBUG: Meetup scheduling result: $success',
-                              );
-
                               if (success) {
-                                print(
-                                  'MATCH DEBUG: Meetup scheduled successfully',
-                                );
-
                                 // Check for upcoming meetups to display the meetup view
-                                print(
-                                  'MATCH DEBUG: Checking for upcoming meetups after successful scheduling',
-                                );
-                                await _checkForUpcomingMeetup();
 
-                                print(
-                                  'MATCH DEBUG: After _checkForUpcomingMeetup, _upcomingMeetup is ${_upcomingMeetup != null ? "not null" : "null"}',
-                                );
+                                await _checkForUpcomingMeetup();
 
                                 // Force a UI refresh to ensure the meetup view is shown
                                 if (mounted) {
-                                  print(
-                                    'MATCH DEBUG: Forcing UI refresh to show meetup view',
-                                  );
                                   setState(() {
                                     // This empty setState will trigger a rebuild
                                   });
@@ -1211,19 +1063,9 @@ class _ExploreScreenState extends State<ExploreScreen>
                                     const Duration(milliseconds: 1000),
                                     () {
                                       if (mounted) {
-                                        print(
-                                          'MATCH DEBUG: Performing delayed meetup check',
-                                        );
                                         _checkForUpcomingMeetup().then((_) {
-                                          print(
-                                            'MATCH DEBUG: After delayed check, upcomingMeetup is ${_upcomingMeetup != null ? "not null" : "null"}',
-                                          );
-
                                           // Force another UI refresh
                                           if (mounted) {
-                                            print(
-                                              'MATCH DEBUG: Forcing another UI refresh',
-                                            );
                                             setState(() {});
                                           }
                                         });
@@ -1233,7 +1075,6 @@ class _ExploreScreenState extends State<ExploreScreen>
                                 }
                               } else {
                                 // Meetup scheduling failed
-                                print('MATCH DEBUG: Meetup scheduling failed');
 
                                 if (mounted) {
                                   // Message to user removed
@@ -1250,10 +1091,6 @@ class _ExploreScreenState extends State<ExploreScreen>
                                 }
                               }
                             } catch (error) {
-                              print(
-                                'Error marking match as seen or scheduling meetup: $error',
-                              );
-
                               // Show a toast to inform the user
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
@@ -1268,11 +1105,7 @@ class _ExploreScreenState extends State<ExploreScreen>
                               }
                             }
                           });
-                        } else {
-                          print(
-                            'No match_id found in profile data, cannot mark as seen',
-                          );
-                        }
+                        } else {}
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
@@ -1365,10 +1198,7 @@ class _ExploreScreenState extends State<ExploreScreen>
       }
     });
 
-    print('Building ExploreScreen with $profileCount profiles');
-    if (hasUpcomingMeetup) {
-      print('Building ExploreScreen with upcoming meetup');
-    }
+    if (hasUpcomingMeetup) {}
 
     return Scaffold(
       // Removing the app bar for a cleaner, more immersive experience
@@ -1412,13 +1242,6 @@ class _ExploreScreenState extends State<ExploreScreen>
 
                                 final liked =
                                     direction == CardSwiperDirection.right;
-
-                                // Get a reference to the swiped profile
-                                final swipedProfile = _profiles[previousIndex];
-                                print(
-                                  'Swiped profile: ${swipedProfile['name']} (${liked ? 'liked' : 'disliked'})',
-                                );
-
                                 // First allow the swipe animation to complete
                                 // Then handle the swipe logic in the background
                                 Future.microtask(() {
@@ -1440,14 +1263,9 @@ class _ExploreScreenState extends State<ExploreScreen>
                               isLoop: false, // Prevent looping
                               cardBuilder: (context, index, _, __) {
                                 if (index < 0 || index >= _profiles.length) {
-                                  print(
-                                    'Invalid index: $index, profile count: ${_profiles.length}',
-                                  );
                                   return const SizedBox.shrink();
                                 }
-                                print(
-                                  'Building card for profile at index $index: ${_profiles[index]['name']}',
-                                );
+
                                 return ProfileCard(
                                   key: ValueKey(_profiles[index]['id']),
                                   profile: _profiles[index],
@@ -1798,13 +1616,8 @@ class _ExploreScreenState extends State<ExploreScreen>
             maxDistance: userProfile['max_distance'] ?? 5,
           );
         });
-        print(
-          'Reloaded user profile with filter values: min_age=${_currentFilter.minAge}, max_age=${_currentFilter.maxAge}, max_distance=${_currentFilter.maxDistance}',
-        );
       }
-    } catch (e) {
-      print('Error reloading user profile: ${e.toString()}');
-    }
+    } catch (e) {}
   }
 
   // Start periodic check for subscription health
@@ -1815,25 +1628,19 @@ class _ExploreScreenState extends State<ExploreScreen>
     // Check subscription every 30 seconds
     _subscriptionCheckTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) {
-        print('Performing periodic subscription health check');
-
         // If subscription is null, resubscribe
         if (_matchSubscription == null) {
-          print('Match subscription is null, resubscribing');
           _subscribeToMatches();
         } else {
           // For safety, always resubscribe periodically to ensure a fresh connection
-          print('Refreshing match subscription for reliability');
+
           _subscribeToMatches();
         }
 
         // Only check for unseen matches if the flag is set
         if (_needToCheckUnseenMatches) {
-          print('Checking for unseen matches from periodic check');
           _checkForUnseenMatches();
-        } else {
-          print('Skipping unseen matches check from periodic check');
-        }
+        } else {}
       }
     });
   }
@@ -1848,11 +1655,7 @@ class _ExploreScreenState extends State<ExploreScreen>
       setState(() {
         _shownMatchIds = Set<String>.from(storedIds);
       });
-
-      print('Loaded ${_shownMatchIds.length} shown match IDs from storage');
-    } catch (e) {
-      print('Error loading shown match IDs: $e');
-    }
+    } catch (e) {}
   }
 
   // Save shown match IDs to SharedPreferences
@@ -1860,10 +1663,7 @@ class _ExploreScreenState extends State<ExploreScreen>
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setStringList(_shownMatchIdsKey, _shownMatchIds.toList());
-      print('Saved ${_shownMatchIds.length} shown match IDs to storage');
-    } catch (e) {
-      print('Error saving shown match IDs: $e');
-    }
+    } catch (e) {}
   }
 
   // Add a match ID to the shown matches set and save to storage
@@ -1873,7 +1673,6 @@ class _ExploreScreenState extends State<ExploreScreen>
         _shownMatchIds.add(matchId);
       });
       await _saveShownMatchIds();
-      print('Added match ID $matchId to shown matches and saved to storage');
     }
   }
 
@@ -1883,10 +1682,7 @@ class _ExploreScreenState extends State<ExploreScreen>
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_shownMatchIdsKey);
-      print('Cleared shown matches from storage');
-    } catch (e) {
-      print('Error clearing shown match IDs: $e');
-    }
+    } catch (e) {}
   }
 
   // Add a helper method to verify the match seen status
@@ -1895,71 +1691,32 @@ class _ExploreScreenState extends State<ExploreScreen>
       // Use the hasMatchBeenSeen method to check if the match has been seen
       final hasBeenSeen = await SupabaseService.hasMatchBeenSeen(matchId);
 
-      print('Verification - Match ID: $matchId, Has been seen: $hasBeenSeen');
-
       if (!hasBeenSeen) {
-        print(
-          'WARNING: Match was not properly marked as seen after verification',
-        );
-
         // Try to mark it as seen again
-        print('Attempting to mark match as seen again');
+
         await SupabaseService.markMatchAsSeen(matchId);
-      } else {
-        print('Verification successful: Match was properly marked as seen');
-      }
-    } catch (e) {
-      print('Error verifying match seen status: $e');
-    }
+      } else {}
+    } catch (e) {}
   }
 
   // Add method to check for upcoming meetups
   Future<void> _checkForUpcomingMeetup() async {
     if (_isCheckingMeetup) {
-      print('MEETUP DEBUG: Already checking for meetups, skipping');
       return;
     }
 
-    print('MEETUP DEBUG: Starting to check for upcoming meetups');
     setState(() {
       _isCheckingMeetup = true;
     });
 
     try {
-      print('MEETUP DEBUG: Checking for upcoming meetups');
-
-      // First check if any meetups have passed and update their status
-      print('MEETUP DEBUG: Checking and updating passed meetup status');
-      final statusUpdated = await SupabaseService.checkAndUpdateMeetupStatus();
-      print(
-        'MEETUP DEBUG: Meetup status update result: ${statusUpdated ? "updated some meetups" : "no updates needed"}',
-      );
-
       // Then get the upcoming meetup if any
-      print('MEETUP DEBUG: Fetching upcoming meetup from Supabase');
+
       final meetup = await SupabaseService.getUpcomingMeetup();
-      print(
-        'MEETUP DEBUG: Upcoming meetup fetch result: ${meetup != null ? "found meetup" : "no meetup found"}',
-      );
 
       if (mounted) {
-        print(
-          'MEETUP DEBUG: Setting upcoming meetup state: ${meetup != null ? "not null" : "null"}',
-        );
-
         // Print more details about the meetup if it exists
-        if (meetup != null) {
-          print('MEETUP DEBUG: Meetup details:');
-          print('  Match ID: ${meetup['match']['id']}');
-          print('  Place ID: ${meetup['match']['place_id']}');
-          print('  Meetup Time: ${meetup['match']['meetup_time']}');
-          print(
-            '  Place: ${meetup['place'] != null ? meetup['place']['name'] : "null"}',
-          );
-          print(
-            '  Other User: ${meetup['other_user'] != null ? meetup['other_user']['name'] : "null"}',
-          );
-        }
+        if (meetup != null) {}
 
         setState(() {
           _upcomingMeetup = meetup;
@@ -1967,38 +1724,16 @@ class _ExploreScreenState extends State<ExploreScreen>
         });
 
         if (meetup != null) {
-          print(
-            'MEETUP DEBUG: Found upcoming meetup: ${meetup['match']['id']}',
-          );
-          print(
-            'MEETUP DEBUG: Meetup details: place_id=${meetup['match']['place_id']}, time=${meetup['match']['meetup_time']}',
-          );
-
           // If we have an upcoming meetup, schedule a meetup for it if not already scheduled
           if (meetup['match']['place_id'] == null ||
               meetup['match']['meetup_time'] == null) {
-            print('MEETUP DEBUG: Meetup needs scheduling, scheduling now...');
-            final success = await SupabaseService.scheduleMeetup(
-              meetup['match']['id'],
-            );
-            print('MEETUP DEBUG: Scheduling result: $success');
-
             // Refresh the meetup details
-            print('MEETUP DEBUG: Refreshing meetup details after scheduling');
+
             _checkForUpcomingMeetup();
-          } else {
-            print(
-              'MEETUP DEBUG: Meetup already has place and time, no need to schedule',
-            );
-          }
-        } else {
-          print('MEETUP DEBUG: No upcoming meetups found');
-        }
-      } else {
-        print('MEETUP DEBUG: Widget not mounted, skipping state update');
-      }
+          } else {}
+        } else {}
+      } else {}
     } catch (e) {
-      print('MEETUP DEBUG: Error checking for upcoming meetups: $e');
       if (mounted) {
         setState(() {
           _isCheckingMeetup = false;
@@ -2024,8 +1759,6 @@ class _ExploreScreenState extends State<ExploreScreen>
   // Add method to cancel a meetup
   Future<void> _cancelMeetup(String matchId) async {
     try {
-      print('Cancelling meetup: $matchId');
-
       // Cancel the meetup
       final success = await SupabaseService.cancelMeetup(matchId);
 
@@ -2041,7 +1774,6 @@ class _ExploreScreenState extends State<ExploreScreen>
         // Error message removed
       }
     } catch (e) {
-      print('Error cancelling meetup: $e');
       // Error snackbar removed
     }
   }
@@ -2050,8 +1782,6 @@ class _ExploreScreenState extends State<ExploreScreen>
   Future<void> _ensureLocationPermission() async {
     // If we already have permission, no need to check again
     if (_isLocationPermissionGranted) return;
-
-    print('Ensuring location permission before showing swipe stack');
 
     // Check current location status
     final locationStatus = await LocationService.checkLocationStatus();

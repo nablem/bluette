@@ -82,7 +82,7 @@ class _ProfileCardState extends State<ProfileCard> {
         });
       }
     } catch (e) {
-      print('Error loading audio: $e');
+      
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -105,7 +105,7 @@ class _ProfileCardState extends State<ProfileCard> {
       await _audioPlayer.seek(Duration.zero);
       await _audioPlayer.play();
     } catch (e) {
-      print('Error playing audio: $e');
+      
     }
   }
 
@@ -113,7 +113,7 @@ class _ProfileCardState extends State<ProfileCard> {
     try {
       await _audioPlayer.pause();
     } catch (e) {
-      print('Error pausing audio: $e');
+      
     }
   }
 

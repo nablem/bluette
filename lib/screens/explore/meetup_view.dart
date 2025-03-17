@@ -371,9 +371,7 @@ class _MeetupViewState extends State<MeetupView> with TickerProviderStateMixin {
                               if (await canLaunchUrl(url)) {
                                 await launchUrl(url);
                               } else {
-                                print(
-                                  'Could not launch ${place['google_maps_uri']}',
-                                );
+                                
                               }
                             },
                             icon: const Icon(Icons.map),

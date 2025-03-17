@@ -20,7 +20,7 @@ class LocationService {
       serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         // Location services are not enabled
-        print('Location services are disabled.');
+        
         return LocationStatus.serviceDisabled;
       }
 
@@ -31,23 +31,21 @@ class LocationService {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
           // Permission denied
-          print('Location permissions are denied');
+          
           return LocationStatus.permissionDenied;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
         // Permissions are denied forever, handle appropriately
-        print(
-          'Location permissions are permanently denied, we cannot request permissions.',
-        );
+        
         return LocationStatus.permissionDeniedForever;
       }
 
       // When we reach here, permissions are granted
       return LocationStatus.permissionGranted;
     } catch (e) {
-      print('Error requesting location permission: $e');
+      
       return LocationStatus.error;
     }
   }
@@ -58,26 +56,26 @@ class LocationService {
       // Test if location services are enabled
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        print('Location services are disabled.');
+        
         return LocationStatus.serviceDisabled;
       }
 
       // Check location permission
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
-        print('Location permissions are denied');
+        
         return LocationStatus.permissionDenied;
       }
 
       if (permission == LocationPermission.deniedForever) {
-        print('Location permissions are permanently denied');
+        
         return LocationStatus.permissionDeniedForever;
       }
 
       // When we reach here, permissions are granted
       return LocationStatus.permissionGranted;
     } catch (e) {
-      print('Error checking location status: $e');
+      
       return LocationStatus.error;
     }
   }
@@ -92,11 +90,11 @@ class LocationService {
           desiredAccuracy: LocationAccuracy.high,
         );
       } else {
-        print('Cannot get position, location status: $status');
+        
         return null;
       }
     } catch (e) {
-      print('Error getting current position: $e');
+      
       return null;
     }
   }
@@ -110,12 +108,12 @@ class LocationService {
           position.latitude,
           position.longitude,
         );
-        print('Location updated: ${position.latitude}, ${position.longitude}');
+        
         return true;
       }
       return false;
     } catch (e) {
-      print('Error updating user location: $e');
+      
       return false;
     }
   }
