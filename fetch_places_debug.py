@@ -364,20 +364,34 @@ def main():
     # Get location from user input
     # location = input("Enter city or area (e.g., 'Paris 17th arrondissement'): ")
     # country = "input("Enter country (e.g., 'France'): ")"
-    location = os.getenv("LOCATION")
+    locations_str = os.getenv("LOCATIONS")
     country = os.getenv("COUNTRY")
+
+    if not locations_str:
+        logger.error("Missing LOCATIONS in .env file")
+        return
+
+    locations = json.loads(locations_str)
     
     # Fetch bars from Google Maps API
-    bars = fetch_bars(location, country)
+    all_bars = []
+    for location in locations:
+        bars = fetch_bars(location, country)
+        if bars:
+            all_bars.extend(bars)
+            with open(f"bars_{location.replace(' ', '_')}.json", "w") as f:
+                json.dump(bars, f, indent=2)
+                print(f"Data for {location} saved to bars_{location.replace(' ', '_')}.json")
+        else:
+            print(f"No bars found or error occurred for {location}.")
     
-    if bars:
+    if all_bars:
         # Store data in Supabase
-        store_in_supabase(bars)
+        store_in_supabase(all_bars)
         
-        # Optional: Save as JSON file for reference
-        with open(f"bars_{location.replace(' ', '_')}.json", "w") as f:
-            json.dump(bars, f, indent=2)
-            print(f"Data also saved to bars_{location.replace(' ', '_')}.json")
+        with open("all_bars.json", "w") as f:
+            json.dump(all_bars, f, indent=2)
+            print("All data saved to all_bars.json")
     else:
         print("No bars found or error occurred.")
 
