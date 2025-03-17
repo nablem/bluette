@@ -82,7 +82,6 @@ class _ProfileCardState extends State<ProfileCard> {
         });
       }
     } catch (e) {
-      
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -105,7 +104,7 @@ class _ProfileCardState extends State<ProfileCard> {
       await _audioPlayer.seek(Duration.zero);
       await _audioPlayer.play();
     } catch (e) {
-      
+      // Ignore errors
     }
   }
 
@@ -113,7 +112,7 @@ class _ProfileCardState extends State<ProfileCard> {
     try {
       await _audioPlayer.pause();
     } catch (e) {
-      
+      // Ignore errors
     }
   }
 

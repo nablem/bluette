@@ -63,9 +63,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       String? profilePictureUrl = _cachedProfile?['profile_picture_url'];
       if (profilePictureUrl != null && profilePictureUrl.isNotEmpty) {
         // Create and cache the image provider if not already cached
-        if (_cachedImageProvider == null) {
-          _cachedImageProvider = NetworkImage(profilePictureUrl);
-        }
+        _cachedImageProvider ??= NetworkImage(profilePictureUrl);
 
         // Use a post-frame callback to ensure the context is available
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -96,8 +94,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Listen to player state changes
     _playerSubscription = _audioPlayer.playerStateStream.listen((state) {
       if (mounted) {
-        
-
         if (state.processingState == ProcessingState.completed) {
           // When playback completes, update UI
           setState(() {
@@ -107,7 +103,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             state.playing == false &&
             _isPlayingAudio) {
           // Handle error or unexpected state
-          
+
           setState(() {
             _isPlayingAudio = false;
             _errorMessage = 'Audio playback stopped unexpectedly';
@@ -122,7 +118,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // Handle playback events if needed
       },
       onError: (Object e, StackTrace st) {
-        
         if (mounted) {
           setState(() {
             _isPlayingAudio = false;
@@ -159,13 +154,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final profile = await SupabaseService.getUserProfile();
 
       // Debug print to check profile data
-      
 
       // Check if we need to refresh the URLs
       if (profile != null) {
         // Refresh profile picture URL if it exists but might be expired
         if (profile['profile_picture_url'] != null) {
-          
           final newImageUrl = await SupabaseService.refreshProfilePictureUrl();
           if (newImageUrl != null &&
               newImageUrl != profile['profile_picture_url']) {
@@ -183,20 +176,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
         // Refresh voice bio URL if it exists but might be expired
         if (profile['voice_bio_url'] != null) {
-          
           final newAudioUrl = await SupabaseService.refreshVoiceBioUrl();
           if (newAudioUrl != null && newAudioUrl != profile['voice_bio_url']) {
             profile['voice_bio_url'] = newAudioUrl;
           }
         }
 
-        if (profile['profile_picture_url'] != null) {
-          
-        }
+        if (profile['profile_picture_url'] != null) {}
 
-        if (profile['voice_bio_url'] != null) {
-          
-        }
+        if (profile['voice_bio_url'] != null) {}
       }
 
       // Update the cache
@@ -396,7 +384,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _playVoiceBio() async {
     if (_userProfile == null || _userProfile!['voice_bio_url'] == null) {
-      
       setState(() {
         _errorMessage = 'No voice bio available';
       });
@@ -417,16 +404,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
       }
     } catch (e) {
-      
       // Continue with the existing URL
     }
-
-    
 
     try {
       if (_isPlayingAudio) {
         // Stop playback if already playing
-        
+
         await _audioPlayer.stop();
         setState(() {
           _isPlayingAudio = false;
@@ -443,22 +427,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       // Try a more direct approach for Android
       try {
-        
         await _audioPlayer.setAudioSource(AudioSource.uri(Uri.parse(audioUrl)));
 
-        
         await _audioPlayer.play();
-        
       } catch (audioError) {
-        
-
         // Fallback to simpler approach
         await _audioPlayer.stop();
         await _audioPlayer.setUrl(audioUrl);
         await _audioPlayer.play();
       }
     } catch (e) {
-      
       setState(() {
         _isPlayingAudio = false;
         _errorMessage = 'Failed to play voice bio: ${e.toString()}';
@@ -543,8 +521,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     bool hasValidUrl =
         profilePictureUrl != null && profilePictureUrl.isNotEmpty;
 
-    
-
     return GestureDetector(
       onTap: _editProfilePicture,
       child: Stack(
@@ -571,7 +547,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           fit: BoxFit.cover,
                           key: ValueKey('profile-$profilePictureUrl'),
                           errorBuilder: (context, error, stackTrace) {
-                            
                             _refreshProfilePictureUrlOnError();
                             return const Icon(
                               Icons.person,
@@ -624,7 +599,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
       }
     } catch (e) {
-      
+      // Ignore errors
     }
   }
 

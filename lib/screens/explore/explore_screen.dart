@@ -224,7 +224,9 @@ class _ExploreScreenState extends State<ExploreScreen>
       try {
         // ignore: invalid_use_of_internal_member
         Supabase.instance.client.realtime.connect();
-      } catch (e) {}
+      } catch (e) {
+        // Ignore errors
+      }
 
       final channel = Supabase.instance.client.channel('matches_channel');
 
@@ -420,7 +422,9 @@ class _ExploreScreenState extends State<ExploreScreen>
           }
         } else {}
       } else {}
-    } catch (e) {}
+    } catch (e) {
+      // Ignore errors
+    }
   }
 
   // Check if location permission status has changed
@@ -1617,7 +1621,9 @@ class _ExploreScreenState extends State<ExploreScreen>
           );
         });
       }
-    } catch (e) {}
+    } catch (e) {
+      // Ignore errors
+    }
   }
 
   // Start periodic check for subscription health
@@ -1655,7 +1661,9 @@ class _ExploreScreenState extends State<ExploreScreen>
       setState(() {
         _shownMatchIds = Set<String>.from(storedIds);
       });
-    } catch (e) {}
+    } catch (e) {
+      // Ignore errors
+    }
   }
 
   // Save shown match IDs to SharedPreferences
@@ -1663,7 +1671,9 @@ class _ExploreScreenState extends State<ExploreScreen>
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setStringList(_shownMatchIdsKey, _shownMatchIds.toList());
-    } catch (e) {}
+    } catch (e) {
+      // Ignore errors
+    }
   }
 
   // Add a match ID to the shown matches set and save to storage
@@ -1682,7 +1692,9 @@ class _ExploreScreenState extends State<ExploreScreen>
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_shownMatchIdsKey);
-    } catch (e) {}
+    } catch (e) {
+      // Ignore errors
+    }
   }
 
   // Add a helper method to verify the match seen status
@@ -1696,7 +1708,9 @@ class _ExploreScreenState extends State<ExploreScreen>
 
         await SupabaseService.markMatchAsSeen(matchId);
       } else {}
-    } catch (e) {}
+    } catch (e) {
+      // Ignore errors
+    }
   }
 
   // Add method to check for upcoming meetups
