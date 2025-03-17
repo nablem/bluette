@@ -6,6 +6,7 @@ import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../constants/app_theme.dart';
 import '../../widgets/custom_button.dart';
+import '../../l10n/app_localizations.dart';
 
 class EditVoiceBio extends StatefulWidget {
   const EditVoiceBio({super.key});
@@ -120,13 +121,17 @@ class _EditVoiceBioState extends State<EditVoiceBio> {
           }
         });
       } else {
+        final l10n = AppLocalizations.of(context)!;
         setState(() {
-          _errorMessage = 'Microphone permission denied';
+          _errorMessage = l10n.errorUpdateVoiceBio(
+            'Microphone permission denied',
+          );
         });
       }
     } catch (e) {
+      final l10n = AppLocalizations.of(context)!;
       setState(() {
-        _errorMessage = 'Failed to start recording: ${e.toString()}';
+        _errorMessage = l10n.errorUpdateVoiceBio(e.toString());
       });
     }
   }
@@ -143,8 +148,9 @@ class _EditVoiceBioState extends State<EditVoiceBio> {
 
       if (path != null) {
         if (_recordingDuration < 5) {
+          final l10n = AppLocalizations.of(context)!;
           setState(() {
-            _errorMessage = 'Recording must be at least 5 seconds long';
+            _errorMessage = l10n.errorRecordingDuration;
             _audioFile = null;
           });
           return;
@@ -153,16 +159,20 @@ class _EditVoiceBioState extends State<EditVoiceBio> {
         setState(() {
           _audioFile = File(path);
           if (_recordingDuration > 10) {
-            _errorMessage = 'Recording was cut to 10 seconds';
+            final l10n = AppLocalizations.of(context)!;
+            _errorMessage = l10n.errorUpdateVoiceBio(
+              'Recording was cut to 10 seconds',
+            );
           } else {
             _errorMessage = null;
           }
         });
       }
     } catch (e) {
+      final l10n = AppLocalizations.of(context)!;
       setState(() {
         _isRecording = false;
-        _errorMessage = 'Failed to stop recording: ${e.toString()}';
+        _errorMessage = l10n.errorUpdateVoiceBio(e.toString());
       });
     }
   }
@@ -196,24 +206,27 @@ class _EditVoiceBioState extends State<EditVoiceBio> {
       await _audioPlayer.setFilePath(_audioFile!.path);
       await _audioPlayer.play();
     } catch (e) {
+      final l10n = AppLocalizations.of(context)!;
       setState(() {
         _isPlaying = false;
-        _errorMessage = 'Failed to play recording: ${e.toString()}';
+        _errorMessage = l10n.errorPlayVoiceBio(e.toString());
       });
     }
   }
 
   void _confirmVoiceBio() {
     if (_audioFile == null) {
+      final l10n = AppLocalizations.of(context)!;
       setState(() {
-        _errorMessage = 'Please record a voice bio';
+        _errorMessage = l10n.errorUpdateVoiceBio('Please record a voice bio');
       });
       return;
     }
 
     if (_recordingDuration < 5) {
+      final l10n = AppLocalizations.of(context)!;
       setState(() {
-        _errorMessage = 'Recording must be at least 5 seconds long';
+        _errorMessage = l10n.errorRecordingDuration;
       });
       return;
     }
@@ -229,23 +242,28 @@ class _EditVoiceBioState extends State<EditVoiceBio> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Edit Voice Bio'),
+        title: Text(
+          l10n.editProfile,
+          style: const TextStyle(color: Colors.white),
+        ),
         backgroundColor: AppTheme.primaryColor,
         foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 48.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Record your voice bio', style: AppTheme.headingStyle),
+            Text(l10n.voiceBioLabel, style: AppTheme.headingStyle),
             const SizedBox(height: 8),
-            Text(
-              'Tell others about yourself in 5-10 seconds',
-              style: AppTheme.smallTextStyle,
-            ),
+            Text(l10n.voiceBioDescription, style: AppTheme.smallTextStyle),
             const SizedBox(height: 32),
 
             // Error message
@@ -311,10 +329,10 @@ class _EditVoiceBioState extends State<EditVoiceBio> {
                         _isRecording
                             ? _formattedDuration
                             : (_isPlaying
-                                ? 'Playing...'
+                                ? l10n.playingVoiceBio
                                 : (_audioFile != null
                                     ? 'Recording saved'
-                                    : 'No recording')),
+                                    : l10n.noVoiceBio)),
                         key: ValueKey('audio_status_$_rebuildCounter'),
                         style: AppTheme.bodyStyle.copyWith(
                           color:
@@ -334,7 +352,7 @@ class _EditVoiceBioState extends State<EditVoiceBio> {
             if (_isRecording)
               // Only show stop button when recording
               CustomButton(
-                text: 'Stop Recording',
+                text: l10n.stopRecording,
                 onPressed: _stopRecording,
                 icon: Icons.stop,
               )
@@ -347,7 +365,7 @@ class _EditVoiceBioState extends State<EditVoiceBio> {
                 children: [
                   // Play/Stop button
                   CustomButton(
-                    text: _isPlaying ? 'Stop Playing' : 'Play Recording',
+                    text: _isPlaying ? l10n.stopPlaying : l10n.playVoiceBio,
                     onPressed: _playRecording,
                     icon: _isPlaying ? Icons.stop : Icons.play_arrow,
                     isOutlined: true,
@@ -356,7 +374,7 @@ class _EditVoiceBioState extends State<EditVoiceBio> {
 
                   // Record Again button
                   CustomButton(
-                    text: 'Record Again',
+                    text: l10n.recordAgain,
                     onPressed: _isPlaying ? () {} : _startRecording,
                     icon: Icons.mic,
                     isOutlined: true,
@@ -366,7 +384,7 @@ class _EditVoiceBioState extends State<EditVoiceBio> {
 
                   // Finish button
                   CustomButton(
-                    text: 'Confirm',
+                    text: l10n.save,
                     onPressed: _isPlaying ? () {} : _confirmVoiceBio,
                     icon: Icons.check,
                     isDisabled: _isPlaying,
@@ -376,7 +394,7 @@ class _EditVoiceBioState extends State<EditVoiceBio> {
             else
               // Show record button when no recording or invalid recording
               CustomButton(
-                text: 'Record Voice Bio',
+                text: l10n.recordVoiceBio,
                 onPressed: _startRecording,
                 icon: Icons.mic,
               ),

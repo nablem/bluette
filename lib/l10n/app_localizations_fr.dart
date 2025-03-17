@@ -135,6 +135,27 @@ class AppLocalizationsFr extends AppLocalizations {
   String get voiceBioLabel => 'Bio vocale';
 
   @override
+  String get voiceBioDescription => 'Parlez de vous en 5-10 secondes';
+
+  @override
+  String get recordVoiceBio => 'Enregistrer une bio vocale';
+
+  @override
+  String get stopRecording => 'Arrêter l\'enregistrement';
+
+  @override
+  String get recordAgain => 'Réenregistrer';
+
+  @override
+  String get takePicture => 'Prendre une photo';
+
+  @override
+  String get retakePicture => 'Reprendre la photo';
+
+  @override
+  String get profilePictureDescription => 'Prenez une photo claire de votre visage pour aider les autres à vous reconnaître';
+
+  @override
   String get moreOptions => 'Plus d\'options';
 
   @override
@@ -163,6 +184,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get playVoiceBio => 'Écouter la bio vocale';
+
+  @override
+  String get stopPlaying => 'Arrêter la lecture';
 
   @override
   String get playingVoiceBio => 'Lecture en cours...';
@@ -215,6 +239,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get errorNoVoiceBio => 'Pas de bio vocale disponible';
+
+  @override
+  String get errorRecordingDuration => 'L\'enregistrement doit durer au moins 5 secondes';
 
   @override
   String errorLogout(Object error) {

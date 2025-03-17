@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../constants/app_theme.dart';
 import '../../widgets/custom_button.dart';
+import '../../l10n/app_localizations.dart';
 
 class EditProfilePicture extends StatefulWidget {
   const EditProfilePicture({super.key});
@@ -33,16 +34,18 @@ class _EditProfilePictureState extends State<EditProfilePicture> {
         });
       }
     } catch (e) {
+      final l10n = AppLocalizations.of(context)!;
       setState(() {
-        _errorMessage = 'Failed to take picture: ${e.toString()}';
+        _errorMessage = l10n.errorUpdateProfilePicture(e.toString());
       });
     }
   }
 
   void _confirmImage() {
     if (_imageFile == null) {
+      final l10n = AppLocalizations.of(context)!;
       setState(() {
-        _errorMessage = 'Please take a picture';
+        _errorMessage = l10n.errorUpdateProfilePicture('Please take a picture');
       });
       return;
     }
@@ -52,21 +55,29 @@ class _EditProfilePictureState extends State<EditProfilePicture> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Edit Profile Picture'),
+        title: Text(
+          l10n.editProfile,
+          style: const TextStyle(color: Colors.white),
+        ),
         backgroundColor: AppTheme.primaryColor,
         foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 48.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Update your profile picture', style: AppTheme.headingStyle),
+            Text('Photo', style: AppTheme.headingStyle),
             const SizedBox(height: 8),
             Text(
-              'Take a clear photo of your face to help others recognize you',
+              l10n.profilePictureDescription,
               style: AppTheme.smallTextStyle,
             ),
             const SizedBox(height: 24),
@@ -140,7 +151,7 @@ class _EditProfilePictureState extends State<EditProfilePicture> {
 
             // Camera button
             CustomButton(
-              text: _imageFile == null ? 'Take Picture' : 'Retake Picture',
+              text: _imageFile == null ? l10n.takePicture : l10n.retakePicture,
               onPressed: _takePicture,
               icon: Icons.camera_alt,
               isOutlined: true,
@@ -150,7 +161,7 @@ class _EditProfilePictureState extends State<EditProfilePicture> {
 
             // Confirm button
             CustomButton(
-              text: 'Confirm',
+              text: l10n.save,
               onPressed: _confirmImage,
               icon: Icons.check,
               isDisabled: _imageFile == null,

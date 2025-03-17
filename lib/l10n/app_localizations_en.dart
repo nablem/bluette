@@ -135,6 +135,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voiceBioLabel => 'Voice Bio';
 
   @override
+  String get voiceBioDescription => 'Tell others about yourself in 5-10 seconds';
+
+  @override
+  String get recordVoiceBio => 'Record Voice Bio';
+
+  @override
+  String get stopRecording => 'Stop Recording';
+
+  @override
+  String get recordAgain => 'Record Again';
+
+  @override
+  String get takePicture => 'Take Picture';
+
+  @override
+  String get retakePicture => 'Retake Picture';
+
+  @override
+  String get profilePictureDescription => 'Take a clear photo of your face to help others recognize you';
+
+  @override
   String get moreOptions => 'More Options';
 
   @override
@@ -163,6 +184,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get playVoiceBio => 'Play Voice Bio';
+
+  @override
+  String get stopPlaying => 'Stop Playing';
 
   @override
   String get playingVoiceBio => 'Playing...';
@@ -215,6 +239,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorNoVoiceBio => 'No voice bio available';
+
+  @override
+  String get errorRecordingDuration => 'Recording must be at least 5 seconds long';
 
   @override
   String errorLogout(Object error) {

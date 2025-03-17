@@ -347,6 +347,48 @@ abstract class AppLocalizations {
   /// **'Voice Bio'**
   String get voiceBioLabel;
 
+  /// No description provided for @voiceBioDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell others about yourself in 5-10 seconds'**
+  String get voiceBioDescription;
+
+  /// No description provided for @recordVoiceBio.
+  ///
+  /// In en, this message translates to:
+  /// **'Record Voice Bio'**
+  String get recordVoiceBio;
+
+  /// No description provided for @stopRecording.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop Recording'**
+  String get stopRecording;
+
+  /// No description provided for @recordAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Record Again'**
+  String get recordAgain;
+
+  /// No description provided for @takePicture.
+  ///
+  /// In en, this message translates to:
+  /// **'Take Picture'**
+  String get takePicture;
+
+  /// No description provided for @retakePicture.
+  ///
+  /// In en, this message translates to:
+  /// **'Retake Picture'**
+  String get retakePicture;
+
+  /// No description provided for @profilePictureDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a clear photo of your face to help others recognize you'**
+  String get profilePictureDescription;
+
   /// No description provided for @moreOptions.
   ///
   /// In en, this message translates to:
@@ -406,6 +448,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Play Voice Bio'**
   String get playVoiceBio;
+
+  /// No description provided for @stopPlaying.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop Playing'**
+  String get stopPlaying;
 
   /// No description provided for @playingVoiceBio.
   ///
@@ -490,6 +538,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No voice bio available'**
   String get errorNoVoiceBio;
+
+  /// No description provided for @errorRecordingDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording must be at least 5 seconds long'**
+  String get errorRecordingDuration;
 
   /// No description provided for @errorLogout.
   ///
