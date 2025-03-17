@@ -400,6 +400,7 @@ class _MeetupViewState extends State<MeetupView> with TickerProviderStateMixin {
                           context: context,
                           builder:
                               (context) => AlertDialog(
+                                backgroundColor: Colors.white,
                                 title: Text(l10n.cancelMeetup),
                                 content: Text(l10n.cancelMeetupConfirm),
                                 actions: [
