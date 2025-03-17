@@ -78,7 +78,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get createAccount => 'Créer un compte';
 
   @override
-  String get signupToFindMatch => 'Inscrivez-vous pour trouver votre âme sœur';
+  String get signupToFindMatch => 'Inscrivez-vous pour commencer les rencontres';
 
   @override
   String get fullNameLabel => 'Prénom';
