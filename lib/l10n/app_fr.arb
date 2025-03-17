@@ -99,5 +99,10 @@
     "errorCreateProfile": "Échec de la création du profil. Veuillez réessayer.",
     "tryAgain": "Réessayer",
     "noInternetConnection": "Pas de connexion Internet",
-    "noInternetConnectionMessage": "Pas de connexion Internet. Veuillez vérifier votre réseau et réessayer"
+    "noInternetConnectionMessage": "Pas de connexion Internet. Veuillez vérifier votre réseau et réessayer",
+    "filterProfiles": "Filtrer les profils",
+    "ageRange": "Tranche d'âge",
+    "maximumDistance": "Distance maximale ({distance} km)",
+    "applyFilters": "Appliquer les filtres",
+    "resetToDefault": "Réinitialiser"
 } 

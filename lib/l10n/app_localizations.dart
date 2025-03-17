@@ -700,6 +700,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No internet connection. Please check your network and try again'**
   String get noInternetConnectionMessage;
+
+  /// No description provided for @filterProfiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter Profiles'**
+  String get filterProfiles;
+
+  /// No description provided for @ageRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Age Range'**
+  String get ageRange;
+
+  /// No description provided for @maximumDistance.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum Distance ({distance} km)'**
+  String maximumDistance(Object distance);
+
+  /// No description provided for @applyFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply Filters'**
+  String get applyFilters;
+
+  /// No description provided for @resetToDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset to Default'**
+  String get resetToDefault;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

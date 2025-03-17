@@ -328,4 +328,21 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get noInternetConnectionMessage => 'Pas de connexion Internet. Veuillez vérifier votre réseau et réessayer';
+
+  @override
+  String get filterProfiles => 'Filtrer les profils';
+
+  @override
+  String get ageRange => 'Tranche d\'âge';
+
+  @override
+  String maximumDistance(Object distance) {
+    return 'Distance maximale ($distance km)';
+  }
+
+  @override
+  String get applyFilters => 'Appliquer les filtres';
+
+  @override
+  String get resetToDefault => 'Réinitialiser';
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../constants/app_theme.dart';
 import '../../models/profile_filter.dart';
+import '../../l10n/app_localizations.dart';
 
 class FilterDialog extends StatefulWidget {
   final ProfileFilter initialFilter;
@@ -38,7 +39,9 @@ class _FilterDialogState extends State<FilterDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Dialog(
+      backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -51,7 +54,7 @@ class _FilterDialogState extends State<FilterDialog> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Filter Profiles',
+                  l10n.filterProfiles,
                   style: AppTheme.headingStyle.copyWith(fontSize: 20),
                 ),
                 IconButton(
@@ -63,7 +66,7 @@ class _FilterDialogState extends State<FilterDialog> {
             const SizedBox(height: 20),
 
             // Age Range
-            Text('Age Range', style: AppTheme.subheadingStyle),
+            Text(l10n.ageRange, style: AppTheme.subheadingStyle),
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -97,7 +100,7 @@ class _FilterDialogState extends State<FilterDialog> {
 
             // Maximum Distance
             Text(
-              'Maximum Distance (${_filter.maxDistance} km)',
+              l10n.maximumDistance(_filter.maxDistance),
               style: AppTheme.subheadingStyle,
             ),
             const SizedBox(height: 8),
@@ -134,7 +137,7 @@ class _FilterDialogState extends State<FilterDialog> {
                   widget.onApplyFilter(_filter);
                   Navigator.pop(context);
                 },
-                child: const Text('Apply Filters'),
+                child: Text(l10n.applyFilters),
               ),
             ),
 
@@ -151,7 +154,7 @@ class _FilterDialogState extends State<FilterDialog> {
                     );
                   });
                 },
-                child: const Text('Reset to Default'),
+                child: Text(l10n.resetToDefault),
               ),
             ),
           ],

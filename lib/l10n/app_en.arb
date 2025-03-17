@@ -99,5 +99,10 @@
     "errorCreateProfile": "Failed to create profile. Please try again.",
     "tryAgain": "Try Again",
     "noInternetConnection": "No internet connection",
-    "noInternetConnectionMessage": "No internet connection. Please check your network and try again"
+    "noInternetConnectionMessage": "No internet connection. Please check your network and try again",
+    "filterProfiles": "Filter Profiles",
+    "ageRange": "Age Range",
+    "maximumDistance": "Maximum Distance ({distance} km)",
+    "applyFilters": "Apply Filters",
+    "resetToDefault": "Reset to Default"
 } 
