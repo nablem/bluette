@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   
   # .env
   flutter_dotenv: ^5.0.0
@@ -105,10 +107,7 @@ flutter_launcher_icons:
 
 # The following section is specific to Flutter packages.
 flutter:
-
-  # The following line ensures that the Material Icons font is
-  # included with your application, so that you can use the icons in
-  # the material Icons class.
+  generate: true  # Add this line to enable generation of localization files
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:

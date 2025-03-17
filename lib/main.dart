@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:bluette/l10n/app_localizations.dart';
 import 'constants/app_theme.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/signup_screen.dart';
@@ -43,6 +45,21 @@ class MyApp extends StatelessWidget {
       title: 'Bluette',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.themeData,
+
+      // Add localization delegates
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+
+      // Add supported locales
+      supportedLocales: const [
+        Locale('en'), // English
+        Locale('fr'), // French
+      ],
+
       builder: (context, child) {
         // Wrap the entire app with the network status overlay
         return NetworkStatusOverlay(child: child!);

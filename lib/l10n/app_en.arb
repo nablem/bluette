@@ -1,0 +1,18 @@
+{
+    "appTitle": "Bluette",
+    "welcomeMessage": "Welcome to Bluette",
+    "loginButton": "Login",
+    "signupButton": "Sign Up",
+    "emailLabel": "Email",
+    "passwordLabel": "Password",
+    "forgotPassword": "Forgot Password?",
+    "or": "or",
+    "continueWithGoogle": "Continue with Google",
+    "continueWithApple": "Continue with Apple",
+    "dontHaveAccount": "Don't have an account?",
+    "alreadyHaveAccount": "Already have an account?",
+    "errorInvalidEmail": "Please enter a valid email address",
+    "errorInvalidPassword": "Password must be at least 6 characters",
+    "errorGeneric": "Something went wrong. Please try again",
+    "successMessage": "Operation completed successfully"
+} 
