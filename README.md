@@ -1,16 +1,1 @@
-# bluette
-
-A new Flutter project.
-
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Bluette reinvents speed dating by adding an authentic twist. Find a match, get a date, and let the sparks fly! Each profile features a single front-camera photo and a 5-10 second voice bio. Ready to meet in person? You'll have to wait until your date is done to continue swiping!
