@@ -775,8 +775,21 @@ class SupabaseService {
         return;
       }
 
-      // Add a small delay to ensure the real-time event is processed
-      await Future.delayed(const Duration(milliseconds: 100));
+      // Create the match record - use .select() to return the inserted record
+      // This ensures the real-time subscription is triggered
+      final response =
+          await _supabaseClient.from('matches').insert({
+            'user_id1': currentUser!.id,
+            'user_id2': matchedProfileId,
+            'created_at': DateTime.now().toIso8601String(),
+            'seen_by_user1': false,
+            'seen_by_user2': false,
+          }).select();
+
+      if (response.isNotEmpty) {
+        // Add a small delay to ensure the real-time event is processed
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
     } catch (e) {
       // Ignore errors
     }
