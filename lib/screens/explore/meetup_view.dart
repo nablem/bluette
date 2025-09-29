@@ -107,10 +107,8 @@ class _MeetupViewState extends State<MeetupView> with TickerProviderStateMixin {
     final String formattedTime =
         '${localMeetupTime.hour.toString().padLeft(2, '0')}:${localMeetupTime.minute.toString().padLeft(2, '0')}';
 
-    // Format the date as "Thursday, May 6th"
-    final String formattedDate =
-        DateFormat('EEEE, MMMM d').format(localMeetupTime) +
-        _getDaySuffix(localMeetupTime.day);
+    // Format the date using the current locale
+    final String formattedDate = _formatLocalizedDate(localMeetupTime, context);
 
     // Check if the meetup has passed (more than 1 hour after the meetup time)
     final bool meetupPassed = DateTime.now().isAfter(
@@ -447,21 +445,59 @@ class _MeetupViewState extends State<MeetupView> with TickerProviderStateMixin {
     );
   }
 
-  // Helper method to get the day suffix (th, st, nd, rd)
-  String _getDaySuffix(int day) {
-    if (day >= 11 && day <= 13) {
-      return 'th';
-    }
+  // Helper method to format date according to locale
+  String _formatLocalizedDate(DateTime date, BuildContext context) {
+    final locale = Localizations.localeOf(context).languageCode;
 
-    switch (day % 10) {
-      case 1:
-        return 'st';
-      case 2:
-        return 'nd';
-      case 3:
-        return 'rd';
-      default:
+    if (locale == 'fr') {
+      // French format: "jeudi 6 mai" or "jeudi 1er mai" (day month, no comma, proper capitalization)
+      final dayName = DateFormat('EEEE', 'fr').format(date);
+      final monthName = DateFormat('MMMM', 'fr').format(date);
+      final day = date.day;
+
+      // Capitalize first letter of day and month
+      final capitalizedDay = dayName[0].toUpperCase() + dayName.substring(1);
+      final capitalizedMonth =
+          monthName[0].toUpperCase() + monthName.substring(1);
+
+      // Add ordinal suffix for French (1er for 1st, nothing for others)
+      final dayWithSuffix = day == 1 ? '1er' : day.toString();
+
+      return '$capitalizedDay $dayWithSuffix $capitalizedMonth';
+    } else {
+      // English format: "Thursday, May 6th"
+      return DateFormat('EEEE, MMMM d', 'en').format(date) +
+          _getDaySuffix(date.day);
+    }
+  }
+
+  // Helper method to get the day suffix (th, st, nd, rd for English; er, e for French)
+  String _getDaySuffix(int day) {
+    final locale = Localizations.localeOf(context).languageCode;
+
+    if (locale == 'fr') {
+      // French ordinal suffixes
+      if (day == 1) {
+        return 'er';
+      } else {
+        return '';
+      }
+    } else {
+      // English ordinal suffixes
+      if (day >= 11 && day <= 13) {
         return 'th';
+      }
+
+      switch (day % 10) {
+        case 1:
+          return 'st';
+        case 2:
+          return 'nd';
+        case 3:
+          return 'rd';
+        default:
+          return 'th';
+      }
     }
   }
 }
