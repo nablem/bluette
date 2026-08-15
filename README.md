@@ -1,0 +1,111 @@
+# Bluette
+
+Bluette lets anyone get memecoin calls (Solana, Ethereum, Base, …) delivered straight to
+their **own Telegram channel**, filtered by the criteria they care about (pair age, market
+cap, liquidity, volume, forbidden terms in the name/ticker, and more). No trading, no
+sniping — just a reliable bridge between DEX Screener and Telegram, self-served through a
+web app.
+
+## 1. Product summary
+
+- **Multi-tenant**: every user configures one or more "notifiers" (a Telegram destination +
+  a set of filters). Bluette evaluates every discovered token/pair against every active
+  user notifier and forwards a formatted call when it matches.
+- **No sniper / no trading**: this project reuses the *discovery* and *notification* halves
+  of the existing `bentley` prototype (`components/lib/bentley`), but drops the sniper /
+  execution / position-tracking pieces entirely.
+- **Multi-chain**: unlike the prototype (Solana-only), Bluette should support any chain
+  DEX Screener indexes (Solana, Ethereum, Base, BSC, …), selectable per notifier.
+- **Auth**: sign in with Google (OAuth) or a Web3 wallet (MetaMask/Ethereum, Phantom/Solana)
+  via sign-in-with-wallet (message signing, no password/custody involved).
+- **Monetization**: free tier capped at 5 calls/month; paid subscription (monthly, billed
+  in USD via card or in USDC on-chain) unlocks unlimited (or higher-capped) calls, more
+  notifiers, and shorter polling intervals.
+
+## 2. What we reuse from `bentley`
+
+The `components/lib/bentley` folder is a working single-tenant prototype. Key pieces we
+plan to port/generalize:
+
+| Bentley module | Reused as | Notes |
+|---|---|---|
+| `Bentley.Recorder` | `Bluette.Discovery.Recorder` | Polls DEX Screener "latest token profiles"; must become chain-aware (loop over configured chains, not hardcoded `"solana"`). |
+| `Bentley.Updater` | `Bluette.Discovery.Updater` | Refreshes per-token metrics (`marketCap`, `liquidity`, volume, price changes …) on an adaptive schedule based on age/volume. Drop the `SniperPosition` / `Activator` coupling. |
+| `Bentley.Notifiers` + `Notifiers.Worker` | `Bluette.Notifications.Notifier` (per-user, DB-backed) | Instead of a static YAML file loaded once, each user's notifier row becomes a supervised worker (Registry + DynamicSupervisor pattern is reused as-is). |
+| `Bentley.Notifiers.Criteria` | `Bluette.Notifications.Criteria` | Same min/max range matching engine; extend with a `forbidden_terms` (name/ticker substring/regex) check and multi-chain metric support. |
+| `Bentley.Notifiers.Formatter` | `Bluette.Notifications.Formatter` | Message templating for the Telegram call. |
+| `Bentley.Telegram.Client` (+ `HTTPClient`) | `Bluette.Telegram.Client` | Behaviour + HTTP impl is already decoupled/mockable — keep as-is. Needs to support sending to a channel/chat that belongs to the *end user*, not a single hardcoded bot config. |
+| `Bentley.Schema.Token`, `Bentley.RateLimiter` | Reused close to verbatim | Add a `chain_id` column/index since Token becomes shared across chains. |
+| `Bentley.Snipers*`, `SniperPosition`, `SniperTrade`, `Activator` | **Not reused** | Trading/sniper concerns are out of scope for Bluette. |
+
+Net effect: the "discovery" side (Recorder/Updater/Token) stays a **shared, global** pipeline
+(one set of GenServers polling DEX Screener for everyone), while the "notification" side
+becomes **per-user/per-notifier** and driven by rows in Postgres instead of a YAML file.
+
+## 3. Proposed architecture
+
+- **Stack**: Elixir + Phoenix (LiveView for the UI), Ecto/Postgres, Oban (recommended
+  upgrade over raw `Process.send_after/3` loops for the discovery pollers — gives retries,
+  observability, and avoids re-implementing scheduling/backoff by hand), Tailwind for
+  styling. Phoenix is a strong fit here: the existing prototype is already Elixir/OTP, the
+  domain is naturally concurrent (many independent pollers/notifiers), and LiveView removes
+  the need for a separate SPA frontend for the dashboard/filter builder.
+- **App layout** (single Phoenix app to start, can split into an umbrella later if needed):
+  - `lib/bluette/discovery/` — Recorder, Updater, DEX Screener client, rate limiter, `Token` schema (shared).
+  - `lib/bluette/notifications/` — per-user `Notifier` schema, `Criteria`, `Formatter`, delivery worker/supervisor.
+  - `lib/bluette/telegram/` — Telegram client behaviour + HTTP implementation.
+  - `lib/bluette/accounts/` — `User`, auth identities (Google, wallet), sessions.
+  - `lib/bluette/billing/` — `Subscription`, `Plan`, usage/quota tracking, Stripe + USDC payment verification.
+  - `lib/bluette_web/` — LiveView UI: dashboard, notifier/filter builder, billing, auth callbacks.
+
+- **Auth**:
+  - Google OAuth via `ueberauth` + `ueberauth_google`.
+  - Wallet sign-in ("Sign-In with Ethereum"/EIP-4361 style, and an equivalent Solana
+    message-signing flow for Phantom): client requests a one-time nonce, signs a message
+    with MetaMask/Phantom, server verifies the signature (`ex_secp256k1`/`ex_keccak` for
+    EVM, `ed25519`/`:crypto` for Solana) and links/creates a `User`.
+  - A `User` can have multiple linked identities (email, EVM address, Solana address).
+
+- **Subscriptions**:
+  - Fiat: Stripe Billing (monthly subscription, webhook-driven status sync).
+  - USDC: on-chain payment to a Bluette-controlled address/contract (or a processor like
+    Coinbase Commerce/Helio) with webhook or on-chain confirmation polling.
+  - Enforcement: a `Plan` defines `max_calls_per_month` (5 for free) and `max_notifiers`;
+    usage is tracked per user and checked before delivering a notification.
+
+- **Data model (first cut)**:
+  - `users`, `user_identities` (provider, provider_id/address)
+  - `notifiers` (user_id, telegram_chat_id, chain_id, criteria as embedded schema/JSON, forbidden_terms, enabled, poll_interval)
+  - `tokens` (shared, + `chain_id`)
+  - `notification_deliveries` (notifier_id, token_address, sent_at) — same dedup role as today
+  - `subscriptions`, `plans`, `usage_counters`
+
+## 4. Explicit differences vs. the `bentley` prototype
+
+- Multi-chain instead of Solana-only.
+- Filters are user-owned DB rows (CRUD'd through the UI), not a static YAML file.
+- Users bring/connect their own Telegram channel (they add our bot to their channel and we
+  store the resulting `chat_id`), instead of one operator-owned set of channels.
+- Adds a `forbidden_terms` criterion (reject tokens whose name/ticker contains blacklisted
+  words).
+- No sniping, no trade execution, no wallet custody of user funds — Bluette never holds
+  or trades the user's assets.
+- Adds authentication, billing, and per-user usage quotas, none of which exist in the prototype.
+
+## 5. Roadmap (step by step)
+
+1. **Repo & specs** — this README, project scaffolding, CI skeleton. *(this step)*
+2. **Auth + UI shell** — Phoenix + LiveView app, Google OAuth, wallet sign-in, basic
+   dashboard shell (no real data yet).
+3. **Notifier/filter management UI** — CRUD for notifiers & criteria, Telegram channel
+   linking flow.
+4. **Discovery backend** — port Recorder/Updater/Token to be multi-chain, backed by Oban.
+5. **Notification delivery** — per-user notifier workers, Criteria/Formatter, Telegram
+   delivery, dedup via `notification_deliveries`.
+6. **Billing & quotas** — Plans, Stripe subscription, USDC payment path, free-tier call cap
+   enforcement.
+7. **Hardening & deploy** — observability, rate limiting, background job monitoring,
+   production deployment.
+
+We'll tackle these incrementally, starting with #2 (UI + auth) once the repo/spec baseline
+is in place.
