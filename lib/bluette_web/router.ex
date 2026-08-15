@@ -1,6 +1,8 @@
 defmodule BluetteWeb.Router do
   use BluetteWeb, :router
 
+  import BluetteWeb.UserAuth
+
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
@@ -8,16 +10,40 @@ defmodule BluetteWeb.Router do
     plug :put_root_layout, html: {BluetteWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug :fetch_current_user
   end
 
   pipeline :api do
     plug :accepts, ["json"]
+    plug :fetch_session
+    plug :fetch_current_user
+  end
+
+  pipeline :authenticated do
+    plug :require_authenticated_user
   end
 
   scope "/", BluetteWeb do
     pipe_through :browser
 
     get "/", PageController, :home
+    get "/login", WalletAuthController, :new
+    delete "/logout", WalletAuthController, :delete
+  end
+
+  scope "/auth/wallet", BluetteWeb do
+    pipe_through :api
+
+    post "/nonce", WalletAuthController, :nonce
+    post "/verify", WalletAuthController, :verify
+  end
+
+  scope "/", BluetteWeb do
+    pipe_through [:browser, :authenticated]
+
+    live_session :require_authenticated_user, on_mount: [{BluetteWeb.UserAuth, :ensure_authenticated}] do
+      live "/dashboard", DashboardLive
+    end
   end
 
   # Other scopes may use custom stacks.

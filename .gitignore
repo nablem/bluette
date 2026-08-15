@@ -10,6 +10,11 @@ erl_crash.dump
 /config/*.secret.exs
 .elixir_ls/
 .lexical/
+/tmp/
+bluette-*.tar
+*.db
+*.db-shm
+*.db-wal
 
 # Phoenix assets
 /priv/static/assets/
