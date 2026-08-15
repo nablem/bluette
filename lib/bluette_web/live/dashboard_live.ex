@@ -7,7 +7,9 @@ defmodule BluetteWeb.DashboardLive do
     ~H"""
     <div class="mx-auto max-w-lg mt-24 text-center">
       <h1 class="text-2xl font-semibold mb-4">Bluette dashboard</h1>
+
       <p class="mb-2">Logged in as:</p>
+
       <ul class="mb-6">
         <li :for={identity <- @wallet_identities} class="font-mono text-sm">
           {identity.chain}: {identity.address}

@@ -4,7 +4,8 @@ defmodule Bluette.Accounts.Wallet.EVM do
   """
 
   @spec verify(String.t(), String.t(), String.t()) :: boolean()
-  def verify(message, signature, address) when is_binary(message) and is_binary(signature) and is_binary(address) do
+  def verify(message, signature, address)
+      when is_binary(message) and is_binary(signature) and is_binary(address) do
     with {:ok, <<r::binary-32, s::binary-32, v>>} <- decode_signature(signature),
          {:ok, recovery_id} <- normalize_recovery_id(v),
          hash <- ExKeccak.hash_256(prefixed_message(message)),

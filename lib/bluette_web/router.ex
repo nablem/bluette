@@ -41,7 +41,8 @@ defmodule BluetteWeb.Router do
   scope "/", BluetteWeb do
     pipe_through [:browser, :authenticated]
 
-    live_session :require_authenticated_user, on_mount: [{BluetteWeb.UserAuth, :ensure_authenticated}] do
+    live_session :require_authenticated_user,
+      on_mount: [{BluetteWeb.UserAuth, :ensure_authenticated}] do
       live "/dashboard", DashboardLive
     end
   end

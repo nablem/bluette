@@ -35,7 +35,7 @@ defmodule Bluette.Accounts do
 
     challenge = %{
       "chain" => chain,
-      "address" => String.downcase(address),
+      "address" => normalize_address(chain, address),
       "nonce" => nonce,
       "issued_at" => issued_at
     }
@@ -48,7 +48,11 @@ defmodule Bluette.Accounts do
   finds or creates the matching user. Returns `{:ok, user}` or `{:error, reason}`.
   """
   @spec verify_login(map() | nil, map()) :: {:ok, User.t()} | {:error, atom()}
-  def verify_login(session_challenge, %{"chain" => chain, "address" => address, "signature" => signature}) do
+  def verify_login(session_challenge, %{
+        "chain" => chain,
+        "address" => address,
+        "signature" => signature
+      }) do
     with {:ok, challenge} <- fetch_valid_challenge(session_challenge, chain, address),
          message <- rebuild_message(challenge),
          true <- verify_signature(chain, message, signature, address) do
@@ -67,7 +71,7 @@ defmodule Bluette.Accounts do
 
     cond do
       challenge["chain"] != chain -> {:error, :chain_mismatch}
-      challenge["address"] != String.downcase(address) -> {:error, :address_mismatch}
+      challenge["address"] != normalize_address(chain, address) -> {:error, :address_mismatch}
       now - challenge["issued_at"] > @challenge_ttl_seconds -> {:error, :expired}
       true -> {:ok, challenge}
     end
@@ -91,8 +95,12 @@ defmodule Bluette.Accounts do
 
   defp verify_signature(_chain, _message, _signature, _address), do: false
 
+  # EVM hex addresses are case-insensitive; Base58 Solana addresses are case-sensitive.
+  defp normalize_address("evm", address), do: String.downcase(address)
+  defp normalize_address(_chain, address), do: address
+
   defp find_or_create_user(chain, address) do
-    address = String.downcase(address)
+    address = normalize_address(chain, address)
 
     case Repo.get_by(WalletIdentity, chain: chain, address: address) do
       %WalletIdentity{} = identity ->

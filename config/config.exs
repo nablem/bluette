@@ -11,6 +11,9 @@ config :bluette,
   ecto_repos: [Bluette.Repo],
   generators: [timestamp_type: :utc_datetime]
 
+# Windows dev containers can't symlink assets/node_modules for colocated hooks; harmless here.
+config :phoenix_live_view, :colocated_js, disable_symlink_warning: true
+
 # Configure the endpoint
 config :bluette, BluetteWeb.Endpoint,
   url: [host: "localhost"],

@@ -1,8 +1,5 @@
 import Config
 
-# Windows dev containers can't symlink assets/node_modules for colocated hooks; harmless here.
-config :phoenix_live_view, :colocated_js, disable_symlink_warning: true
-
 # Configure your database
 config :bluette, Bluette.Repo,
   database: Path.expand("../bluette_dev.db", __DIR__),
