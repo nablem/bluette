@@ -1,0 +1,57 @@
+defmodule BluetteWeb.NotifiersLiveTest do
+  use BluetteWeb.ConnCase
+
+  import Phoenix.LiveViewTest
+
+  alias Bluette.Accounts.User
+  alias Bluette.Repo
+
+  setup %{conn: conn} do
+    user = Repo.insert!(User.changeset(%User{}, %{}))
+    conn = Plug.Test.init_test_session(conn, %{"user_id" => user.id})
+    %{conn: conn, user: user}
+  end
+
+  test "lists an empty state, creates, edits and deletes a notifier", %{conn: conn, user: user} do
+    {:ok, _index_live, html} = live(conn, ~p"/notifiers")
+    assert html =~ "No notifiers yet"
+
+    {:ok, new_live, _html} = live(conn, ~p"/notifiers/new")
+
+    new_live
+    |> form("#notifier-form",
+      notifier: %{
+        "name" => "New Solana pairs",
+        "chain" => "solana",
+        "criteria" => %{"market_cap_min" => "10000", "liquidity_min" => "5000"}
+      }
+    )
+    |> render_submit()
+
+    assert_redirect(new_live, ~p"/notifiers")
+
+    {:ok, _index_live, html} = live(conn, ~p"/notifiers")
+    assert html =~ "New Solana pairs"
+
+    [notifier] = Bluette.Notifications.list_notifiers(user)
+    assert notifier.criteria.market_cap_min == 10_000.0
+
+    {:ok, edit_live, _html} = live(conn, ~p"/notifiers/#{notifier}/edit")
+
+    edit_live
+    |> form("#notifier-form", notifier: %{"name" => "Renamed notifier"})
+    |> render_submit()
+
+    assert_redirect(edit_live, ~p"/notifiers")
+
+    {:ok, index_live, html} = live(conn, ~p"/notifiers")
+    assert html =~ "Renamed notifier"
+
+    index_live
+    |> element("a", "Delete")
+    |> render_click()
+
+    html = render(index_live)
+    assert html =~ "No notifiers yet"
+  end
+end

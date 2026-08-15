@@ -43,7 +43,11 @@ defmodule BluetteWeb.Router do
 
     live_session :require_authenticated_user,
       on_mount: [{BluetteWeb.UserAuth, :ensure_authenticated}] do
-      live "/dashboard", DashboardLive
+      live "/notifiers", NotifiersLive, :index
+      live "/notifiers/new", NotifiersLive, :new
+      live "/notifiers/:id/edit", NotifiersLive, :edit
+      live "/telegram-channels", TelegramChannelsLive, :index
+      live "/term-lists", TermListsLive, :index
     end
   end
 

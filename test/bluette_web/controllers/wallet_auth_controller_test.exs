@@ -19,10 +19,10 @@ defmodule BluetteWeb.WalletAuthControllerTest do
           "signature" => signature
         })
 
-      assert %{"redirect" => "/dashboard"} = json_response(conn, 200)
+      assert %{"redirect" => "/notifiers"} = json_response(conn, 200)
       assert get_session(conn, "user_id")
 
-      conn = get(conn, ~p"/dashboard")
+      conn = get(conn, ~p"/notifiers")
       assert html_response(conn, 200) =~ String.downcase(address)
     end
 
@@ -61,15 +61,15 @@ defmodule BluetteWeb.WalletAuthControllerTest do
           "signature" => signature
         })
 
-      assert %{"redirect" => "/dashboard"} = json_response(conn, 200)
+      assert %{"redirect" => "/notifiers"} = json_response(conn, 200)
 
-      conn = get(conn, ~p"/dashboard")
+      conn = get(conn, ~p"/notifiers")
       assert html_response(conn, 200) =~ address
     end
   end
 
-  test "GET /dashboard redirects anonymous visitors to /login", %{conn: conn} do
-    conn = get(conn, ~p"/dashboard")
+  test "GET /notifiers redirects anonymous visitors to /login", %{conn: conn} do
+    conn = get(conn, ~p"/notifiers")
     assert redirected_to(conn) == "/login"
   end
 

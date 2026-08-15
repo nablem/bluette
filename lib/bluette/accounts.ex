@@ -16,6 +16,14 @@ defmodule Bluette.Accounts do
   @spec get_user(pos_integer()) :: User.t() | nil
   def get_user(id), do: Repo.get(User, id)
 
+  @spec get_user_with_identities(pos_integer()) :: User.t() | nil
+  def get_user_with_identities(id) do
+    case Repo.get(User, id) do
+      nil -> nil
+      user -> Repo.preload(user, :wallet_identities)
+    end
+  end
+
   @doc """
   Builds a fresh sign-in message for the given chain/address and returns the session
   entry that should be stored (via `Plug.Conn.put_session/3`) alongside it.

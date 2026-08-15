@@ -31,7 +31,7 @@ defmodule BluetteWeb.WalletAuthController do
       {:ok, user} ->
         conn
         |> UserAuth.log_in_user(user)
-        |> json(%{redirect: "/dashboard"})
+        |> json(%{redirect: "/notifiers"})
 
       {:error, reason} ->
         conn
