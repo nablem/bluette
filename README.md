@@ -16,11 +16,15 @@ web app.
   execution / position-tracking pieces entirely.
 - **Multi-chain**: unlike the prototype (Solana-only), Bluette should support any chain
   DEX Screener indexes (Solana, Ethereum, Base, BSC, …), selectable per notifier.
-- **Auth**: sign in with Google (OAuth) or a Web3 wallet (MetaMask/Ethereum, Phantom/Solana)
-  via sign-in-with-wallet (message signing, no password/custody involved).
-- **Monetization**: free tier capped at 5 calls/month; paid subscription (monthly, billed
-  in USD via card or in USDC on-chain) unlocks unlimited (or higher-capped) calls, more
-  notifiers, and shorter polling intervals.
+- **Auth**: sign in with a Web3 wallet only for v1 (MetaMask/Ethereum, Phantom/Solana) via
+  sign-in-with-wallet (message signing, no password/custody involved). Google/X OAuth are
+  deferred — this audience already has a wallet, and wallet-only removes third-party
+  developer console approval, secrets, and consent-screen friction for launch.
+- **Monetization**: free tier capped at 5 calls/month; paid subscription unlocks unlimited
+  (or higher-capped) calls, more notifiers, and shorter polling intervals. v1 has **no
+  recurring/pull billing** — a subscription is a flat 30-day USDC payment (sent through the
+  already-connected wallet) that the user manually renews when it expires. Stripe/fiat and
+  auto-renewal are future work, not v1.
 
 ## 2. What we reuse from `bentley`
 
@@ -44,41 +48,49 @@ becomes **per-user/per-notifier** and driven by rows in Postgres instead of a YA
 
 ## 3. Proposed architecture
 
-- **Stack**: Elixir + Phoenix (LiveView for the UI), Ecto/Postgres, Oban (recommended
-  upgrade over raw `Process.send_after/3` loops for the discovery pollers — gives retries,
-  observability, and avoids re-implementing scheduling/backoff by hand), Tailwind for
-  styling. Phoenix is a strong fit here: the existing prototype is already Elixir/OTP, the
-  domain is naturally concurrent (many independent pollers/notifiers), and LiveView removes
-  the need for a separate SPA frontend for the dashboard/filter builder.
+- **Stack**: Elixir + Phoenix (LiveView for the UI), Ecto/SQLite3 (consistent with the
+  `bentley` prototype's `Repo`; revisit Postgres if/when we need concurrent writers or a
+  managed hosted DB), Oban (recommended upgrade over raw `Process.send_after/3` loops for
+  the discovery pollers — gives retries, observability, and avoids re-implementing
+  scheduling/backoff by hand), Tailwind for styling. Phoenix is a strong fit here: the
+  existing prototype is already Elixir/OTP, the domain is naturally concurrent (many
+  independent pollers/notifiers), and LiveView removes the need for a separate SPA frontend
+  for the dashboard/filter builder. The Phoenix project itself lives in [`app/`](app/)
+  (generated via `mix phx.new`); this root README/`components/` folder stay as the overall
+  project spec and legacy-prototype reference.
 - **App layout** (single Phoenix app to start, can split into an umbrella later if needed):
   - `lib/bluette/discovery/` — Recorder, Updater, DEX Screener client, rate limiter, `Token` schema (shared).
   - `lib/bluette/notifications/` — per-user `Notifier` schema, `Criteria`, `Formatter`, delivery worker/supervisor.
   - `lib/bluette/telegram/` — Telegram client behaviour + HTTP implementation.
-  - `lib/bluette/accounts/` — `User`, auth identities (Google, wallet), sessions.
-  - `lib/bluette/billing/` — `Subscription`, `Plan`, usage/quota tracking, Stripe + USDC payment verification.
+  - `lib/bluette/accounts/` — `User`, wallet identities, sessions.
+  - `lib/bluette/billing/` — `Subscription`, `Plan`, usage/quota tracking, USDC payment verification (manual 30-day renewal for v1).
   - `lib/bluette_web/` — LiveView UI: dashboard, notifier/filter builder, billing, auth callbacks.
 
-- **Auth**:
-  - Google OAuth via `ueberauth` + `ueberauth_google`.
+- **Auth (v1, web3-only)**:
   - Wallet sign-in ("Sign-In with Ethereum"/EIP-4361 style, and an equivalent Solana
     message-signing flow for Phantom): client requests a one-time nonce, signs a message
     with MetaMask/Phantom, server verifies the signature (`ex_secp256k1`/`ex_keccak` for
     EVM, `ed25519`/`:crypto` for Solana) and links/creates a `User`.
-  - A `User` can have multiple linked identities (email, EVM address, Solana address).
+  - A `User` can have multiple linked wallet identities (EVM address, Solana address).
+  - Google OAuth (`ueberauth` + `ueberauth_google`) and X/Twitter are deferred to a later
+    phase, not part of v1.
 
-- **Subscriptions**:
-  - Fiat: Stripe Billing (monthly subscription, webhook-driven status sync).
-  - USDC: on-chain payment to a Bluette-controlled address/contract (or a processor like
-    Coinbase Commerce/Helio) with webhook or on-chain confirmation polling.
+- **Subscriptions (v1)**:
+  - USDC only, no recurring/pull billing: the app shows a fixed 30-day price, the user
+    approves a USDC transfer through their already-connected wallet, the server confirms
+    the on-chain transfer and sets `subscriptions.expires_at = now + 30 days`.
+  - Renewal is manual — the user re-triggers payment when their subscription lapses; no
+    allowance/`transferFrom` auto-pull and no Stripe integration in v1 (both are future work).
   - Enforcement: a `Plan` defines `max_calls_per_month` (5 for free) and `max_notifiers`;
-    usage is tracked per user and checked before delivering a notification.
+    usage is tracked per user and checked before delivering a notification, and
+    `expires_at` gates the paid tier.
 
 - **Data model (first cut)**:
-  - `users`, `user_identities` (provider, provider_id/address)
+  - `users`, `wallet_identities` (chain, address)
   - `notifiers` (user_id, telegram_chat_id, chain_id, criteria as embedded schema/JSON, forbidden_terms, enabled, poll_interval)
   - `tokens` (shared, + `chain_id`)
   - `notification_deliveries` (notifier_id, token_address, sent_at) — same dedup role as today
-  - `subscriptions`, `plans`, `usage_counters`
+  - `subscriptions` (user_id, plan, expires_at, last_payment_tx), `plans`, `usage_counters`
 
 ## 4. Explicit differences vs. the `bentley` prototype
 
@@ -95,15 +107,16 @@ becomes **per-user/per-notifier** and driven by rows in Postgres instead of a YA
 ## 5. Roadmap (step by step)
 
 1. **Repo & specs** — this README, project scaffolding, CI skeleton. *(this step)*
-2. **Auth + UI shell** — Phoenix + LiveView app, Google OAuth, wallet sign-in, basic
-   dashboard shell (no real data yet).
+2. **Auth + UI shell** *(current step, branch `auth`)* — Phoenix + LiveView app scaffolded
+   in `app/`, wallet sign-in (MetaMask + Phantom) only, ultra-basic placeholder UI, no real
+   data yet. Google/X OAuth deferred.
 3. **Notifier/filter management UI** — CRUD for notifiers & criteria, Telegram channel
    linking flow.
 4. **Discovery backend** — port Recorder/Updater/Token to be multi-chain, backed by Oban.
 5. **Notification delivery** — per-user notifier workers, Criteria/Formatter, Telegram
    delivery, dedup via `notification_deliveries`.
-6. **Billing & quotas** — Plans, Stripe subscription, USDC payment path, free-tier call cap
-   enforcement.
+6. **Billing & quotas** — Plans, USDC manual 30-day renewal payment path (v1), free-tier
+   call cap enforcement. Stripe/fiat and auto-renewal considered later.
 7. **Hardening & deploy** — observability, rate limiting, background job monitoring,
    production deployment.
 
