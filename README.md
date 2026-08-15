@@ -55,9 +55,9 @@ becomes **per-user/per-notifier** and driven by rows in Postgres instead of a YA
   scheduling/backoff by hand), Tailwind for styling. Phoenix is a strong fit here: the
   existing prototype is already Elixir/OTP, the domain is naturally concurrent (many
   independent pollers/notifiers), and LiveView removes the need for a separate SPA frontend
-  for the dashboard/filter builder. The Phoenix project itself lives in [`app/`](app/)
-  (generated via `mix phx.new`); this root README/`components/` folder stay as the overall
-  project spec and legacy-prototype reference.
+  for the dashboard/filter builder. The Phoenix project lives directly at the repo root
+  (`mix.exs`, `lib/`, `priv/`, `assets/`, ...); `components/` stays as-is as the
+  legacy-prototype reference.
 - **App layout** (single Phoenix app to start, can split into an umbrella later if needed):
   - `lib/bluette/discovery/` — Recorder, Updater, DEX Screener client, rate limiter, `Token` schema (shared).
   - `lib/bluette/notifications/` — per-user `Notifier` schema, `Criteria`, `Formatter`, delivery worker/supervisor.
@@ -107,8 +107,8 @@ becomes **per-user/per-notifier** and driven by rows in Postgres instead of a YA
 ## 5. Roadmap (step by step)
 
 1. **Repo & specs** — this README, project scaffolding, CI skeleton. *(this step)*
-2. **Auth + UI shell** *(current step, branch `auth`)* — Phoenix + LiveView app scaffolded
-   in `app/`, wallet sign-in (MetaMask + Phantom) only, ultra-basic placeholder UI, no real
+2. **Auth + UI shell** *(current step, branch `auth`)* — Phoenix + LiveView app at the repo
+   root, wallet sign-in (MetaMask + Phantom) only, ultra-basic placeholder UI, no real
    data yet. Google/X OAuth deferred.
 3. **Notifier/filter management UI** — CRUD for notifiers & criteria, Telegram channel
    linking flow.
