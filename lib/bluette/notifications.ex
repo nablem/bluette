@@ -17,6 +17,7 @@ defmodule Bluette.Notifications do
   def list_notifiers(%User{id: user_id}) do
     Notifier
     |> where([n], n.user_id == ^user_id)
+    |> preload(:telegram_channel_record)
     |> order_by([n], asc: n.name)
     |> Repo.all()
   end
@@ -25,6 +26,7 @@ defmodule Bluette.Notifications do
   def get_notifier!(%User{id: user_id}, id) do
     Notifier
     |> where([n], n.user_id == ^user_id)
+    |> preload(:telegram_channel_record)
     |> Repo.get!(id)
   end
 

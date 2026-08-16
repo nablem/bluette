@@ -3,6 +3,7 @@ defmodule BluetteWeb.NotifiersLive do
 
   alias Bluette.Notifications
   alias Bluette.Notifications.Notifier
+  alias Bluette.Telegram
 
   def render(%{live_action: :index} = assigns) do
     ~H"""
@@ -39,7 +40,7 @@ defmodule BluetteWeb.NotifiersLive do
 
             <td>{notifier.chain}</td>
 
-            <td>{notifier.telegram_channel || "—"}</td>
+            <td>{channel_name(notifier)}</td>
 
             <td>{notifier.forbidden_term_list || "—"}</td>
 
@@ -90,10 +91,10 @@ defmodule BluetteWeb.NotifiersLive do
           />
           <.input field={@form[:chain]} type="select" label="Chain" options={Notifier.chains()} />
           <.input
-            field={@form[:telegram_channel]}
+            field={@form[:telegram_channel_id]}
             type="select"
             label="Telegram channel"
-            options={[{"— none linked yet —", nil} | Notifier.placeholder_telegram_channels()]}
+            options={channel_options(@telegram_channels)}
           />
           <.input
             field={@form[:forbidden_term_list]}
@@ -148,8 +149,17 @@ defmodule BluetteWeb.NotifiersLive do
   end
 
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, :notifiers, Notifications.list_notifiers(socket.assigns.current_user))}
+    {:ok,
+     socket
+     |> assign(:notifiers, Notifications.list_notifiers(socket.assigns.current_user))
+     |> assign(:telegram_channels, Telegram.list_channels(socket.assigns.current_user))}
   end
+
+  defp channel_options(channels),
+    do: [{"— none linked yet —", nil} | Enum.map(channels, &{&1.name, &1.id})]
+
+  defp channel_name(%{telegram_channel_record: %{name: name}}), do: name
+  defp channel_name(_notifier), do: "—"
 
   def handle_params(%{"id" => id}, _uri, %{assigns: %{live_action: :edit}} = socket) do
     notifier = Notifications.get_notifier!(socket.assigns.current_user, id)

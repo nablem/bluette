@@ -87,6 +87,10 @@ defmodule BluetteWeb.NotifiersLiveTest do
     )
     |> render_submit()
 
-    assert has_element?(live_view, "#notifier-form p.text-error", "should be at most 25 character")
+    assert has_element?(
+             live_view,
+             "#notifier-form p.text-error",
+             "should be at most 25 character"
+           )
   end
 end
