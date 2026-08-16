@@ -3,13 +3,23 @@ defmodule BluetteWeb.NotifiersLive do
 
   alias Bluette.Notifications
   alias Bluette.Notifications.Notifier
+  alias Bluette.Notifications.TermLists
   alias Bluette.Telegram
 
   def render(%{live_action: :index} = assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user} active_tab={:notifiers}>
       <div class="flex items-center justify-between mb-4">
-        <h1 class="text-2xl font-semibold">Notifiers</h1>
+        <div>
+          <h1 class="text-2xl font-semibold">Notifiers</h1>
+          <p class="text-sm">
+            <strong class="text-primary">
+              Set up the rules for the memecoin calls you want to receive.
+              <br />
+              Choose the chain, Telegram destination, forbidden terms, and metric thresholds.
+            </strong>
+          </p>
+        </div>
         <.link navigate={~p"/notifiers/new"} class="btn btn-primary btn-sm">New notifier</.link>
       </div>
 
@@ -42,7 +52,7 @@ defmodule BluetteWeb.NotifiersLive do
 
             <td>{channel_name(notifier)}</td>
 
-            <td>{notifier.forbidden_term_list || "—"}</td>
+            <td>{term_list_name(notifier)}</td>
 
             <td>
               <span class={[
@@ -88,8 +98,7 @@ defmodule BluetteWeb.NotifiersLive do
             label="Name"
             placeholder="e.g. New Solana pairs"
             maxlength="25"
-          />
-          <.input field={@form[:chain]} type="select" label="Chain" options={Notifier.chains()} />
+          /> <.input field={@form[:chain]} type="select" label="Chain" options={Notifier.chains()} />
           <.input
             field={@form[:telegram_channel_id]}
             type="select"
@@ -97,10 +106,10 @@ defmodule BluetteWeb.NotifiersLive do
             options={channel_options(@telegram_channels)}
           />
           <.input
-            field={@form[:forbidden_term_list]}
+            field={@form[:term_list_id]}
             type="select"
             label="Forbidden term list"
-            options={[{"— none linked yet —", nil} | Notifier.placeholder_forbidden_term_lists()]}
+            options={term_list_options(@term_lists)}
           /> <.input field={@form[:enabled]} type="checkbox" label="Enabled" />
         </div>
 
@@ -152,7 +161,8 @@ defmodule BluetteWeb.NotifiersLive do
     {:ok,
      socket
      |> assign(:notifiers, Notifications.list_notifiers(socket.assigns.current_user))
-     |> assign(:telegram_channels, Telegram.list_channels(socket.assigns.current_user))}
+     |> assign(:telegram_channels, Telegram.list_channels(socket.assigns.current_user))
+     |> assign(:term_lists, TermLists.list_term_lists(socket.assigns.current_user))}
   end
 
   defp channel_options(channels),
@@ -160,6 +170,12 @@ defmodule BluetteWeb.NotifiersLive do
 
   defp channel_name(%{telegram_channel_record: %{name: name}}), do: name
   defp channel_name(_notifier), do: "—"
+
+  defp term_list_options(term_lists),
+    do: [{"— none linked yet —", nil} | Enum.map(term_lists, &{&1.name, &1.id})]
+
+  defp term_list_name(%{term_list: %{name: name}}), do: name
+  defp term_list_name(_notifier), do: "—"
 
   def handle_params(%{"id" => id}, _uri, %{assigns: %{live_action: :edit}} = socket) do
     notifier = Notifications.get_notifier!(socket.assigns.current_user, id)

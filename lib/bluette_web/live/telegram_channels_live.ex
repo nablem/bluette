@@ -9,15 +9,25 @@ defmodule BluetteWeb.TelegramChannelsLive do
       <div class="flex items-center justify-between mb-4">
         <div>
           <h1 class="text-2xl font-semibold">Telegram channels</h1>
-          <p class="text-sm opacity-70">Save destinations once, then reuse them across notifiers.</p>
+
+          <p class="text-sm">
+            <strong class="text-primary">
+              Create a Telegram channel where you want to receive your notifications, then add
+              its name and chat ID here.
+              <br />
+              You can link the saved channel to one or more notifiers
+              so matching memecoin calls are sent to that destination.
+            </strong>
+          </p>
         </div>
-        <button phx-click="new" class="btn btn-primary btn-sm">Add channel</button>
+         <button phx-click="new" class="btn btn-primary btn-sm">Add channel</button>
       </div>
 
       <div :if={@show_form} class="border border-base-300 p-5 mb-6">
         <h2 class="text-lg font-semibold mb-4">
           {if @editing, do: "Edit channel", else: "Add channel"}
         </h2>
+
         <.form
           for={@form}
           id="telegram-channel-form"
@@ -42,6 +52,7 @@ defmodule BluetteWeb.TelegramChannelsLive do
           <p class="text-sm opacity-70">
             Telegram connectivity and test messages will be added later.
           </p>
+
           <div class="flex gap-2">
             <.button type="submit" phx-disable-with="Saving...">Save channel</.button>
             <button type="button" phx-click="cancel" class="btn btn-ghost">Cancel</button>
@@ -58,7 +69,9 @@ defmodule BluetteWeb.TelegramChannelsLive do
           class="border border-base-300 p-4"
         >
           <h2 class="font-semibold">{channel.name}</h2>
+
           <p class="font-mono text-sm opacity-70 mt-1">{channel.chat_id}</p>
+
           <div class="flex gap-2 mt-4">
             <button phx-click="edit" phx-value-id={channel.id} class="btn btn-ghost btn-xs">
               Edit

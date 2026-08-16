@@ -54,7 +54,7 @@ defmodule BluetteWeb.Layouts do
             Telegram channels
           </a>
           <a href="/term-lists" class={["tab", @active_tab == :term_lists && "tab-active"]}>
-            Term lists
+            Forbidden terms
           </a>
         </nav>
       </div>

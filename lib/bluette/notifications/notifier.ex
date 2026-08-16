@@ -4,13 +4,12 @@ defmodule Bluette.Notifications.Notifier do
 
   alias Bluette.Accounts.User
   alias Bluette.Notifications.Criteria
+  alias Bluette.Notifications.TermList
   alias Bluette.Telegram.Channel
 
   @type t :: %__MODULE__{}
 
   @chains ["solana", "ethereum", "base", "bsc"]
-
-  @placeholder_forbidden_term_lists ["default-scam-terms", "nsfw-terms"]
 
   schema "notifiers" do
     field :name, :string
@@ -20,6 +19,7 @@ defmodule Bluette.Notifications.Notifier do
     field :forbidden_term_list, :string
     belongs_to :user, User
     belongs_to :telegram_channel_record, Channel, foreign_key: :telegram_channel_id
+    belongs_to :term_list, TermList
 
     embeds_one :criteria, Criteria, on_replace: :update
 
@@ -29,9 +29,6 @@ defmodule Bluette.Notifications.Notifier do
   @spec chains() :: [String.t()]
   def chains, do: @chains
 
-  @spec placeholder_forbidden_term_lists() :: [String.t()]
-  def placeholder_forbidden_term_lists, do: @placeholder_forbidden_term_lists
-
   @doc false
   def changeset(notifier, attrs) do
     notifier
@@ -40,7 +37,7 @@ defmodule Bluette.Notifications.Notifier do
       :chain,
       :enabled,
       :telegram_channel_id,
-      :forbidden_term_list,
+      :term_list_id,
       :user_id
     ])
     |> cast_embed(:criteria)

@@ -48,6 +48,8 @@ defmodule BluetteWeb.Router do
       live "/notifiers/:id/edit", NotifiersLive, :edit
       live "/telegram-channels", TelegramChannelsLive, :index
       live "/term-lists", TermListsLive, :index
+      live "/term-lists/new", TermListsLive, :new
+      live "/term-lists/:id/edit", TermListsLive, :edit
     end
   end
 
