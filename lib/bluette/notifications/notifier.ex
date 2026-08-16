@@ -42,5 +42,6 @@ defmodule Bluette.Notifications.Notifier do
     |> cast_embed(:criteria)
     |> validate_required([:name, :chain, :user_id])
     |> validate_inclusion(:chain, @chains)
+    |> unique_constraint(:name, name: :notifiers_user_id_name_index)
   end
 end

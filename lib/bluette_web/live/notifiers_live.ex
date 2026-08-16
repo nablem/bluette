@@ -9,40 +9,40 @@ defmodule BluetteWeb.NotifiersLive do
     <Layouts.app flash={@flash} current_user={@current_user} active_tab={:notifiers}>
       <div class="flex items-center justify-between mb-4">
         <h1 class="text-2xl font-semibold">Notifiers</h1>
-        <.link navigate={~p"/notifiers/new"} class="btn btn-primary btn-sm">New notifier</.link>
+         <.link navigate={~p"/notifiers/new"} class="btn btn-primary btn-sm">New notifier</.link>
       </div>
-
+      
       <p :if={@notifiers == []} class="opacity-70">
         No notifiers yet. Create one to start receiving calls on Telegram.
       </p>
-
+      
       <table :if={@notifiers != []} class="table">
         <thead>
           <tr>
             <th>Name</th>
-
+            
             <th>Chain</th>
-
+            
             <th>Telegram channel</th>
-
+            
             <th>Term list</th>
-
+            
             <th>Status</th>
-
+            
             <th></th>
           </tr>
         </thead>
-
+        
         <tbody>
           <tr :for={notifier <- @notifiers}>
             <td>{notifier.name}</td>
-
+            
             <td>{notifier.chain}</td>
-
+            
             <td>{notifier.telegram_channel || "—"}</td>
-
+            
             <td>{notifier.forbidden_term_list || "—"}</td>
-
+            
             <td>
               <span class={[
                 "badge",
@@ -52,7 +52,7 @@ defmodule BluetteWeb.NotifiersLive do
                 {if notifier.enabled, do: "enabled", else: "disabled"}
               </span>
             </td>
-
+            
             <td class="flex gap-2 justify-end">
               <.link navigate={~p"/notifiers/#{notifier}/edit"} class="btn btn-ghost btn-xs">
                 Edit
@@ -78,7 +78,7 @@ defmodule BluetteWeb.NotifiersLive do
       <h1 class="text-2xl font-semibold mb-4">
         {if @live_action == :new, do: "New notifier", else: "Edit notifier"}
       </h1>
-
+      
       <.form for={@form} id="notifier-form" phx-change="validate" phx-submit="save" class="space-y-6">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <.input field={@form[:name]} type="text" label="Name" placeholder="e.g. New Solana pairs" />
@@ -96,39 +96,42 @@ defmodule BluetteWeb.NotifiersLive do
             options={[{"— none linked yet —", nil} | Notifier.placeholder_forbidden_term_lists()]}
           /> <.input field={@form[:enabled]} type="checkbox" label="Enabled" />
         </div>
-
+        
         <div>
           <h2 class="text-lg font-semibold mb-2">Match criteria</h2>
-
-          <p class="text-sm opacity-70 mb-3">
-            Leave min/max blank for no lower/upper bound on that metric.
+          
+          <p class="text-sm mb-3">
+            <strong class="text-primary">
+              Leave both min and max blank for metrics this notifier does not depend on.
+              A single value sets only that lower or upper bound.
+            </strong>
           </p>
-
+          
           <.inputs_for :let={cf} field={@form[:criteria]}>
             <table class="table">
               <thead>
                 <tr>
                   <th>Metric</th>
-
+                  
                   <th>Min</th>
-
+                  
                   <th>Max</th>
                 </tr>
               </thead>
-
+              
               <tbody>
                 <tr :for={{metric, label} <- Notifications.metrics()}>
                   <td>{label}</td>
-
+                  
                   <td><.input field={cf[:"#{metric}_min"]} type="number" step="any" /></td>
-
+                  
                   <td><.input field={cf[:"#{metric}_max"]} type="number" step="any" /></td>
                 </tr>
               </tbody>
             </table>
           </.inputs_for>
         </div>
-
+        
         <div class="flex gap-2">
           <.button type="submit" phx-disable-with="Saving...">Save notifier</.button>
           <.link navigate={~p"/notifiers"} class="btn btn-ghost">Cancel</.link>

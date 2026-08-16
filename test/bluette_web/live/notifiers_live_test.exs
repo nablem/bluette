@@ -54,4 +54,24 @@ defmodule BluetteWeb.NotifiersLiveTest do
     html = render(index_live)
     assert html =~ "No notifiers yet"
   end
+
+  test "rejects a duplicate notifier name for the same user", %{conn: conn} do
+    {:ok, first_live, _html} = live(conn, ~p"/notifiers/new")
+
+    first_live
+    |> form("#notifier-form",
+      notifier: %{"name" => "Solana calls", "chain" => "solana"}
+    )
+    |> render_submit()
+
+    {:ok, second_live, _html} = live(conn, ~p"/notifiers/new")
+
+    second_live
+    |> form("#notifier-form",
+      notifier: %{"name" => "Solana calls", "chain" => "ethereum"}
+    )
+    |> render_submit()
+
+    assert has_element?(second_live, "#notifier-form p.text-error", "has already been taken")
+  end
 end
