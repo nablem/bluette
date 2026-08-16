@@ -58,7 +58,7 @@ defmodule BluetteWeb.Layouts do
           </a>
         </nav>
       </div>
-      
+
       <div class="flex-none">
         <ul class="flex flex-column px-1 space-x-4 items-center">
           <li
@@ -67,11 +67,11 @@ defmodule BluetteWeb.Layouts do
           >
             {Enum.at(@current_user.wallet_identities, 0).address}
           </li>
-          
+
           <li :if={@current_user}>
             <.link href="/logout" method="delete" class="btn btn-ghost btn-sm">Log out</.link>
           </li>
-          
+
           <li><.theme_toggle /></li>
         </ul>
       </div>
@@ -80,7 +80,7 @@ defmodule BluetteWeb.Layouts do
     <main class="px-4 py-10 sm:px-6 lg:px-8">
       <div class="mx-auto max-w-4xl space-y-4">{render_slot(@inner_block)}</div>
     </main>
-     <.flash_group flash={@flash} />
+    <.flash_group flash={@flash} />
     """
   end
 
@@ -109,7 +109,7 @@ defmodule BluetteWeb.Layouts do
         {gettext("Attempting to reconnect")}
         <.icon name="hero-arrow-path" class="ml-1 size-3 motion-safe:animate-spin" />
       </.flash>
-      
+
       <.flash
         id="server-error"
         kind={:error}

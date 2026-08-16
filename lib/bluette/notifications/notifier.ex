@@ -41,6 +41,7 @@ defmodule Bluette.Notifications.Notifier do
     |> cast(attrs, [:name, :chain, :enabled, :telegram_channel, :forbidden_term_list, :user_id])
     |> cast_embed(:criteria)
     |> validate_required([:name, :chain, :user_id])
+    |> validate_length(:name, max: 25)
     |> validate_inclusion(:chain, @chains)
     |> unique_constraint(:name, name: :notifiers_user_id_name_index)
   end

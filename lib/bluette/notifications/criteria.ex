@@ -26,8 +26,8 @@ defmodule Bluette.Notifications.Criteria do
   @primary_key false
   embedded_schema do
     for {metric, _label} <- @metrics do
-      field :"#{metric}_min", :float
-      field :"#{metric}_max", :float
+      field :"#{metric}_min", :integer
+      field :"#{metric}_max", :integer
     end
   end
 

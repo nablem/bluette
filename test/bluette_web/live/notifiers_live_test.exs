@@ -34,7 +34,7 @@ defmodule BluetteWeb.NotifiersLiveTest do
     assert html =~ "New Solana pairs"
 
     [notifier] = Bluette.Notifications.list_notifiers(user)
-    assert notifier.criteria.market_cap_min == 10_000.0
+    assert notifier.criteria.market_cap_min == 10_000
 
     {:ok, edit_live, _html} = live(conn, ~p"/notifiers/#{notifier}/edit")
 
@@ -73,5 +73,20 @@ defmodule BluetteWeb.NotifiersLiveTest do
     |> render_submit()
 
     assert has_element?(second_live, "#notifier-form p.text-error", "has already been taken")
+  end
+
+  test "rejects notifier names longer than 25 characters", %{conn: conn} do
+    {:ok, live_view, _html} = live(conn, ~p"/notifiers/new")
+
+    live_view
+    |> form("#notifier-form",
+      notifier: %{
+        "name" => "This notifier name is too long",
+        "chain" => "solana"
+      }
+    )
+    |> render_submit()
+
+    assert has_element?(live_view, "#notifier-form p.text-error", "should be at most 25 character")
   end
 end
