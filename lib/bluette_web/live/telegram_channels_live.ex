@@ -15,12 +15,15 @@ defmodule BluetteWeb.TelegramChannelsLive do
               Create a Telegram channel where you want to receive your notifications, then add
               its name and chat ID here.
               <br />
+              Add the bot <strong>@memeping_bot</strong> (MemePing Bot) to your channel as an
+              administrator with permission to post messages.
+              <br />
               You can link the saved channel to one or more notifiers
               so matching memecoin calls are sent to that destination.
             </strong>
           </p>
         </div>
-         <button phx-click="new" class="btn btn-primary btn-sm">Add channel</button>
+        <button phx-click="new" class="btn btn-primary btn-sm">Add channel</button>
       </div>
 
       <div :if={@show_form} class="border border-base-300 p-5 mb-6">
@@ -73,6 +76,14 @@ defmodule BluetteWeb.TelegramChannelsLive do
           <p class="font-mono text-sm opacity-70 mt-1">{channel.chat_id}</p>
 
           <div class="flex gap-2 mt-4">
+            <button
+              id={"test-telegram-channel-#{channel.id}"}
+              phx-click="test"
+              phx-value-id={channel.id}
+              class="btn btn-primary btn-xs"
+            >
+              Send test message
+            </button>
             <button phx-click="edit" phx-value-id={channel.id} class="btn btn-ghost btn-xs">
               Edit
             </button>
@@ -153,6 +164,27 @@ defmodule BluetteWeb.TelegramChannelsLive do
 
     {:noreply, load_channels(socket)}
   end
+
+  def handle_event("test", %{"id" => id}, socket) do
+    channel = Telegram.get_channel!(socket.assigns.current_user, id)
+
+    case Telegram.send_test_message(channel) do
+      :ok ->
+        {:noreply, put_flash(socket, :info, "Test message sent to #{channel.name}")}
+
+      {:error, reason} ->
+        {:noreply, put_flash(socket, :error, telegram_error_message(reason))}
+    end
+  end
+
+  defp telegram_error_message(:missing_telegram_bot_token),
+    do: "Telegram bot token is not configured."
+
+  defp telegram_error_message({:telegram_api, description}),
+    do: "Telegram rejected the message: #{description}"
+
+  defp telegram_error_message(_reason),
+    do: "The test message could not be sent. Check the chat ID and bot permissions."
 
   defp load_channels(socket) do
     assign(socket, :channels, Telegram.list_channels(socket.assigns.current_user))

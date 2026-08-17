@@ -5,6 +5,8 @@ defmodule Bluette.Notifications.TermList do
   alias Bluette.Accounts.User
   alias Bluette.Notifications.Notifier
 
+  @type t :: %__MODULE__{}
+
   schema "term_lists" do
     field :name, :string
     field :terms, :string

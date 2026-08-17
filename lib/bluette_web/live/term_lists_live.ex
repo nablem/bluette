@@ -9,20 +9,20 @@ defmodule BluetteWeb.TermListsLive do
       <div class="flex items-center justify-between mb-4">
         <div>
           <h1 class="text-2xl font-semibold">Lists of forbidden terms</h1>
+          
           <p class="text-sm">
             <strong class="text-primary">
               Link a list to a notifier to exclude memecoins whose names match any of its
-              case-insensitive regex patterns.
-              <br />
+              case-insensitive regex patterns. <br />
               Matching is applied to the name only, not the ticker or description.
             </strong>
           </p>
         </div>
-        <.link navigate={~p"/term-lists/new"} class="btn btn-primary btn-sm">New term list</.link>
+         <.link navigate={~p"/term-lists/new"} class="btn btn-primary btn-sm">New term list</.link>
       </div>
-
+      
       <p :if={@term_lists == []} class="opacity-70">No forbidden term lists yet.</p>
-
+      
       <div :if={@term_lists != []} class="grid gap-3 sm:grid-cols-2">
         <article
           :for={term_list <- @term_lists}
@@ -32,10 +32,11 @@ defmodule BluetteWeb.TermListsLive do
           <div class="flex items-start justify-between gap-3">
             <div>
               <h2 class="font-semibold">{term_list.name}</h2>
+              
               <p class="text-sm opacity-70">{term_count(term_list.terms)} regexes</p>
             </div>
           </div>
-          <pre class="mt-3 p-3 bg-base-200 text-sm overflow-x-auto">{preview_terms(term_list.terms)}</pre>
+           <pre class="mt-3 p-3 bg-base-200 text-sm overflow-x-auto">{preview_terms(term_list.terms)}</pre>
           <div class="flex gap-2 mt-4">
             <.link navigate={~p"/term-lists/#{term_list}/edit"} class="btn btn-ghost btn-xs">
               Edit
@@ -61,10 +62,11 @@ defmodule BluetteWeb.TermListsLive do
       <h1 class="text-2xl font-semibold mb-2">
         {if @live_action == :new, do: "New forbidden term list", else: "Edit forbidden term list"}
       </h1>
+      
       <p class="text-sm opacity-70 mb-4">
         Enter one regular expression per line. Matching will be case-insensitive and limited to the memecoin name.
       </p>
-
+      
       <.form for={@form} id="term-list-form" phx-change="validate" phx-submit="save" class="space-y-5">
         <.input
           field={@form[:name]}

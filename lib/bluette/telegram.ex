@@ -10,6 +10,7 @@ defmodule Bluette.Telegram do
   alias Bluette.Accounts.User
   alias Bluette.Repo
   alias Bluette.Telegram.Channel
+  alias Bluette.Telegram.Client
 
   @spec list_channels(User.t()) :: [Channel.t()]
   def list_channels(%User{id: user_id}) do
@@ -48,4 +49,12 @@ defmodule Bluette.Telegram do
 
   @spec delete_channel(Channel.t()) :: {:ok, Channel.t()} | {:error, Ecto.Changeset.t()}
   def delete_channel(%Channel{} = channel), do: Repo.delete(channel)
+
+  @spec send_test_message(Channel.t()) :: :ok | {:error, term()}
+  def send_test_message(%Channel{chat_id: chat_id, name: name}) do
+    Client.send_message(
+      chat_id,
+      "Bluette test message\n\nThis channel is ready to receive memecoin calls for #{name}."
+    )
+  end
 end

@@ -5,6 +5,8 @@ defmodule Bluette.Telegram.Channel do
   alias Bluette.Accounts.User
   alias Bluette.Notifications.Notifier
 
+  @type t :: %__MODULE__{}
+
   schema "telegram_channels" do
     field :name, :string
     field :chat_id, :string

@@ -23,6 +23,8 @@ end
 config :bluette, BluetteWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
+config :bluette, :telegram_bot_token, System.get_env("TELEGRAM_BOT_TOKEN")
+
 if config_env() == :prod do
   database_path =
     System.get_env("DATABASE_PATH") ||

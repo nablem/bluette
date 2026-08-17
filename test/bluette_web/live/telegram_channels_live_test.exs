@@ -80,4 +80,31 @@ defmodule BluetteWeb.TelegramChannelsLiveTest do
              "has already been taken"
            )
   end
+
+  test "sends a test message through the configured Telegram client", %{conn: conn} do
+    previous_client = Application.get_env(:bluette, :telegram_client)
+    Application.put_env(:bluette, :telegram_client, Bluette.Telegram.TestClient)
+
+    on_exit(fn ->
+      Application.put_env(:bluette, :telegram_client, previous_client)
+    end)
+
+    {:ok, live_view, _html} = live(conn, ~p"/telegram-channels")
+
+    live_view
+    |> element("button", "Add channel")
+    |> render_click()
+
+    live_view
+    |> form("#telegram-channel-form",
+      channel: %{"name" => "Main calls", "chat_id" => "-1001234567890"}
+    )
+    |> render_submit()
+
+    live_view
+    |> element("button", "Send test message")
+    |> render_click()
+
+    assert render(live_view) =~ "Test message sent to Main calls"
+  end
 end
