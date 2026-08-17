@@ -1,4 +1,4 @@
-defmodule Bluette.Repo.Migrations.CreateTermLists do
+defmodule MemePing.Repo.Migrations.CreateTermLists do
   use Ecto.Migration
 
   def change do

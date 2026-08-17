@@ -1,4 +1,4 @@
-defmodule Bluette.Repo.Migrations.CreateNotifiers do
+defmodule MemePing.Repo.Migrations.CreateNotifiers do
   use Ecto.Migration
 
   def change do

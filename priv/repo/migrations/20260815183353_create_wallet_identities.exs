@@ -1,4 +1,4 @@
-defmodule Bluette.Repo.Migrations.CreateWalletIdentities do
+defmodule MemePing.Repo.Migrations.CreateWalletIdentities do
   use Ecto.Migration
 
   def change do

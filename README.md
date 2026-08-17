@@ -1,6 +1,6 @@
-# Bluette
+# MemePing
 
-Bluette lets anyone get memecoin calls (Solana, Ethereum, Base, …) delivered straight to
+MemePing lets anyone get memecoin calls (Solana, Ethereum, Base, …) delivered straight to
 their **own Telegram channel**, filtered by the criteria they care about (pair age, market
 cap, liquidity, volume, forbidden terms in the name/ticker, and more). No trading, no
 sniping — just a reliable bridge between DEX Screener and Telegram, self-served through a
@@ -9,12 +9,12 @@ web app.
 ## 1. Product summary
 
 - **Multi-tenant**: every user configures one or more "notifiers" (a Telegram destination +
-  a set of filters). Bluette evaluates every discovered token/pair against every active
+  a set of filters). MemePing evaluates every discovered token/pair against every active
   user notifier and forwards a formatted call when it matches.
 - **No sniper / no trading**: this project reuses the *discovery* and *notification* halves
   of the existing `bentley` prototype (`components/lib/bentley`), but drops the sniper /
   execution / position-tracking pieces entirely.
-- **Multi-chain**: unlike the prototype (Solana-only), Bluette should support any chain
+- **Multi-chain**: unlike the prototype (Solana-only), MemePing should support any chain
   DEX Screener indexes (Solana, Ethereum, Base, BSC, …), selectable per notifier.
 - **Auth**: sign in with a Web3 wallet only for v1 (MetaMask/Ethereum, Phantom/Solana) via
   sign-in-with-wallet (message signing, no password/custody involved). Google/X OAuth are
@@ -33,14 +33,14 @@ plan to port/generalize:
 
 | Bentley module | Reused as | Notes |
 |---|---|---|
-| `Bentley.Recorder` | `Bluette.Discovery.Recorder` | Polls DEX Screener "latest token profiles"; must become chain-aware (loop over configured chains, not hardcoded `"solana"`). |
-| `Bentley.Updater` | `Bluette.Discovery.Updater` | Refreshes per-token metrics (`marketCap`, `liquidity`, volume, price changes …) on an adaptive schedule based on age/volume. Drop the `SniperPosition` / `Activator` coupling. |
-| `Bentley.Notifiers` + `Notifiers.Worker` | `Bluette.Notifications.Notifier` (per-user, DB-backed) | Instead of a static YAML file loaded once, each user's notifier row becomes a supervised worker (Registry + DynamicSupervisor pattern is reused as-is). |
-| `Bentley.Notifiers.Criteria` | `Bluette.Notifications.Criteria` | Same min/max range matching engine; extend with a `forbidden_terms` (name/ticker substring/regex) check and multi-chain metric support. |
-| `Bentley.Notifiers.Formatter` | `Bluette.Notifications.Formatter` | Message templating for the Telegram call. |
-| `Bentley.Telegram.Client` (+ `HTTPClient`) | `Bluette.Telegram.Client` | Behaviour + HTTP impl is already decoupled/mockable — keep as-is. Needs to support sending to a channel/chat that belongs to the *end user*, not a single hardcoded bot config. |
+| `Bentley.Recorder` | `MemePing.Discovery.Recorder` | Polls DEX Screener "latest token profiles"; must become chain-aware (loop over configured chains, not hardcoded `"solana"`). |
+| `Bentley.Updater` | `MemePing.Discovery.Updater` | Refreshes per-token metrics (`marketCap`, `liquidity`, volume, price changes …) on an adaptive schedule based on age/volume. Drop the `SniperPosition` / `Activator` coupling. |
+| `Bentley.Notifiers` + `Notifiers.Worker` | `MemePing.Notifications.Notifier` (per-user, DB-backed) | Instead of a static YAML file loaded once, each user's notifier row becomes a supervised worker (Registry + DynamicSupervisor pattern is reused as-is). |
+| `Bentley.Notifiers.Criteria` | `MemePing.Notifications.Criteria` | Same min/max range matching engine; extend with a `forbidden_terms` (name/ticker substring/regex) check and multi-chain metric support. |
+| `Bentley.Notifiers.Formatter` | `MemePing.Notifications.Formatter` | Message templating for the Telegram call. |
+| `Bentley.Telegram.Client` (+ `HTTPClient`) | `MemePing.Telegram.Client` | Behaviour + HTTP impl is already decoupled/mockable — keep as-is. Needs to support sending to a channel/chat that belongs to the *end user*, not a single hardcoded bot config. |
 | `Bentley.Schema.Token`, `Bentley.RateLimiter` | Reused close to verbatim | Add a `chain_id` column/index since Token becomes shared across chains. |
-| `Bentley.Snipers*`, `SniperPosition`, `SniperTrade`, `Activator` | **Not reused** | Trading/sniper concerns are out of scope for Bluette. |
+| `Bentley.Snipers*`, `SniperPosition`, `SniperTrade`, `Activator` | **Not reused** | Trading/sniper concerns are out of scope for MemePing. |
 
 Net effect: the "discovery" side (Recorder/Updater/Token) stays a **shared, global** pipeline
 (one set of GenServers polling DEX Screener for everyone), while the "notification" side
@@ -59,12 +59,12 @@ becomes **per-user/per-notifier** and driven by rows in Postgres instead of a YA
   (`mix.exs`, `lib/`, `priv/`, `assets/`, ...); `components/` stays as-is as the
   legacy-prototype reference.
 - **App layout** (single Phoenix app to start, can split into an umbrella later if needed):
-  - `lib/bluette/discovery/` — Recorder, Updater, DEX Screener client, rate limiter, `Token` schema (shared).
-  - `lib/bluette/notifications/` — per-user `Notifier` schema, `Criteria`, `Formatter`, delivery worker/supervisor.
-  - `lib/bluette/telegram/` — Telegram client behaviour + HTTP implementation.
-  - `lib/bluette/accounts/` — `User`, wallet identities, sessions.
-  - `lib/bluette/billing/` — `Subscription`, `Plan`, usage/quota tracking, USDC payment verification (manual 30-day renewal for v1).
-  - `lib/bluette_web/` — LiveView UI: dashboard, notifier/filter builder, billing, auth callbacks.
+  - `lib/memeping/discovery/` — Recorder, Updater, DEX Screener client, rate limiter, `Token` schema (shared).
+  - `lib/memeping/notifications/` — per-user `Notifier` schema, `Criteria`, `Formatter`, delivery worker/supervisor.
+  - `lib/memeping/telegram/` — Telegram client behaviour + HTTP implementation.
+  - `lib/memeping/accounts/` — `User`, wallet identities, sessions.
+  - `lib/memeping/billing/` — `Subscription`, `Plan`, usage/quota tracking, USDC payment verification (manual 30-day renewal for v1).
+  - `lib/memeping_web/` — LiveView UI: dashboard, notifier/filter builder, billing, auth callbacks.
 
 - **Auth (v1, web3-only)**:
   - Wallet sign-in ("Sign-In with Ethereum"/EIP-4361 style, and an equivalent Solana
@@ -100,7 +100,7 @@ becomes **per-user/per-notifier** and driven by rows in Postgres instead of a YA
   store the resulting `chat_id`), instead of one operator-owned set of channels.
 - Adds a `forbidden_terms` criterion (reject tokens whose name/ticker contains blacklisted
   words).
-- No sniping, no trade execution, no wallet custody of user funds — Bluette never holds
+- No sniping, no trade execution, no wallet custody of user funds — MemePing never holds
   or trades the user's assets.
 - Adds authentication, billing, and per-user usage quotas, none of which exist in the prototype.
 

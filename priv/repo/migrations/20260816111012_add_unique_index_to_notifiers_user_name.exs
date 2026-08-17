@@ -1,4 +1,4 @@
-defmodule Bluette.Repo.Migrations.AddUniqueIndexToNotifiersUserName do
+defmodule MemePing.Repo.Migrations.AddUniqueIndexToNotifiersUserName do
   use Ecto.Migration
 
   def change do

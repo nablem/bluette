@@ -1,0 +1,108 @@
+<div class="mx-auto max-w-sm mt-24 text-center">
+  <h1 class="text-2xl font-semibold mb-6">Sign in to MemePing</h1>
+
+  <div class="flex flex-col gap-3">
+    <button id="connect-metamask" class="btn btn-primary">Connect MetaMask</button>
+    <button id="connect-phantom" class="btn btn-secondary">Connect Phantom</button>
+  </div>
+
+  <p id="wallet-status" class="mt-4 text-sm text-red-600"></p>
+</div>
+
+<script>
+  const statusEl = document.getElementById("wallet-status");
+
+  function setStatus(text) {
+    statusEl.textContent = text;
+  }
+
+  function bs58Encode(bytes) {
+    const ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+    const digits = [0];
+
+    for (let i = 0; i < bytes.length; i++) {
+      let carry = bytes[i];
+      for (let j = 0; j < digits.length; j++) {
+        carry += digits[j] << 8;
+        digits[j] = carry % 58;
+        carry = (carry / 58) | 0;
+      }
+      while (carry > 0) {
+        digits.push(carry % 58);
+        carry = (carry / 58) | 0;
+      }
+    }
+
+    let leadingZeros = 0;
+    for (let i = 0; i < bytes.length - 1 && bytes[i] === 0; i++) leadingZeros++;
+
+    return ALPHABET[0].repeat(leadingZeros) + digits.reverse().map((d) => ALPHABET[d]).join("");
+  }
+
+  async function requestNonce(chain, address) {
+    const res = await fetch("/auth/wallet/nonce", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chain, address }),
+    });
+
+    if (!res.ok) throw new Error("Could not start sign-in challenge");
+    const { message } = await res.json();
+    return message;
+  }
+
+  async function verify(chain, address, signature) {
+    const res = await fetch("/auth/wallet/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chain, address, signature }),
+    });
+
+    if (res.ok) {
+      const { redirect } = await res.json();
+      window.location.href = redirect;
+    } else {
+      const body = await res.json().catch(() => ({}));
+      setStatus("Login failed: " + (body.error || res.status));
+    }
+  }
+
+  async function loginWithEvm() {
+    if (!window.ethereum) {
+      setStatus("MetaMask not detected.");
+      return;
+    }
+
+    const [address] = await window.ethereum.request({ method: "eth_requestAccounts" });
+    const message = await requestNonce("evm", address);
+    const signature = await window.ethereum.request({
+      method: "personal_sign",
+      params: [message, address],
+    });
+
+    await verify("evm", address, signature);
+  }
+
+  async function loginWithSolana() {
+    if (!window.solana || !window.solana.isPhantom) {
+      setStatus("Phantom not detected.");
+      return;
+    }
+
+    const { publicKey } = await window.solana.connect();
+    const address = publicKey.toString();
+    const message = await requestNonce("solana", address);
+    const encodedMessage = new TextEncoder().encode(message);
+    const { signature } = await window.solana.signMessage(encodedMessage, "utf8");
+
+    await verify("solana", address, bs58Encode(signature));
+  }
+
+  document.getElementById("connect-metamask").addEventListener("click", () => {
+    loginWithEvm().catch((e) => setStatus(e.message));
+  });
+
+  document.getElementById("connect-phantom").addEventListener("click", () => {
+    loginWithSolana().catch((e) => setStatus(e.message));
+  });
+</script>

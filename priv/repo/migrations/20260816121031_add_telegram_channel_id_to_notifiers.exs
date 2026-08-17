@@ -1,4 +1,4 @@
-defmodule Bluette.Repo.Migrations.AddTelegramChannelIdToNotifiers do
+defmodule MemePing.Repo.Migrations.AddTelegramChannelIdToNotifiers do
   use Ecto.Migration
 
   def change do

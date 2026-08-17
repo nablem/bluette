@@ -1,4 +1,4 @@
-defmodule Bluette.Repo.Migrations.AddTermListIdToNotifiers do
+defmodule MemePing.Repo.Migrations.AddTermListIdToNotifiers do
   use Ecto.Migration
 
   def change do

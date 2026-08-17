@@ -1,2 +1,2 @@
 ExUnit.start()
-Ecto.Adapters.SQL.Sandbox.mode(Bluette.Repo, :manual)
+Ecto.Adapters.SQL.Sandbox.mode(MemePing.Repo, :manual)

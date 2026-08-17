@@ -1,4 +1,4 @@
-defmodule Bluette.Repo.Migrations.CreateTelegramChannels do
+defmodule MemePing.Repo.Migrations.CreateTelegramChannels do
   use Ecto.Migration
 
   def change do
